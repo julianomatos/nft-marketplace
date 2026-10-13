@@ -30,7 +30,7 @@ Single Page Application built with React 19 and TypeScript. **TanStack Router** 
   └────────────────────────────────────────────────────┘
 ```
 
-## 2. Technology Decisions & Compatibility [Planned]
+## 2. Technology Decisions & Compatibility [Done]
 
 | Area | Decision | Note |
 | --- | --- | --- |
@@ -39,7 +39,13 @@ Single Page Application built with React 19 and TypeScript. **TanStack Router** 
 | Routing | TanStack Router, file-based | Zod-validated search params |
 | Mocking | MSW **2.x** + `@mswjs/socket.io-binding@0.2.x` | Binding peer-depends on `msw@^2.10.2`; MSW 3 not used (see Limitations) |
 | TypeScript | 6.0.x | Pinned below 6.1 for `typescript-eslint` support |
+| Node types | `@types/node` 22.x | Matches the Node 22.19 runtime target; `.nvmrc` pins 22.19.0 |
+| Validation | Zod 3.25.x | Selected because the newest resolver's optional `@typeschema/zod` peer set did not resolve with Zod 4; the resolver supports both Zod 3.25+ and Zod 4 |
+| UI initialization | shadcn `radix-nova` preset and locally bundled Geist Variable | Starter defaults only; replace visual tokens/font to match Figma in Epic 1 |
+| Lighthouse | Lighthouse 13.5 + direct `chrome-launcher` | The audit runner imports the launcher directly and uses Playwright's Chromium binary |
 | Money | `decimal.js` | ETH as decimal strings end to end |
+
+The initial dependency audit found 8 high and 19 moderate advisories in the Lighthouse 12.8.2 dependency graph. Lighthouse was updated to 13.5.0 (Node ≥ 22.19); the follow-up audit reported no vulnerabilities. The remaining `npm outdated` entries are deliberate compatibility pins: MSW 2.x for the Socket.IO binding, TypeScript 6.0.x for `typescript-eslint`, Node 22 types for the runtime target and Zod 3.25 for the compatible resolver peer graph. The shadcn CLI was not kept as a dependency because its package tree introduced seven high-severity advisories; generated primitives and CSS remain in the project.
 
 ## 3. Domain Rules [Planned]
 
@@ -163,5 +169,5 @@ _List every deviation and asset replacement with the reason._
 ## 15. Known Limitations [To be filled during implementation]
 
 Known so far:
-- `@mswjs/socket.io-binding@0.2.0` targets MSW 2.x, so the project stays on MSW 2.x. Document any protocol/transport limitations observed in the mock Socket.IO environment here (e.g. rooms/namespaces behavior, reconnect simulation).
+- `@mswjs/socket.io-binding@0.2.0` targets MSW 2.x, so the project stays on MSW 2.x. Mocked responses use the wrapper's `client` endpoint; its `server` endpoint represents the upstream connection. The wrapper does not implement Socket.IO rooms, custom namespaces or broadcasting; the Epic 0 browser smoke test uses WebSocket transport and does not certify HTTP long-polling or reconnect behavior.
 - Token in `sessionStorage` is mock-grade and not production-secure.

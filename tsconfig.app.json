@@ -5,6 +5,9 @@
     "lib": ["ES2023", "DOM"],
     "module": "esnext",
     "types": ["vite/client"],
+    "paths": {
+      "@/*": ["./src/*"]
+    },
     "allowArbitraryExtensions": true,
     "skipLibCheck": true,
 
@@ -14,6 +17,7 @@
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
     "noEmit": true,
+    "strict": true,
     "jsx": "react-jsx",
 
     /* Linting */
