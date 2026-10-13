@@ -1,0 +1,161 @@
+# tasks.md — Granular Backlog for NFT Marketplace
+
+Work **one task at a time**, in epic order. Every epic ends with its own Playwright test(s) and a Definition of Done check (see `AGENTS.md` §12). Check a box only when the task is truly done and `npm run typecheck`, `npm run lint` and the related test pass.
+
+Scoring reminder: fidelity & responsiveness (20) and flows & UX (20) weigh most; the disqualifiers in `AGENTS.md` §0 must never be at risk.
+
+---
+
+## Epic 0: Dependency & Compatibility Audit (do first)
+
+Context: initial setup is done and dependencies are installed with npm. Verify everything is consistent **before** building features.
+
+- [ ] Confirm Node version: `node -v` must be **≥ 22.19** (Lighthouse requirement; Vite/ESLint/Playwright also satisfied). Add `"engines": { "node": ">=22.19" }` to `package.json` and an `.nvmrc`. Align `@types/node` to the Node major in use (currently `^24`, runtime target 22).
+- [ ] Run `npm ls --depth=0` and `npm install` from a clean state (`rm -rf node_modules && npm ci`); confirm there are **no** `ERESOLVE`/peer warnings and that the lockfile is committed. Do not use `--legacy-peer-deps` or `overrides` to hide a conflict.
+- [ ] **Resolve the MSW conflict**: `@mswjs/socket.io-binding@0.2.0` (latest, published June 2025) has peer `msw@^2.10.2`, but `msw@^3.0.3` is installed. Downgrade: `npm install -D msw@^2.15.0`, then regenerate the worker with `npx msw init public --save` and keep the `"msw": { "workerDirectory": ["public"] }` entry. Record the decision in `ARCHITECTURE.md` §2/§15.
+- [ ] Smoke-test MSW 2.x + binding + `socket.io-client`: a throwaway script/page where a mocked Socket.IO server emits one event that `socket.io-client` receives in the browser. Remove or promote it to a real test afterwards.
+- [ ] Keep `typescript@~6.0.2` (`typescript-eslint` supports `<6.1.0`); do **not** bump to TypeScript 7. Verify `npm run lint` works with ESLint 10 + `typescript-eslint` + `eslint-plugin-react-hooks` 7 + `eslint-plugin-react-refresh`.
+- [ ] Verify Vite 8 ↔ `@vitejs/plugin-react` 6 ↔ `@tailwindcss/vite` 4 ↔ `@tanstack/router-plugin` (peer `@tanstack/react-router ^1.170.44`) work together: `npm run dev` and `npm run build` pass; router plugin generates `routeTree.gen.ts`.
+- [ ] Install missing dependencies: `zod`, `react-hook-form`, `@hookform/resolvers`, `decimal.js`, `tw-animate-css` (shadcn animations), `@axe-core/playwright`, `lighthouse` (+ `chrome-launcher` if needed). Check each version's peer dependencies after installing (`@hookform/resolvers` supports `zod ^3.25 || ^4`).
+- [ ] Add `@/*` path alias in `tsconfig` **and** `vite.config.ts`; run `npx shadcn@latest init` (Tailwind v4 + React 19) and generate `components.json`. Add base components on demand (Button, Input, Dialog, Drawer, Card, Skeleton, Select, Checkbox, Sonner/Toast, etc.).
+- [ ] Add npm scripts: `typecheck`, `test:e2e`, `test:e2e:update`, `lighthouse` (see `AGENTS.md` §2) and `.env.development` / `.env.example` with `VITE_ENABLE_MOCKS`, `VITE_MOCK_SCENARIO`, `VITE_API_BASE_URL`.
+- [ ] Run `npm audit` and `npm outdated`; note any high-severity findings or deliberate pins in `ARCHITECTURE.md` §2.
+- [ ] Verify `npm run build && npm run preview` succeeds and the app boots; install Playwright browsers (`npx playwright install chromium`) and run an empty smoke spec.
+- [ ] Commit a clean baseline ("chore: dependency audit and compatibility fixes").
+
+**Acceptance**: clean `npm ci`, `dev`, `build`, `lint`, `typecheck` and one smoke E2E all pass; zero peer-dependency errors; MSW 2.x + binding verified.
+
+---
+
+## Epic 1: Project Infrastructure
+
+- [ ] Configure Tailwind v4 theme tokens (colors, typography, spacing, radii) from Figma in CSS; self-host required fonts; add base styles and `prefers-reduced-motion` handling.
+- [ ] Configure TanStack Router (file-based): root layout, header/footer shell, 404 route, root error boundary, private-route guard helper, Zod-validated search params utility.
+- [ ] Configure TanStack Query client: stale times, retry policy (no 4xx retries, max 2 for network/5xx with backoff), query key factory (`src/hooks/queryKeys.ts`), devtools in dev only.
+- [ ] Configure Axios client: base URL, timeout, auth interceptor, error normalization to the API error envelope (`src/utils/errors.ts`), `AbortSignal` support.
+- [ ] Add `src/utils/eth.ts` (`decimal.js` helpers: add, mul, sum, compare, format) with unit tests.
+- [ ] Set up shared UI primitives: Skeleton with shimmer (reduced-motion safe), empty/error state components, toast + `aria-live` region.
+- [ ] Add `index.html` essentials: `lang`, `<title>`, meta description, favicon, viewport.
+
+**Acceptance**: app shell renders at 390/768/1440; 404 route works; ETH helpers tested.
+
+---
+
+## Epic 2: Contracts & Mocking Infrastructure (MSW + Socket.IO)
+
+- [ ] Define typed contracts in `src/types/contracts.ts` and `src/types/events.ts` (error envelope, quote, order states, event envelope with `eventId`, `version`, `userId`).
+- [ ] Create fixtures: ≥ 2 users (fictitious credentials), diverse NFTs/categories/editions (enough for filters + pagination), coupons (valid, invalid, expired), wallets, favorites, carts, orders.
+- [ ] Build the mock state store with local persistence and a **reset** to a known scenario; hash passwords in the mock layer.
+- [ ] Implement REST handlers: auth/session (incl. expiry), NFTs (search, combinable filters, sort, pagination, detail, not-found, unavailable edition), favorites, cart (+ merge, coupon), quote, orders (idempotency: same key/payload → same order; different payload → 409), profile (+ avatar, password), wallets (+ connect/refuse/disconnect).
+- [ ] Implement scenario switches: success, empty, variable latency + out-of-order, connection failure, 4xx/5xx, expired session, unauthorized, signup conflict / validation error, invalid/expired coupon, price change / sold-out during purchase, timeout after order creation, payment confirmed, payment rejected.
+- [ ] Choose and document the scenario selection mechanism (env var / URL param / dev switcher) and the reset command.
+- [ ] Wire `@mswjs/socket.io-binding` to emit `nft.updated` and `order.updated` deterministically from the same mock state changes as REST.
+- [ ] Bootstrap MSW by config (`VITE_ENABLE_MOCKS`) for dev **and** production demo build; commit `public/mockServiceWorker.js`.
+- [ ] Playwright setup: config with Chromium desktop + mobile projects, HTML reporter, traces on failure, per-test isolated state (reset in `beforeEach`), helpers to set scenario/clock/latency/trigger events.
+
+**Acceptance**: every scenario reachable and reproducible; reset restores the scenario fully; a socket event emitted from the mock reaches `socket.io-client`.
+
+---
+
+## Epic 3: Authentication & Session
+
+- [ ] Build Login and Signup screens (React Hook Form + Zod) with API error mapping (`fieldErrors`, `EMAIL_TAKEN`).
+- [ ] Session recovery after refresh via `GET /api/auth/session`; token handling in Axios interceptor.
+- [ ] Route guards for private areas; redirect to Login with `redirect` param and return to the previous flow.
+- [ ] Handle session expiry during navigation and checkout, preserving return context for resumption.
+- [ ] Logout and user switch: clear Query cache, persisted private data, checkout draft; (socket cleanup hooks are completed in Epic 8).
+- [ ] **Tests**: signup (success + conflict), login, expiry, logout, user switch with no data leakage.
+
+**Acceptance**: no private data from user A visible to user B after switch.
+
+---
+
+## Epic 4: Home, Catalog & Discovery
+
+- [ ] Home with featured items and catalog grid (Figma fidelity, desktop + mobile).
+- [ ] Search, combinable filters, sort and pagination synced to URL search params; changing a filter resets `page`; survives refresh and back/forward.
+- [ ] Query keys reflect exact params; cancel stale requests via `signal`; handle out-of-order responses.
+- [ ] Skeleton (shimmer) loading, empty state, error state with retry, background-refetch indicator.
+- [ ] Responsive filters/navigation (drawer on mobile with focus management).
+- [ ] **Tests**: search + combined filters + sort + pagination + history restoration; slow-network skeleton + retry recovery.
+
+**Acceptance**: URL is the single source of truth; no layout shift when skeletons resolve.
+
+---
+
+## Epic 5: NFT Detail & Favorites
+
+- [ ] Detail view: direct access, gallery, metadata/attributes, edition selection, quantity selector with limits, buy/add-to-cart triggers.
+- [ ] Handle non-existent NFT (404 state) and unavailable/sold-out editions.
+- [ ] Favorites: authenticated persistence, optimistic toggle with rollback on failure, guest prompt to login.
+- [ ] **Tests**: direct detail access + not found; favorites mutation failure and recovery.
+
+---
+
+## Epic 6: Cart
+
+- [ ] Cart view: quantity editing (optimistic, availability-aware), item removal, API-driven summary (subtotal, discount, network fee, total).
+- [ ] Coupon apply/remove with invalid/expired handling.
+- [ ] Persistence after refresh; guest cart preserved and merged via `POST /api/cart/merge` on login.
+- [ ] Skeleton for cart summary; announce price/availability changes in live region.
+- [ ] **Tests**: quantities, removal, coupon, persistence after refresh and after login merge.
+
+---
+
+## Epic 7: Checkout, Orders & Receipt
+
+- [ ] Checkout form: collector data (validated per Figma fields), wallet selection, network selection, simulated connect/refuse/disconnect, review step.
+- [ ] Quote revalidation before confirming; on price/availability/coupon/fee change show differences and require a new explicit confirmation.
+- [ ] Idempotent order creation: per-attempt key persisted and reused on retry; block duplicate clicks; timeout recovery returns the same order; `409` on key reuse with different payload.
+- [ ] Pending / confirmed / rejected states; recovery after refresh/reconnection; show confirmation **only** for confirmed orders.
+- [ ] Receipt (confirmation) as an immutable snapshot: transaction id, items, fees, total; works on mobile.
+- [ ] On confirmation remove only purchased items/quantities from the cart; preserve items on failure.
+- [ ] Session expiry mid-checkout resumes with preserved context.
+- [ ] **Tests**: full purchase (catalog → confirmed receipt); payment failure, repeated clicks, timeout recovered with the same order.
+
+**Acceptance**: no duplicate orders under any scenario; receipt unaffected by later catalog changes.
+
+---
+
+## Epic 8: Real-Time Synchronization (Socket.IO)
+
+- [ ] Socket client/provider using `socket.io-client`; connect on authenticated session, disconnect and clean listeners on logout/user switch and unmount.
+- [ ] Handle `nft.updated`: patch catalog, detail and cart caches; invalidate quote; inform the user (live region).
+- [ ] Handle `order.updated`: transition pending → confirmed/rejected; terminal states never overwritten.
+- [ ] Dedup by `eventId`, ignore events with `version ≤ applied`, ignore events of another user.
+- [ ] On reconnect: reconcile active queries and pending order via REST.
+- [ ] Mandatory scenario: item in cart → price/availability change → UI informs and updates summary → checkout blocks stale-quote confirmation.
+- [ ] Pending order survives a connection drop; state recovered after reconnect or reload without a new purchase.
+- [ ] **Tests**: price/availability change during checkout via Socket.IO; duplicate/old events, disconnect and pending-order resume.
+
+---
+
+## Epic 9: Profile & Wallets
+
+- [ ] Profile view: edit personal data, avatar upload, password change; API validation errors mapped to fields.
+- [ ] Wallets view: register and edit primary/secondary wallets; validation and error handling.
+- [ ] Confirmed changes persist after refresh; works on mobile (no dedicated frame).
+- [ ] **Tests**: profile/avatar/password/wallet edits with validation errors.
+
+---
+
+## Epic 10: Accessibility, Visual Regression & Test Completion
+
+- [ ] Keyboard navigation, visible focus, focus trap/return in dialogs and drawers; `@axe-core/playwright` checks on key pages.
+- [ ] Forms: labels, `aria-describedby` errors, `aria-invalid`.
+- [ ] Verify 390 / 768 / 1440 px: no horizontal overflow, content intact at 200% zoom.
+- [ ] Visual regression baselines (Home, Detail, Cart, Payment) with stable data and controlled animations.
+- [ ] Coverage check against the 12 required E2E items: (1) search/filters/history, (2) detail/not found, (3) auth lifecycle, (4) favorites failure/recovery, (5) cart/coupon/persistence, (6) full purchase, (7) payment failure/repeat click/timeout, (8) profile/wallets validation, (9) price change via socket, (10) duplicate/old events and pending resume, (11) keyboard/focus/forms, (12) slow-network skeleton and retry.
+- [ ] Confirm HTML report and failure traces are produced.
+
+---
+
+## Epic 11: Performance, Documentation & Deployment
+
+- [ ] Optimize: route code splitting, image sizing/lazy loading, font preload/`font-display`, preload LCP image, minimize main-thread work.
+- [ ] Lighthouse config + script: Home and NFT Detail, mobile + desktop, **3 runs each, median per category**; targets Performance ≥ 90, Accessibility ≥ 95, Best Practices ≥ 95, SEO ≥ 90. Record LCP, CLS, TBT; commit HTML/JSON reports, tool versions and environment; justify any miss.
+- [ ] Finalize `ARCHITECTURE.md`: flip [Planned] → [Done], fill UX decisions, Figma deviations, limitations (including Socket.IO mock transport), session policy, cart state, cache strategy, REST/Socket reconciliation.
+- [ ] Write `README.md`: setup, env vars, fictitious credentials, scenario selection and reset, commands (dev with mocks, build, preview, typecheck, lint, Playwright, Lighthouse), how to reproduce each failure flow.
+- [ ] Deploy (Vercel recommended) with SPA fallback (`vercel.json` rewrites), mocks and real-time flows working in the published build; verify direct access and refresh on every route.
+- [ ] Verify the deployed version matches the delivered code; test from a clean checkout (`npm ci && npm run build && npm run preview`).
+- [ ] Submit repository link + public URL.
