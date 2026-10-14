@@ -44,4 +44,4 @@ The Epic 0 setup defines these values; REST handlers and the application MSW boo
 
 ## Current smoke coverage
 
-`npm run test:e2e` checks that the starter application renders and that `socket.io-client` sends a ready event and receives a mocked reply through MSW 2.x and `@mswjs/socket.io-binding` in Chromium. The marketplace flows and fictitious test credentials will be documented as they are implemented.
+`npm run test:e2e` checks that the KURIO shell renders at desktop and mobile sizes, that unavailable destinations explain their status, and that `socket.io-client` receives a mocked reply through MSW 2.x and `@mswjs/socket.io-binding` in Chromium. The marketplace flows and fictitious test credentials will be documented as they are implemented.

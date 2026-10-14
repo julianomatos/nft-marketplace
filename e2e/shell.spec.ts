@@ -1,0 +1,72 @@
+import { expect, test } from '@playwright/test'
+
+test('renders the responsive KURIO shell', async ({ page }) => {
+  await page.goto('/')
+
+  await expect(
+    page.getByRole('link', { name: 'KURIO — início' }),
+  ).toBeVisible()
+  await expect(page.getByRole('main')).toBeVisible()
+  await expect(
+    page
+      .getByRole('contentinfo')
+      .filter({ hasText: 'Segurança da carteira' }),
+  ).toBeVisible()
+
+  if (test.info().project.name === 'chromium-mobile') {
+    await expect(
+      page.getByRole('navigation', { name: 'Navegação mobile' }),
+    ).toBeVisible()
+  } else {
+    await expect(
+      page.getByRole('navigation', { name: 'Navegação principal' }),
+    ).toBeVisible()
+  }
+})
+
+test('unavailable destinations explain the outcome and provide a return path', async ({
+  page,
+}) => {
+  await page.goto('/')
+  await page
+    .getByRole('link', { name: 'Conheça as áreas em desenvolvimento' })
+    .click()
+
+  await expect(
+    page.getByRole('heading', {
+      name: 'Esta funcionalidade ainda não está disponível.',
+    }),
+  ).toBeVisible()
+  await expect(page.getByText('Nenhuma ação foi realizada.')).toBeVisible()
+
+  await page.getByRole('link', { name: 'Voltar ao início' }).click()
+  await expect(
+    page.getByRole('heading', { name: 'O marketplace está em construção.' }),
+  ).toBeVisible()
+})
+
+test('does not overflow horizontally at the required viewport widths', async ({
+  page,
+}) => {
+  for (const width of [390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 })
+    await page.goto('/')
+
+    const pageWidth = await page.locator('body').evaluate((body) => body.scrollWidth)
+    expect(pageWidth).toBeLessThanOrEqual(width)
+  }
+})
+
+test('newsletter notice does not claim a successful registration', async ({
+  page,
+}) => {
+  await page.goto('/')
+  await page.getByLabel('Seu e-mail').fill('collector@example.test')
+  await page.getByRole('button', { name: 'Enviar' }).click()
+
+  await expect(
+    page.getByText(
+      'O cadastro por e-mail não está disponível nesta demonstração.',
+    ),
+  ).toBeVisible()
+})

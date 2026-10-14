@@ -4,7 +4,9 @@ test('the application starts in Chromium', async ({ page }) => {
   await page.goto('/')
 
   await expect(page).toHaveTitle(/nft-marketplace/i)
-  await expect(page.getByRole('heading', { name: 'Get started' })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: 'O marketplace está em construção.' }),
+  ).toBeVisible()
 })
 
 test('MSW Socket.IO binding delivers a mocked event to socket.io-client', async ({

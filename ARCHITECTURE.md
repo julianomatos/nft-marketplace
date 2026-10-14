@@ -161,6 +161,8 @@ Every error response uses `{ error: { code, message, fieldErrors?, details? } }`
 
 ## 11. Routing & URL State [Planned]
 
+The Epic 1 shell now registers the file-based home (`/`) and shared unavailable (`/indisponivel`) routes through TanStack Router. Search-param validation, private-route guards, the root error boundary and catch-all 404 remain planned for the dedicated routing task.
+
 Catalog search, filters, sort and pagination are validated search params in the URL; any filter change resets `page`. Unknown routes render a 404; every planned screen supports direct access and refresh (SPA fallback configured on the host).
 
 ## 12. Testing & Audit Strategy [Planned]

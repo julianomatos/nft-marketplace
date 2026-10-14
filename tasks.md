@@ -31,7 +31,7 @@ Context: initial setup is done and dependencies are installed with npm. Verify e
 
 - [x] Add `design/reference/` exports and export logo/NFT artwork to `src/assets/`.
 - [x] Self-host Roboto Mono; replace shadcn starter tokens/font with the KURIO tokens from `DESIGN_SYSTEM.md` (dark only, `@theme` mapping); remove unused starter styles.
-- [ ] Build the shell: Header (guest/authenticated, active states, cart badge), Footer (feature band, brand strip, link columns), Breadcrumb, mobile bottom navigation, "indisponível" page.
+- [x] Build the shell: Header (guest/authenticated, active states, cart badge), Footer (feature band, brand strip, link columns), Breadcrumb, mobile bottom navigation, "indisponível" page.
 - [ ] Build base primitives matching the design: Button variants, Input/Select/Checkbox/Radio (with required asterisk), Quantity stepper, Badge, Tabs, Pagination, Range slider, Dialog/Drawer, Skeleton shimmer, Toast.
 - [ ] Configure Tailwind v4 theme tokens (colors, typography, spacing, radii) from Figma in CSS; self-host required fonts; add base styles and `prefers-reduced-motion` handling.
 - [ ] Configure TanStack Router (file-based): root layout, header/footer shell, 404 route, root error boundary, private-route guard helper, Zod-validated search params utility.
