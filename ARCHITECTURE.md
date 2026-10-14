@@ -41,6 +41,7 @@ Single Page Application built with React 19 and TypeScript. **TanStack Router** 
 | TypeScript | 6.0.x | Pinned below 6.1 for `typescript-eslint` support |
 | Node types | `@types/node` 22.x | Matches the Node 22.19 runtime target; `.nvmrc` pins 22.19.0 |
 | Validation | Zod 4.x | Retested with `npm install zod@^4`, clean `npm ci`, `npm run typecheck` and `npm run lint`; all passed with `@hookform/resolvers@5.9.1` |
+| HTTP | Axios 1.x | `VITE_API_BASE_URL` (default `/api`), 15 s timeout, bearer token from session storage, normalized errors |
 | UI foundation | shadcn-style source components with KURIO CSS tokens and locally bundled Roboto Mono | Native form controls and `<dialog>` avoid additional runtime dependencies; `@radix-ui/react-slot` remains for Button composition |
 | Lighthouse | Lighthouse 13.5 + direct `chrome-launcher` | The audit runner imports the launcher directly and uses Playwright's Chromium binary |
 | Money | `decimal.js` | ETH as decimal strings end to end |
@@ -83,6 +84,7 @@ An NFT has `id`, `tokenId`, `name`, `collection`, `category`, `network`, `price`
 ### 4.2 Error envelope
 
 Every error response uses `{ error: { code, message, fieldErrors?, details? } }`.
+Axios responses are validated against this envelope and normalized to `ApiClientError`; `src/utils/errors.ts` maps known API codes to user-facing Portuguese messages and preserves status, field errors and details.
 
 | HTTP | `code` examples | Meaning |
 | --- | --- | --- |
@@ -105,7 +107,7 @@ Every error response uses `{ error: { code, message, fieldErrors?, details? } }`
 
 ## 6. Session Policy [Planned]
 
-- Login returns a token with `expiresAt`. The token lives in `sessionStorage` (mock-grade; documented limitation) and is attached by an Axios request interceptor. Passwords are hashed in the mock layer; only fictitious credentials are used.
+- Login returns a token with `expiresAt`. The token lives in `sessionStorage` under `kurio.session.token` (mock-grade; documented limitation) and is attached by an Axios request interceptor. Passwords are hashed in the mock layer; only fictitious credentials are used.
 - On boot, `GET /api/auth/session` restores the session after refresh.
 - Authentication is route-driven: `/login` and `/signup` render as a modal over the previous route on desktop and full-screen on mobile. Direct access works; closing the desktop modal returns to the previous route.
 - `401 SESSION_EXPIRED` during navigation or checkout: save the return context (route + checkout draft + pending idempotency key) in session storage, redirect to Login with `redirect`, and resume after re-authentication.
