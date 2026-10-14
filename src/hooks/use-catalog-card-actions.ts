@@ -1,12 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { useSession } from '@/hooks/use-session'
+import { useAddToCart } from '@/hooks/use-add-to-cart'
 import { queryKeys } from '@/hooks/queryKeys'
 import { queryStaleTimes } from '@/lib/query-client'
 import { API_ENDPOINTS } from '@/types/endpoints'
 import type {
-  CartItemInput,
-  CartResponse,
   FavoritesResponse,
   Nft,
   RemoveFavoriteResponse,
@@ -14,6 +13,7 @@ import type {
 import { apiClient, getSessionToken } from '@/services/api-client'
 
 function useCatalogCardActions(nft: Nft) {
+  const cartActions = useAddToCart(nft)
   const sessionQuery = useSession()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
@@ -85,28 +85,6 @@ function useCatalogCardActions(nft: Nft) {
     },
   })
 
-  const addToCartMutation = useMutation({
-    mutationFn: async (editionId: string) => {
-      if (!userId) throw new Error('Entre na sua conta para continuar.')
-      const payload: CartItemInput = {
-        nftId: nft.id,
-        editionId,
-        quantity: 1,
-      }
-      const response = await apiClient.post<CartResponse>(
-        API_ENDPOINTS.cart.items,
-        payload,
-      )
-      return response.data
-    },
-    onSuccess: async () => {
-      if (!userId) return
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.user(userId).cart,
-      })
-    },
-  })
-
   function requireAuthentication(): boolean {
     if (userId) return true
     if (getSessionToken() && sessionQuery.isPending) return false
@@ -124,19 +102,9 @@ function useCatalogCardActions(nft: Nft) {
     return true
   }
 
-  async function addToCart(): Promise<boolean> {
-    if (!requireAuthentication()) return false
-    const edition = nft.editions.find(({ available }) => available > 0)
-    if (!edition) throw new Error('Todas as edições deste NFT estão esgotadas.')
-    await addToCartMutation.mutateAsync(edition.id)
-    return true
-  }
-
   return {
-    addToCart,
-    addToCartPending:
-      addToCartMutation.isPending ||
-      (getSessionToken() !== null && sessionQuery.isPending),
+    addToCart: cartActions.addToCart,
+    addToCartPending: cartActions.addToCartPending,
     favoritePending:
       favoriteMutation.isPending ||
       (userId !== undefined && favoriteIdsQuery.isPending) ||

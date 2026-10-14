@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Heart, Eye, ShoppingCart } from 'lucide-react'
+import { Link } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
 import { useCatalogCardActions } from '@/hooks/use-catalog-card-actions'
 import type { Nft } from '@/types/contracts'
@@ -97,15 +98,14 @@ function NftCard({ nft }: NftCardProps) {
             <ShoppingCart aria-hidden="true" size={16} />
           </Button>
           <Button
+            asChild
             aria-label={`Ver ${nft.name}`}
-            onClick={() =>
-              setFeedback('A página de detalhes deste NFT estará disponível em breve.')
-            }
             size="icon-sm"
-            type="button"
             variant="secondary"
           >
-            <Eye aria-hidden="true" size={16} />
+            <Link to="/nft/$id" params={{ id: nft.id }}>
+              <Eye aria-hidden="true" size={16} />
+            </Link>
           </Button>
         </div>
       </div>

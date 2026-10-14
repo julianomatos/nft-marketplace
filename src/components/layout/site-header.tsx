@@ -19,7 +19,7 @@ function SiteHeader({ session, cartCount }: SiteHeaderProps) {
     select: (state) => state.location.pathname,
   })
   const isHome = pathname === '/'
-  const isMarket = ['/nfts', '/carrinho', '/checkout', '/favoritos'].some(
+  const isMarket = ['/nft', '/carrinho', '/checkout', '/favoritos'].some(
     (path) => pathname === path || pathname.startsWith(`${path}/`),
   )
   const visibleCartCount =

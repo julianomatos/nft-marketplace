@@ -1,0 +1,107 @@
+import { expect, test } from '@playwright/test'
+
+test.beforeEach(async ({ page }) => {
+  await page.goto('/')
+  await page.evaluate(() => window.__KURIO_MOCKS__.reset('success'))
+  await page.evaluate(() =>
+    window.sessionStorage.removeItem('kurio.session.token'),
+  )
+})
+
+test('opens an NFT detail directly with metadata and bounded edition quantity', async ({
+  page,
+}) => {
+  await page.goto('/nft/emerald-ape-042')
+
+  await expect(
+    page.getByRole('heading', { name: 'Emerald Ape #042' }),
+  ).toBeVisible()
+  await expect(
+    page
+      .getByRole('region', { name: 'Emerald Ape #042' })
+      .getByText('1.19 ETH', { exact: true })
+      .first(),
+  ).toBeVisible()
+  await expect(page.getByText('Ethereum', { exact: true })).toBeVisible()
+  await expect(page.getByText('#0042', { exact: true })).toBeVisible()
+  if ((page.viewportSize()?.width ?? 0) >= 768) {
+    await expect(
+      page
+        .getByRole('navigation', { name: 'Navegação principal' })
+        .getByRole('link', { name: 'Mercado', exact: true }),
+    ).toHaveAttribute('aria-current', 'page')
+  }
+
+  const editions = page.getByRole('group', { name: 'quantidade' })
+  await page.getByRole('radio', { name: '1/1', exact: true }).check()
+  await expect(
+    editions.getByRole('button', { name: 'Aumentar quantidade' }),
+  ).toBeDisabled()
+
+  await page.getByRole('radio', { name: '1/50', exact: true }).check()
+  await editions.getByRole('button', { name: 'Aumentar quantidade' }).click()
+  await expect(editions.locator('output')).toHaveText('2')
+
+  for (const width of [390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 })
+    await expect(
+      page.getByRole('heading', { name: 'Emerald Ape #042' }),
+    ).toBeVisible()
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth > window.innerWidth,
+      ),
+      `horizontal overflow at ${width}px`,
+    ).toBe(false)
+  }
+})
+
+test('catalog detail action opens the matching NFT', async ({ page }) => {
+  await page.goto('/')
+  await page
+    .getByRole('link', { name: 'Ver Emerald Ape #042' })
+    .click()
+
+  await expect(page).toHaveURL('/nft/emerald-ape-042')
+  await expect(
+    page.getByRole('heading', { name: 'Emerald Ape #042' }),
+  ).toBeVisible()
+})
+
+test('adding a selected NFT edition uses the cart API response', async ({
+  page,
+}) => {
+  await page.goto('/login')
+  await page.getByLabel('E-mail', { exact: true }).fill('ana@kurio.example.test')
+  await page.getByLabel('Senha', { exact: true }).fill('KurioDemo!A2026')
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click()
+  await expect(page).toHaveURL((url) => url.pathname === '/')
+
+  await page.goto('/nft/emerald-ape-042')
+  await page.getByRole('radio', { name: '1/50', exact: true }).check()
+  const quantityGroup = page.getByRole('group', { name: 'quantidade' })
+  await quantityGroup.getByRole('button', { name: 'Aumentar quantidade' }).click()
+
+  const responsePromise = page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname === '/api/cart/items' &&
+      response.request().method() === 'POST',
+  )
+  await page.getByRole('button', { name: 'Comprar NFT' }).click()
+  const response = await responsePromise
+
+  expect(response.status()).toBe(200)
+  const body: unknown = await response.json()
+  expect(body).toMatchObject({
+    items: expect.arrayContaining([
+      expect.objectContaining({
+        nftId: 'emerald-ape-042',
+        edition: '1/50',
+        quantity: 2,
+      }),
+    ]),
+  })
+  await expect(page.getByText('Emerald Ape #042 adicionado ao carrinho.', {
+    exact: true,
+  })).toBeVisible()
+})

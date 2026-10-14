@@ -14,6 +14,7 @@ import { Route as SplatRouteImport } from './routes/$'
 import { Route as IndisponivelRouteImport } from './routes/indisponivel'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as NftIdRouteImport } from './routes/nft.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -40,6 +41,11 @@ const SignupRoute = SignupRouteImport.update({
   path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
+const NftIdRoute = NftIdRouteImport.update({
+  id: '/nft/$id',
+  path: '/nft/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -47,6 +53,7 @@ export interface FileRoutesByFullPath {
   '/indisponivel': typeof IndisponivelRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/nft/$id': typeof NftIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -54,6 +61,7 @@ export interface FileRoutesByTo {
   '/indisponivel': typeof IndisponivelRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/nft/$id': typeof NftIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -62,13 +70,21 @@ export interface FileRoutesById {
   '/indisponivel': typeof IndisponivelRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/nft/$id': typeof NftIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/$' | '/indisponivel' | '/login' | '/signup'
+  fullPaths: '/' | '/$' | '/indisponivel' | '/login' | '/signup' | '/nft/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/$' | '/indisponivel' | '/login' | '/signup'
-  id: '__root__' | '/' | '/$' | '/indisponivel' | '/login' | '/signup'
+  to: '/' | '/$' | '/indisponivel' | '/login' | '/signup' | '/nft/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/$'
+    | '/indisponivel'
+    | '/login'
+    | '/signup'
+    | '/nft/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -77,6 +93,7 @@ export interface RootRouteChildren {
   IndisponivelRoute: typeof IndisponivelRoute
   LoginRoute: typeof LoginRoute
   SignupRoute: typeof SignupRoute
+  NftIdRoute: typeof NftIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -116,6 +133,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/nft/$id': {
+      id: '/nft/$id'
+      path: '/nft/$id'
+      fullPath: '/nft/$id'
+      preLoaderRoute: typeof NftIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -125,6 +149,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndisponivelRoute: IndisponivelRoute,
   LoginRoute: LoginRoute,
   SignupRoute: SignupRoute,
+  NftIdRoute: NftIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
