@@ -79,7 +79,7 @@ Context: initial setup is done and dependencies are installed with npm. Verify e
 ## Epic 4: Home, Catalog & Discovery
 
 - [x] Home with featured items and catalog grid (Figma fidelity, desktop + mobile).
-- [ ] Add `feed` tabs, price-range slider with "Aplicar" (decimal strings in URL), network facet, category facet with counts, card hover/focus actions (cart, favorite, view), "NFT em destaque", promo banners and "Diário da Cunhagem" teasers (static copy); mobile search and filter drawer.
+- [x] Add `feed` tabs, price-range slider with "Aplicar" (decimal strings in URL), network facet, category facet with counts, card hover/focus actions (cart, favorite, view), "NFT em destaque", promo banners and "Diário da Cunhagem" teasers (static copy); mobile search and filter drawer.
 - [ ] Implement home-specific mobile composition: search pill + gradient filter button, breakpoint-specific hero copy and gradient/art layout, staggered two-column grid, hero/carousel dots (active filled, inactive outlined, ≥24px hit area), and center bottom-nav action that focuses search.
 - [ ] Search, combinable filters, sort and pagination synced to URL search params; changing a filter resets `page`; survives refresh and back/forward.
 - [ ] Query keys reflect exact params; cancel stale requests via `signal`; handle out-of-order responses.

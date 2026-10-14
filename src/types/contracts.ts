@@ -297,9 +297,13 @@ export type NftFacet = {
   count: NonNegativeInteger
 }
 
+export type NftNetworkFacet = Omit<NftFacet, 'id'> & {
+  id: Network
+}
+
 export type NftFacets = {
   categories: NftFacet[]
-  networks: NftFacet[]
+  networks: NftNetworkFacet[]
   priceRange: {
     min: EthAmount
     max: EthAmount

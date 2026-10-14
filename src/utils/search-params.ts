@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import {
   nftSearchParamsSchema,
+  nftSortSchema,
   type NftSearchParams,
 } from '../types/contracts'
 import {
@@ -8,11 +9,37 @@ import {
   serializeSearchArray,
 } from '../types/search-array-serialization'
 
-const catalogSearchSchema = nftSearchParamsSchema.pick({
-  q: true,
-  feed: true,
-  page: true,
-}).partial()
+function parsePositiveIntegerSearchValue(value: unknown): number | undefined {
+  if (typeof value !== 'number' && typeof value !== 'string') return undefined
+  const parsed = Number(value)
+  return Number.isSafeInteger(parsed) && parsed >= 1 ? parsed : undefined
+}
+
+const catalogSearchSchema = z
+  .object({
+    q: nftSearchParamsSchema.shape.q,
+    feed: nftSearchParamsSchema.shape.feed,
+    category: nftSearchParamsSchema.shape.category,
+    network: nftSearchParamsSchema.shape.network,
+    minPrice: nftSearchParamsSchema.shape.minPrice,
+    maxPrice: nftSearchParamsSchema.shape.maxPrice,
+    sort: z.preprocess(
+      (value) => {
+        const parsed = nftSortSchema.safeParse(value)
+        return parsed.success ? parsed.data : undefined
+      },
+      nftSortSchema.optional(),
+    ),
+    page: z.preprocess(
+      parsePositiveIntegerSearchValue,
+      z.number().int().min(1).default(1),
+    ),
+    limit: z.preprocess(
+      parsePositiveIntegerSearchValue,
+      z.number().int().min(1).optional(),
+    ),
+  })
+  .partial()
 
 const filterKeys = [
   'q',

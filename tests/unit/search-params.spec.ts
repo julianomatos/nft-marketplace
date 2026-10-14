@@ -42,6 +42,39 @@ test('filter changes reset page while page-only changes are preserved', () => {
   })
 })
 
+test('catalog route search schema retains the complete set of filters', async () => {
+  const { catalogSearchSchema } = await import('../../src/utils/search-params')
+  const defaults = catalogSearchSchema.parse({})
+  expect(defaults.page).toBeUndefined()
+  expect(defaults.sort).toBeUndefined()
+  expect(defaults.limit).toBeUndefined()
+  expect(nftSearchParamsSchema.parse(defaults)).toMatchObject({
+    page: 1,
+    sort: 'recent',
+    limit: 9,
+  })
+
+  expect(
+    catalogSearchSchema.parse({
+      category: '["art","music"]',
+      network: '["ethereum"]',
+      minPrice: '0.25',
+      maxPrice: '2.50',
+      sort: 'price-asc',
+      page: '3',
+      limit: '9',
+    }),
+  ).toMatchObject({
+    category: ['art', 'music'],
+    network: ['ethereum'],
+    minPrice: '0.25',
+    maxPrice: '2.50',
+    sort: 'price-asc',
+    page: 3,
+    limit: 9,
+  })
+})
+
 test('invalid filters use defaults and do not break parsing', () => {
   expect(
     nftSearchParamsSchema.parse({

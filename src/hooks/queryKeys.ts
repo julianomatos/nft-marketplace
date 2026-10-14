@@ -19,6 +19,7 @@ function userQueryKeys(userId: string) {
     cartQuote: (params: QueryParams) =>
       ['user', userId, 'cart', 'quote', params] as const,
     favorites: ['user', userId, 'favorites'] as const,
+    favoriteIds: ['user', userId, 'favorite-ids'] as const,
     orders: ['user', userId, 'orders'] as const,
     order: (orderId: string) =>
       ['user', userId, 'orders', orderId] as const,

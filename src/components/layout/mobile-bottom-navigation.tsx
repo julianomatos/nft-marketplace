@@ -80,6 +80,7 @@ function MobileBottomNavigation() {
         className="absolute left-1/2 top-0 flex size-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-4 border-background bg-primary-gradient text-primary-foreground shadow-lg transition-transform hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         hash="catalog"
         onClick={() => document.getElementById('site-search-trigger')?.focus()}
+        search={{ page: 1 }}
         to="/"
       >
         <ScanLine aria-hidden="true" size={32} />
