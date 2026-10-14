@@ -35,7 +35,7 @@ Context: initial setup is done and dependencies are installed with npm. Verify e
 - [x] Build base primitives matching the design: Button variants, Input/Select/Checkbox/Radio (with required asterisk), Quantity stepper, Badge, Tabs, Pagination, Range slider, Dialog/Drawer, Skeleton shimmer, Toast.
 - [x] Configure Tailwind v4 theme tokens (colors, typography, spacing, radii) from Figma in CSS; self-host required fonts; add base styles and `prefers-reduced-motion` handling.
 - [x] Configure TanStack Router (file-based): root layout, header/footer shell, 404 route, root error boundary, private-route guard helper, Zod-validated search params utility.
-- [ ] Configure TanStack Query client: stale times, retry policy (no 4xx retries, max 2 for network/5xx with backoff), query key factory (`src/hooks/queryKeys.ts`), devtools in dev only.
+- [x] Configure TanStack Query client: stale times, retry policy (no 4xx retries, max 2 for network/5xx with backoff), query key factory (`src/hooks/queryKeys.ts`), devtools in dev only.
 - [ ] Configure Axios client: base URL, timeout, auth interceptor, error normalization to the API error envelope (`src/utils/errors.ts`), `AbortSignal` support.
 - [ ] Add `src/utils/eth.ts` (`decimal.js` helpers: add, mul, sum, compare, format) with unit tests.
 - [ ] Set up shared UI primitives: Skeleton with shimmer (reduced-motion safe), empty/error state components, toast + `aria-live` region.

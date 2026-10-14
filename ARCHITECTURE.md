@@ -122,6 +122,8 @@ Every error response uses `{ error: { code, message, fieldErrors?, details? } }`
 
 ## 8. Caching & Query Policy [Planned]
 
+The QueryClient is initialized in `src/lib/query-client.ts` and provided above the router. Its default `staleTime` is 0; `queryStaleTimes` supplies the per-resource values below. Network errors and HTTP 5xx retry at most twice with exponential backoff; 4xx, cancellation, unknown errors and mutations do not retry. React Query Devtools render only in development.
+
 | Data | `staleTime` | Notes |
 | --- | --- | --- |
 | Catalog list, NFT detail | 30 s | Key includes full param object; `signal` cancels stale requests |
@@ -130,7 +132,8 @@ Every error response uses `{ error: { code, message, fieldErrors?, details? } }`
 | Session | until logout/expiry | Revalidated on boot |
 
 - Retries: network errors and 5xx retry up to 2 times with exponential backoff; 4xx never retries; mutations do not auto-retry (order creation retry is a user/idempotent action).
-- Key factory `src/hooks/queryKeys.ts`; private keys: `['user', userId, ...]`.
+- Key factory `src/hooks/queryKeys.ts`; public catalog keys include the full parameter object and private resource keys use `['user', userId, ...]`.
+- The session bootstrap query uses `['auth', 'session']` until the response reveals the user id; this is the only private-data key without a user segment. Logout, expiry and user switch clear the complete QueryClient cache before another user's data can render.
 - Optimistic updates: favorites toggle and cart quantity (`onMutate` snapshot → `onError` rollback → `onSettled` invalidate).
 - Background refetch states are surfaced in the UI without blocking content.
 
