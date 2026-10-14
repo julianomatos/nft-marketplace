@@ -1,5 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link } from '@tanstack/react-router'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 const footerGroups = [
   {
@@ -75,24 +77,25 @@ function SiteFooter() {
               Antecipe-se ao próximo lançamento
             </h2>
             <form className="mt-3 flex" onSubmit={handleNewsletterSubmit}>
-              <label className="sr-only" htmlFor="newsletter-email">
-                Seu e-mail
-              </label>
-              <input
+              <Input
                 autoComplete="email"
-                className="min-w-0 flex-1 border border-input bg-surface-band px-3 py-2 text-[11px] text-foreground placeholder:text-subtle focus-visible:border-primary focus-visible:outline-2 focus-visible:outline-primary"
+                className="min-h-9 border-r-0 bg-surface-band text-[11px]"
+                containerClassName="min-w-0 flex-1"
                 id="newsletter-email"
+                label="Seu e-mail"
+                labelClassName="sr-only"
                 name="email"
                 placeholder="digite seu e-mail..."
                 required
                 type="email"
               />
-              <button
-                className="shrink-0 bg-primary px-3 text-xs font-bold text-primary-foreground transition-colors hover:bg-highlight focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              <Button
+                className="min-h-9 shrink-0 rounded-none px-3"
+                size="sm"
                 type="submit"
               >
                 Enviar
-              </button>
+              </Button>
             </form>
             <p aria-live="polite" className="mt-2 min-h-5 text-[10px] text-muted-foreground">
               {newsletterMessage}

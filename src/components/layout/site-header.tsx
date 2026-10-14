@@ -1,6 +1,7 @@
 import { Link, useRouterState } from '@tanstack/react-router'
 import { LogIn, Search, ShoppingCart, UserRound } from 'lucide-react'
 import kurioWordmark from '@/assets/kurio-wordmark.svg'
+import { Badge } from '@/components/ui/badge'
 
 export type SiteHeaderSession =
   | { status: 'guest' }
@@ -82,9 +83,9 @@ function SiteHeader({ session, cartCount }: SiteHeaderProps) {
           >
             <ShoppingCart aria-hidden="true" size={18} />
             {visibleCartCount !== undefined && visibleCartCount > 0 && (
-              <span className="absolute right-0 top-0 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground">
+              <Badge className="absolute right-0 top-0 min-h-4 min-w-4 rounded-full px-1 text-[9px]">
                 {visibleCartCount > 99 ? '99+' : visibleCartCount}
-              </span>
+              </Badge>
             )}
           </Link>
 

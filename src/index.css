@@ -79,3 +79,134 @@
     @apply bg-background text-foreground;
   }
 }
+
+@keyframes skeleton-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+
+  to {
+    background-position: -100% 0;
+  }
+}
+
+.skeleton-shimmer {
+  background-image: linear-gradient(
+    90deg,
+    var(--card) 0%,
+    var(--surface-raised) 50%,
+    var(--card) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer,
+  .animate-spin {
+    animation: none;
+  }
+}
+
+.range-slider-track {
+  position: relative;
+  height: 2px;
+}
+
+.range-slider-input {
+  position: absolute;
+  inset-inline: 0;
+  top: -7px;
+  width: 100%;
+  height: 16px;
+  margin: 0;
+  appearance: none;
+  background: transparent;
+  pointer-events: none;
+}
+
+.range-slider-input::-webkit-slider-runnable-track {
+  height: 2px;
+  background: transparent;
+}
+
+.range-slider-input::-webkit-slider-thumb {
+  width: 16px;
+  height: 16px;
+  margin-top: -7px;
+  appearance: none;
+  border: 2px solid var(--background);
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.range-slider-input::-moz-range-track {
+  height: 2px;
+  background: transparent;
+}
+
+.range-slider-input::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--background);
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.range-slider-input:focus-visible::-webkit-slider-thumb,
+.range-slider-input:focus-visible::-moz-range-thumb {
+  outline: 2px solid var(--foreground);
+  outline-offset: 2px;
+}
+
+.kurio-dialog {
+  display: none;
+  width: min(34rem, calc(100vw - 2rem));
+  max-width: none;
+  max-height: min(85dvh, 48rem);
+  margin: auto;
+  padding: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-bottom: 4px solid var(--primary);
+  background: var(--card);
+  color: var(--card-foreground);
+  box-shadow: 0 20px 60px color-mix(in srgb, var(--background) 70%, transparent);
+}
+
+.kurio-dialog[open] {
+  display: flex;
+}
+
+.kurio-dialog::backdrop {
+  background: color-mix(in srgb, var(--background) 82%, transparent);
+}
+
+.kurio-dialog--drawer {
+  inset-block: 0;
+  inset-inline: auto 0;
+  width: min(28rem, 100vw);
+  height: 100dvh;
+  max-height: 100dvh;
+  margin: 0 0 0 auto;
+  border-block: 0;
+  border-inline-start: 1px solid var(--border);
+  border-inline-end: 0;
+}
+
+@media (max-width: 767px) {
+  .kurio-dialog--drawer {
+    inset: auto 0 0;
+    width: 100%;
+    height: auto;
+    max-height: 85dvh;
+    margin: 0;
+    border-block: 1px solid var(--border);
+    border-inline: 0;
+  }
+}

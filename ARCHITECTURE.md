@@ -41,7 +41,7 @@ Single Page Application built with React 19 and TypeScript. **TanStack Router** 
 | TypeScript | 6.0.x | Pinned below 6.1 for `typescript-eslint` support |
 | Node types | `@types/node` 22.x | Matches the Node 22.19 runtime target; `.nvmrc` pins 22.19.0 |
 | Validation | Zod 4.x | Retested with `npm install zod@^4`, clean `npm ci`, `npm run typecheck` and `npm run lint`; all passed with `@hookform/resolvers@5.9.1` |
-| UI foundation | shadcn `radix-nova` component scaffold with KURIO CSS tokens and locally bundled Roboto Mono | CSS replaces starter palette, font and radius; the CLI is not a project dependency |
+| UI foundation | shadcn-style source components with KURIO CSS tokens and locally bundled Roboto Mono | Native form controls and `<dialog>` avoid additional runtime dependencies; `@radix-ui/react-slot` remains for Button composition |
 | Lighthouse | Lighthouse 13.5 + direct `chrome-launcher` | The audit runner imports the launcher directly and uses Playwright's Chromium binary |
 | Money | `decimal.js` | ETH as decimal strings end to end |
 

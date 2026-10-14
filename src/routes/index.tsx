@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
+import { Button } from '@/components/ui/button'
 
 export const Route = createFileRoute('/')({
   component: () => (
@@ -16,12 +17,9 @@ export const Route = createFileRoute('/')({
         A experiência de explorar coleções e NFTs será construída nas próximas
         etapas.
       </p>
-      <Link
-        className="mt-8 inline-flex min-h-10 items-center justify-center gap-2 rounded-sm bg-primary px-5 text-sm font-bold text-primary-foreground transition-colors hover:bg-highlight focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-        to="/indisponivel"
-      >
-        Conheça as áreas em desenvolvimento
-      </Link>
+      <Button asChild className="mt-8" size="lg">
+        <Link to="/indisponivel">Conheça as áreas em desenvolvimento</Link>
+      </Button>
     </section>
   ),
 })
