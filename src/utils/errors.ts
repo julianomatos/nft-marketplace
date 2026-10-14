@@ -1,14 +1,8 @@
 import axios from 'axios'
-import { z } from 'zod'
-
-const apiErrorEnvelopeSchema = z.object({
-  error: z.object({
-    code: z.string().min(1),
-    message: z.string().min(1),
-    fieldErrors: z.record(z.string(), z.unknown()).optional(),
-    details: z.unknown().optional(),
-  }),
-})
+import {
+  apiErrorEnvelopeSchema,
+  type ApiErrorEnvelope,
+} from '../types/contracts'
 
 const API_ERROR_MESSAGES: Readonly<Record<string, string>> = {
   UNAUTHENTICATED: 'Entre na sua conta para continuar.',
@@ -26,8 +20,6 @@ const API_ERROR_MESSAGES: Readonly<Record<string, string>> = {
   INVALID_ERROR_RESPONSE: 'O serviço retornou uma resposta de erro inválida.',
   UNEXPECTED_ERROR: 'Ocorreu um erro inesperado. Tente novamente.',
 }
-
-type ApiErrorEnvelope = z.output<typeof apiErrorEnvelopeSchema>
 
 type ApiClientErrorOptions = {
   code: string

@@ -47,7 +47,7 @@ Context: initial setup is done and dependencies are installed with npm. Verify e
 
 ## Epic 2: Contracts & Mocking Infrastructure (MSW + Socket.IO)
 
-- [ ] Define typed contracts in `src/types/contracts.ts` and `src/types/events.ts` (error envelope, quote, order states, event envelope with `eventId`, `version`, `userId`).
+- [x] Define typed contracts in `src/types/contracts.ts` and `src/types/events.ts` (error envelope, quote, order states, event envelope with `eventId`, `version`, `userId`); validate boundary values and event envelopes in contract tests.
 - [ ] Create fixtures: ≥ 2 users (fictitious credentials), diverse NFTs/categories/editions (enough for filters + pagination), coupons (valid, invalid, expired), wallets, favorites, carts, orders.
 - [ ] Add fixtures and facets for the 9 categories, Ethereum/Polygon/Solana networks, "Kurio Apes", rarity, old prices and reviews; add featured, related and read-only reviews endpoints; add the `design-cart` scenario described in `ARCHITECTURE.md` §10.
 - [ ] Build the mock state store with local persistence and a **reset** to a known scenario; hash passwords in the mock layer.

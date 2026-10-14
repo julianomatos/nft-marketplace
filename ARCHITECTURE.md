@@ -57,9 +57,9 @@ The initial dependency audit found 8 high and 19 moderate advisories in the Ligh
 - **Receipts** are immutable snapshots taken at order creation/confirmation; later catalog changes never alter them.
 - After a confirmed order, only the purchased items and quantities are removed from the cart. On any failure, cart items are preserved.
 
-## 4. REST Contracts [Planned]
+## 4. REST Contracts [In progress: typed contracts defined]
 
-All types live in `src/types/contracts.ts` and are shared by Axios wrappers, hooks and MSW handlers.
+REST request/response types live in `src/types/contracts.ts` and are shared by Axios wrappers, hooks and (in the next task) MSW handlers. `EthAmount` is a decimal string validated by the common `ethAmountSchema` (`/^\d+(\.\d+)?$/`); quantities use integer types and the shared positive-quantity schema at request boundaries. No ETH amount is represented as a JavaScript number.
 
 | Resource | Endpoints |
 | --- | --- |
@@ -74,6 +74,8 @@ All types live in `src/types/contracts.ts` and are shared by Axios wrappers, hoo
 
 `GET /api/nfts` returns `{ items, page, limit, total, totalPages, facets: { categories: [{ id, label, count }], networks: [{ id, label, count }], priceRange: { min, max } } }`. Facet counts reflect all other active filters, excluding that facet's own selection; fixtures keep the counts consistent.
 
+The corresponding TypeScript names are `AuthResponse` / `AuthSessionResponse`, `NftListResponse` / `NftFacets` / `NftEdition`, `FavoritesResponse`, `CartResponse` / `MergeCartRequest` / `MergeCartResponse`, `QuoteResponse`, `CreateOrderRequest` / `OrderReceiptSnapshot`, `ProfileResponse`, `WalletsResponse`, and `ApiErrorEnvelope`. Form/request Zod schemas define `SignupRequest`, `LoginRequest`, `CartItemInput`, `MergeCartRequest`, `ApplyCouponRequest`, `CreateOrderRequest`, `ProfileUpdateRequest`, `PasswordUpdateRequest`, and `WalletUpsertRequest`; these schemas validate untrusted input rather than duplicating response types. Wallet addresses are checked against the documented network formats at profile/order form boundaries.
+
 An NFT has `id`, `tokenId`, `name`, `collection`, `category`, `network`, `price`, optional `compareAtPrice` and `rarity`, `isNew`, `trending`, `rating: { average, count }`, `attributes`, `description`, `images[]`, `editions[{ id, label: '1/1' | '1/10' | '1/50' | 'ABERTA', supply, available }]` and `version`. Editions are tiers; `ABERTA` is uncapped and uses a large `available` value (for example 500). Quantity is limited by the selected tier's availability. Cart line identity is the combination of NFT and edition. `POST /api/cart/items` accepts `{ nftId, editionId, quantity }`.
 
 `POST /api/orders` includes `quoteId`, `provider`, `walletId`, collector data (`displayName`, `username`, `profileName`, `email`, `walletAddress`, `walletType`, `network`, `ensName`, `referralCode`, optional `note`). Ethereum and Polygon addresses validate as `0x` followed by 40 hex characters; Solana addresses validate as base58.
@@ -81,6 +83,8 @@ An NFT has `id`, `tokenId`, `name`, `collection`, `category`, `network`, `price`
 Wallet create/update payload: `{ kind: 'primary' | 'secondary', displayName, nickname, network, profileName, address, altAddressOrEns?, walletType, referralCode, email, ensName }`; all fields are required except `altAddressOrEns`. `PUT /api/profile` accepts `{ displayName, username, email, ensName, walletNickname, avatar? }`; `PUT /api/profile/password` accepts `{ currentPassword, newPassword, confirmPassword }`.
 
 `GET /api/orders/:id` returns the immutable receipt snapshot `{ orderId, status, transactionHash, network, explorerUrl, provider, wallet: { nickname, address }, items: [{ nftId, name, tokenId, edition, quantity, subtotal }], fee, total, createdAt }`.
+
+Response shapes not explicitly specified by the challenge are made concrete as follows: `GET /api/auth/session` is a discriminated authenticated/guest result; featured NFTs return `{ hero, featured }`; favorites return records with their NFT embedded, while delete returns `{ nftId, removed: true }`; cart merge accepts guest `CartItemInput[]` and returns the cart plus `mergedItemCount`; wallet connect returns `outcome: connected | refused`. Reviews use `{ id, displayName, rating, comment, createdAt }`. Serialized network/provider identifiers are lowercase (`ethereum | polygon | solana`, `metamask | walletconnect | coinbase`); category, sort and facet identifiers remain opaque strings because the architecture does not define their wire values. These are contract assumptions for consistent client/mock implementation, not additional business rules.
 
 ### 4.1 Quote
 
@@ -145,21 +149,22 @@ The QueryClient is initialized in `src/lib/query-client.ts` and provided above t
 - Optimistic updates: favorites toggle and cart quantity (`onMutate` snapshot → `onError` rollback → `onSettled` invalidate).
 - Background refetch states are surfaced in the UI without blocking content.
 
-## 9. Real-Time Integration (Socket.IO) [Planned]
+## 9. Real-Time Integration (Socket.IO) [Typed envelope defined]
 
-- **Transport**: `socket.io-client` connected to the MSW Socket.IO binding. Handshake carries the session token; events for private resources include `userId`.
-- **Common envelope**: `{ eventId, type, resource: { kind, id }, version, timestamp, userId? , data }`. `version` increases monotonically **per resource**.
+- **Transport**: `socket.io-client` connected to the MSW Socket.IO binding. Handshake carries the session token; events for private resources include `userId`. Client creation must happen only after `worker.start()`.
+- **Common envelope**: validated by `socketEventSchema` in `src/types/events.ts`: `{ eventId, type, resource: { kind, id }, version, timestamp, userId?, data }`. `version` is a positive integer increasing monotonically **per resource**. Received event payloads are untrusted and parsed before use.
 
 | Event | `data` | Client behavior |
 | --- | --- | --- |
-| `nft.updated` | `{ nftId, price, availableEdition }` | Patch NFT in catalog pages, detail and cart caches; invalidate quote; announce change |
-| `order.updated` | `{ orderId, status: 'confirmed' \| 'rejected', transactionHash?, reason? }` | Update order/receipt; show confirmation or rejection; terminal states are never overwritten |
+| `nft.updated` | `{ nftId, price, editionId, availableEdition }` | `price` is `EthAmount`; `availableEdition` is the remaining integer quantity for `editionId`. Patch NFT in catalog pages, detail and cart caches; invalidate quote; announce change |
+| `order.updated` | `{ orderId, status: 'confirmed' \| 'rejected', transactionHash?, reason?, network? }` | Private event requires `userId`; update order/receipt; show confirmation or rejection; terminal states are never overwritten |
 
 - **Dedup & ordering**: keep a bounded set of processed `eventId`s and the last applied `version` per resource; ignore duplicates and events with `version ≤ applied`.
 - **Session isolation**: ignore events whose `userId` differs from the current session user; disconnect and unsubscribe on logout/user switch; remove listeners on unmount.
 - **Reconciliation**: on reconnect, `refetchQueries({ type: 'active' })` and re-fetch any pending order.
 - **Mandatory scenario**: item in cart → price/availability changes while browsing → UI announces it and updates the summary → checkout blocks confirmation with a stale quote until a fresh quote is accepted.
 - **Mock/REST consistency**: the same mock state change produces both the REST result and the emitted event.
+- The binding handler must be registered at the socket origin (`ws.link(...)` origin). The Epic 0 smoke only verifies a response to a client-originated event; it does not verify server-originated updates. The mock must later emit events itself in response to REST-driven state changes. No event emitter or socket handler is implemented by the typed-contract task.
 
 ## 10. Mocking Layer [Planned]
 
