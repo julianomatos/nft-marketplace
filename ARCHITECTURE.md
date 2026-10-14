@@ -74,9 +74,13 @@ All types live in `src/types/contracts.ts` and are shared by Axios wrappers, hoo
 
 `GET /api/nfts` returns `{ items, page, limit, total, totalPages, facets: { categories: [{ id, label, count }], networks: [{ id, label, count }], priceRange: { min, max } } }`. Facet counts reflect all other active filters, excluding that facet's own selection; fixtures keep the counts consistent.
 
-An NFT has `id`, `tokenId`, `name`, `collection`, `category`, `network`, `price`, optional `compareAtPrice` and `rarity`, `isNew`, `trending`, `rating: { average, count }`, `attributes`, `description`, `images[]`, `editions[{ id, label, supply, available }]` and `version`. Cart item identity is the combination of NFT and edition.
+An NFT has `id`, `tokenId`, `name`, `collection`, `category`, `network`, `price`, optional `compareAtPrice` and `rarity`, `isNew`, `trending`, `rating: { average, count }`, `attributes`, `description`, `images[]`, `editions[{ id, label: '1/1' | '1/10' | '1/50' | 'ABERTA', supply, available }]` and `version`. Editions are tiers; `ABERTA` is uncapped and uses a large `available` value (for example 500). Quantity is limited by the selected tier's availability. Cart line identity is the combination of NFT and edition. `POST /api/cart/items` accepts `{ nftId, editionId, quantity }`.
 
-`POST /api/orders` includes `quoteId`, collector data (`displayName`, `username`, `profileName`, `email`, `walletAddress`, `walletType`, `network`, `ensName`, `referralCode`, optional `note`), optional `walletId` and `provider` (`metamask | walletconnect | coinbase`). Ethereum and Polygon addresses validate as `0x` followed by 40 hex characters; Solana addresses validate as base58.
+`POST /api/orders` includes `quoteId`, `provider`, `walletId`, collector data (`displayName`, `username`, `profileName`, `email`, `walletAddress`, `walletType`, `network`, `ensName`, `referralCode`, optional `note`). Ethereum and Polygon addresses validate as `0x` followed by 40 hex characters; Solana addresses validate as base58.
+
+Wallet create/update payload: `{ kind: 'primary' | 'secondary', displayName, nickname, network, profileName, address, altAddressOrEns?, walletType, referralCode, email, ensName }`; all fields are required except `altAddressOrEns`. `PUT /api/profile` accepts `{ displayName, username, email, ensName, walletNickname, avatar? }`; `PUT /api/profile/password` accepts `{ currentPassword, newPassword, confirmPassword }`.
+
+`GET /api/orders/:id` returns the immutable receipt snapshot `{ orderId, status, transactionHash, network, explorerUrl, provider, wallet: { nickname, address }, items: [{ nftId, name, tokenId, edition, quantity, subtotal }], fee, total, createdAt }`.
 
 ### 4.1 Quote
 
@@ -105,6 +109,7 @@ Axios responses are validated against this envelope and normalized to `ApiClient
 - **Pre-confirmation revalidation**: if price, availability, coupon or fees changed, the server answers `409` with a fresh quote; the UI shows the change and requires a new explicit confirmation. Confirmation screen is shown only for an order actually `confirmed` by the simulation.
 - **Review step**: "Confirmar compra" opens a review dialog showing items, quote, wallet and network. Create the order only on the dialog's final confirmation. If the quote changes, require a new confirmation.
 - Pending orders are recovered after refresh or reconnection (order id kept in session storage + `GET /api/orders/:id`).
+- Receipt is the reloadable `/pedidos/:orderId` route, rendered as a receipt panel on a plain page. It handles `pending` (spinner and "Aguardando confirmação"), `confirmed` (full immutable receipt and simulated network explorer link opening in a new tab), and `rejected` (message and "Tentar novamente" back to checkout with items preserved). Confirmed and rejected are terminal.
 
 ## 6. Session Policy [Planned]
 
@@ -163,7 +168,8 @@ The QueryClient is initialized in `src/lib/query-client.ts` and provided above t
 - Scenario selection via `VITE_MOCK_SCENARIO` and/or URL parameter (document final mechanism here).
 - Scenarios (deterministic): success, empty, variable latency / out-of-order, connection failure, 4xx/5xx, expired session, unauthorized, signup conflict / validation error, invalid-expired coupon, price change / sold-out during purchase, timeout after order creation, payment confirmed, payment rejected.
 - Fixtures: ≥ 2 users with `referralCode` and prefilled collector profiles; 9 categories, Ethereum/Polygon/Solana networks, collection "Kurio Apes", rarity, previous prices and reviews; enough NFTs/categories for filter combinations and pagination.
-- The `design-cart` scenario reproduces the reference cart exactly: Emerald Ape #042 ×2 @ 1.19, Violet Nomad #314 ×6 @ 1.39, Ivory Baron #088 ×9 @ 1.79, network fee 0.016 and total 26.846 ETH.
+- Fixtures include edition tiers per NFT. The `design-cart` scenario reproduces the reference cart exactly: Emerald Ape #042 (`#0042`, `1/50`) ×2 @ 1.19, Violet Nomad #314 (`#0314`, `ABERTA`) ×6 @ 1.39, Ivory Baron #088 (`#0088`, `1/10`) ×9 @ 1.79, network fee 0.016 and total 26.846 ETH.
+- Fixture user wallets include `Principal` (Ethereum, MetaMask) and `Reserva` (`nova.kurio.eth`, Polygon), each with distinct addresses and simulated transaction hashes. Referral codes and ENS names are prefilled. `/api/favorites` backs "Lista de interesse".
 
 ## 11. Routing & URL State [Planned]
 
@@ -179,15 +185,20 @@ TanStack Router uses file-based routes under `src/routes/`; the root route suppl
 ## 13. UX Decisions [Defined by DESIGN_SYSTEM.md]
 
 - Shared async UI uses `Skeleton` with reduced-motion-safe shimmer, `EmptyState` as a polite status, `ErrorState` with an assertive error message and required retry action, and `Toast` with polite success/info or assertive error announcements.
-- **Mercado** links to the catalog (`/` anchored at the catalog) and stays highlighted on detail, cart, checkout and favorites; **Início** is active only on `/`.
+- **Navigation:** Início is active on `/`, `/perfil`, `/carteiras` and `/favoritos`; Mercado links to the catalog anchor and is active on NFT detail, cart, checkout and receipt. The authenticated profile menu maps Dados do perfil → `/perfil`, Carteiras → `/carteiras`, Lista de interesse → `/favoritos` (inside the profile layout), and Sair → logout.
 - **Criadores, Aprenda, footer link columns, "Diário da Cunhagem" cards, "Explorar →" banners, "Esqueceu a senha?", "Trocar carteira" extras and "Atividade"** link to a shared "indisponível nesta demonstração" page or are `aria-disabled` with an explanatory tooltip. They never imply success.
 - **Newsletter "Enviar"** and **Google/Facebook** buttons remain visible and show an inline "indisponível nesta demonstração" message; no fake success.
 - **Share icons** open the network's share URL in a new tab with `rel="noopener noreferrer"`.
 - **Editorial teasers** (Diário da Cunhagem and promo copy) are static UI copy in `src/content/`; NFTs, counts, ratings, reviews and prices are business data and come from the API.
 - **Reviews tab** is a read-only list from fixtures; there is no review creation.
 - **Cart badge** counts total units and caps at `99+`.
-- The authenticated header replaces "Entrar" with an account menu (Meu perfil, Carteiras, Favoritos, Sair) in the same button style.
-- **Favorites** use `/favoritos` and reuse the card grid.
+- The authenticated header replaces "Entrar" with an account button (name/avatar → `/perfil`) in the same style.
+- **Favorites** use `/favoritos`, named "Lista de interesse", reuse the card grid, and live inside the profile layout.
+- **Order confirmation** is the reloadable `/pedidos/:orderId` route showing a receipt panel on a plain page; the close action returns to the catalog. Pending uses a spinner and "Aguardando confirmação"; rejected offers a retry to checkout with cart items preserved. Explorer links use the matching network and simulated hash in a new tab.
+- **Checkout** fields are prefilled from the selected registered wallet and profile. Mobile puts them in a collapsible "Dados do colecionador" section, closed when valid and opened on errors. "Trocar carteira" opens `/carteiras`; a wallet card's ⋮ menu "Editar" opens `/carteiras`.
+- **Wallets**: primary form is always editable; "Adicionar" reveals/focuses the relevant empty form; the secondary section has an empty state until added; "Igual à carteira principal" copies primary values into the secondary form.
+- **Mobile center button** focuses search, navigating to `/` first if needed. Hero copy changes by breakpoint: desktop "SEJA DONO DO FUTURO DA ARTE DIGITAL"; mobile "SEJA DONO DA CULTURA DIGITAL" with a shorter paragraph (only the visible variant is exposed to screen readers).
+- Dialogs for authentication, review and receipt confirmation have a scrim, focus trap, focus return and Escape-to-close. Mobile uses bottom navigation (home, favorites, cart, profile) and its center action; desktop uses the header.
 - Carousels use scroll-snap lists and real dot buttons; they do not autoplay.
 - Below 1024px, catalog filters use a drawer; tablet (768–1023px) uses two product columns.
 
@@ -195,20 +206,33 @@ TanStack Router uses file-based routes under `src/routes/`; the root route suppl
 
 | Figma issue / unavailable frame | Implementation decision |
 | --- | --- |
-| "Ordenar por" chevron overlaps selected text; missing space after "por:" | Add padding/spacing. |
+| "Ordenar por" chevron overlaps selected text; no space after "por:" | Add padding/spacing. |
 | Row 3 / middle card in Início has no title or price | Render complete content from fixtures. |
-| Category facet counts sum to 239 while network counts sum to 283 | API returns consistent counts in fixtures. |
-| Cart badge "6" does not match the cart | Count units and cap at `99+`. |
-| Desktop wallet list starts with a combined "METAMASK · WALLETCONNECT · COINBASE" pill | Treat the combined option as WalletConnect; Coinbase preselected in Figma is only an example state. |
-| Desktop checkout uses free-form wallet fields; mobile lists registered wallets | Use registered, prefilled wallets; "Usar outra carteira?" reveals manually entered addresses validated by network (`0x` + 40 hex for Ethereum/Polygon; base58 for Solana). |
-| Field beside "Endereço da carteira" has no label (placeholder "ENS ou carteira secundária (opcional)") | Add a visible label. |
-| "Código de indicação*" and "Nome ENS*" are marked required | Follow the layout, prefill from the fixture profile and document fixture codes in `README.md`. |
-| Checkout has no review step | "Confirmar compra" opens a review dialog for items, quote, wallet and network; final confirmation creates the order; changed quote requires reconfirmation. |
-| Login modal has no scrim | Add a dark scrim, focus trap and Escape-to-close behavior. |
-| Mobile reference frame is 414px; required viewport includes 390px | Use fluid layout and verify both widths. |
-| Price-filter label uses comma decimals (`0,02 - 12,30`) | Use a dot as the decimal separator throughout. |
-| Resting input border contrast is 1.34:1 | Preserve for fidelity; document the trade-off and provide visible labels/placeholders and a strong focus state (see §15). |
-| Roboto Mono font is self-hosted | Required by the design system; no external font CDN. |
+| Facet counts disagree (categories sum 239, networks 283) | Counts come from the API; keep fixtures consistent. |
+| Cart badge "6" does not match the cart | Count total units, capped at `99+` (§13). |
+| Desktop wallet list: first option combines "METAMASK · WALLETCONNECT · COINBASE" | Treat it as WalletConnect (mobile shows W / M / Coinbase). |
+| Desktop cart token ids (#0009, #0552) differ from payment/receipt (#0314, #0088) | Use #0042 / #0314 / #0088 everywhere. |
+| Desktop cart omits edition tier; mobile shows `Edição: 1/50` | Show tier on every cart line. |
+| Reference quantities (×6, ×9) exceed mobile `1/1` tier | Use Violet Nomad `ABERTA`, Ivory Baron `1/10`, Emerald Ape `1/50`. |
+| Mobile cart line prices and subtotal disagree | Desktop `design-cart` is authoritative; use API quote. |
+| Mobile detail repeats the `1/10` chip | Use `1/1`, `1/10`, `1/50`, `ABERTA`. |
+| Hero copy differs by breakpoint | Use the per-breakpoint copy (§13). |
+| Mobile payment omits collector form | Add collapsible collector data (§13). |
+| Unlabeled field beside wallet address | Add visible label "ENS ou carteira secundária (opcional)". |
+| Referral code and ENS name are required | Follow the layout, prefill from fixture wallet and document codes in README. |
+| Wallet address and transaction id share a string in mobile payment/receipt | Use distinct fixture values. |
+| Date format `29 Jul, 2026` mixes styles | Keep designed format with capitalized pt-BR month abbreviation. |
+| Checkout has no review step | Final "Confirmar compra" opens review dialog; changes require reconfirmation. |
+| Login/receipt modals have no scrim; receipt frame has no page chrome | Add scrim and focus trap; render receipt as a route page. |
+| "Entrar" shown on logged-in pages; "Mercado" vs "Início" active state differs | Use account button when authenticated and active states per §13. |
+| Mobile frame is 414px; required viewport is 390px | Use fluid layout and verify both. |
+| Price-filter label uses comma decimals | Use dot decimal separator everywhere. |
+| Mobile bottom bar shows stray "'2" under the center button | Ignore as a frame artifact. |
+| Resting input border contrast is 1.34:1 | Preserve for fidelity; retain labels/placeholders and strong focus state (§15). |
+| Roboto Mono is not provided by a font CDN | Self-host the font; no external font CDN. |
+| Login and receipt dialogs omit a scrim | Add dark scrim, focus trap, focus return and Escape handling. |
+| Checkout frame has no review dialog | Add a review dialog before order creation. |
+| Favicon artwork is not provided | Use the local K monogram favicon as a substitute; original brand icon export was unavailable. |
 
 ## 15. Known Limitations [To be filled during implementation]
 
@@ -217,5 +241,5 @@ Known so far:
 - The MSW Socket.IO handler must be registered at the socket origin (the `ws.link(...)` origin). Import `socket.io-client` dynamically only after `worker.start()` so its transport initializes after MSW's WebSocket interceptor is active.
 - Token in `sessionStorage` is mock-grade and not production-secure.
 - The reference resting input border has 1.34:1 contrast against the page background. Keep it for visual fidelity, while retaining visible labels/placeholders and a strong focus state.
-- Figma frames are not available for the Cadastro tab, order confirmation, profile, wallets or tablet layouts; compose them from the documented design patterns and verify responsive behavior.
+- Frames are missing for Cadastro tab/screen, Avaliações tab content, mobile Perfil / Carteiras / Confirmação / Cadastro, tablet behavior, error and disabled states, and authenticated header. Compose from documented patterns and verify responsive behavior.
 - Separate source exports for the KURIO wordmark, icon and NFT artwork were not provided; the local wordmark is an SVG reconstruction, the favicon is a matching geometric K monogram, and the three NFT PNGs are crops from the desktop home reference. Replace these derived assets if the original exports become available.

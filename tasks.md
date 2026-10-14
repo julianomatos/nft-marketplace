@@ -32,7 +32,7 @@ Context: initial setup is done and dependencies are installed with npm. Verify e
 - [x] Add `design/reference/` exports and export logo/NFT artwork to `src/assets/`.
 - [x] Self-host Roboto Mono; replace shadcn starter tokens/font with the KURIO tokens from `DESIGN_SYSTEM.md` (dark only, `@theme` mapping); remove unused starter styles.
 - [x] Build the shell: Header (guest/authenticated, active states, cart badge), Footer (feature band, brand strip, link columns), Breadcrumb, mobile bottom navigation, "indisponível" page.
-- [x] Build base primitives matching the design: Button variants, Input/Select/Checkbox/Radio (with required asterisk), Quantity stepper, Badge, Tabs, Pagination, Range slider, Dialog/Drawer, Skeleton shimmer, Toast.
+- [x] Build shared base primitives and responsive shell: Button variants, Input/Select/Checkbox/Radio (with required asterisk), shared Quantity stepper, Badge, Tabs, Pagination, Range slider, Dialog/Drawer, Skeleton shimmer, Toast, and empty/error states. Screen-specific variants (edition chips, detail/cart steppers, Rating, section-rule tabs, avatar block, profile sidebar item, summary panel and carousel dots) belong to their feature epics below; do not build them ahead of those flows.
 - [x] Configure Tailwind v4 theme tokens (colors, typography, spacing, radii) from Figma in CSS; self-host required fonts; add base styles and `prefers-reduced-motion` handling.
 - [x] Configure TanStack Router (file-based): root layout, header/footer shell, 404 route, root error boundary, private-route guard helper, Zod-validated search params utility.
 - [x] Configure TanStack Query client: stale times, retry policy (no 4xx retries, max 2 for network/5xx with backoff), query key factory (`src/hooks/queryKeys.ts`), devtools in dev only.
@@ -79,6 +79,7 @@ Context: initial setup is done and dependencies are installed with npm. Verify e
 
 - [ ] Home with featured items and catalog grid (Figma fidelity, desktop + mobile).
 - [ ] Add `feed` tabs, price-range slider with "Aplicar" (decimal strings in URL), network facet, category facet with counts, card hover/focus actions (cart, favorite, view), "NFT em destaque", promo banners and "Diário da Cunhagem" teasers (static copy); mobile search and filter drawer.
+- [ ] Implement home-specific mobile composition: search pill + gradient filter button, breakpoint-specific hero copy and gradient/art layout, staggered two-column grid, hero/carousel dots (active filled, inactive outlined, ≥24px hit area), and center bottom-nav action that focuses search.
 - [ ] Search, combinable filters, sort and pagination synced to URL search params; changing a filter resets `page`; survives refresh and back/forward.
 - [ ] Query keys reflect exact params; cancel stale requests via `signal`; handle out-of-order responses.
 - [ ] Skeleton (shimmer) loading, empty state, error state with retry, background-refetch indicator.
@@ -92,7 +93,9 @@ Context: initial setup is done and dependencies are installed with npm. Verify e
 ## Epic 5: NFT Detail & Favorites
 
 - [ ] Detail view: direct access, gallery, metadata/attributes, edition selection, quantity selector with limits, buy/add-to-cart triggers.
-- [ ] Add thumbnail gallery with zoom, edition chips, read-only Avaliações tab, and "Mais desta coleção" carousel.
+- [ ] Add thumbnail gallery with zoom, edition-tier chips as an accessible radio group (`1/1`, `1/10`, `1/50`, `ABERTA`), and large detail quantity stepper constrained by selected-tier availability.
+- [ ] Add Rating (desktop stars + count, mobile rating chip), tabs with a full-width rule and active underline, share row, read-only Avaliações tab, and "Mais desta coleção" carousel with accessible dots.
+- [ ] Add mobile detail composition: sticky action bar with quantity, price, buy and cart controls; circular back/favorite/cart icon buttons.
 - [ ] Handle non-existent NFT (404 state) and unavailable/sold-out editions.
 - [ ] Favorites: authenticated persistence, optimistic toggle with rollback on failure, guest prompt to login.
 - [ ] **Tests**: direct detail access + not found; favorites mutation failure and recovery.
@@ -102,6 +105,8 @@ Context: initial setup is done and dependencies are installed with npm. Verify e
 ## Epic 6: Cart
 
 - [ ] Cart view: quantity editing (optimistic, availability-aware), item removal, API-driven summary (subtotal, discount, network fee, total).
+- [ ] Show the selected edition tier on every cart line; add compact cart stepper and responsive mobile cart cards.
+- [ ] Add summary panel (title rule, quote rows and action) and mobile coupon/summary sheet using only the API quote for totals.
 - [ ] Coupon apply/remove with invalid/expired handling.
 - [ ] Persistence after refresh; guest cart preserved and merged via `POST /api/cart/merge` on login.
 - [ ] Skeleton for cart summary; announce price/availability changes in live region.
@@ -112,10 +117,11 @@ Context: initial setup is done and dependencies are installed with npm. Verify e
 ## Epic 7: Checkout, Orders & Receipt
 
 - [ ] Checkout form: collector data (prefilled from profile/registered wallet; "Usar outra carteira?" reveals per-network validated address entry), provider selection with simulated connect/refuse/disconnect, and review dialog before submit.
+- [ ] Build responsive wallet/provider option cards, checkout summary panel and mobile composition (collector-data disclosure, wallet cards, provider cards, total and primary action).
 - [ ] Quote revalidation before confirming; on price/availability/coupon/fee change show differences and require a new explicit confirmation.
 - [ ] Idempotent order creation: per-attempt key persisted and reused on retry; block duplicate clicks; timeout recovery returns the same order; `409` on key reuse with different payload.
 - [ ] Pending / confirmed / rejected states; recovery after refresh/reconnection; show confirmation **only** for confirmed orders.
-- [ ] Receipt (confirmation) as an immutable snapshot: transaction id, items, fees, total; works on mobile.
+- [ ] Receipt route `/pedidos/:orderId` as an immutable snapshot: transaction id, items, edition tiers, fees, total and network explorer link; pending/confirmed/rejected states and mobile composition.
 - [ ] On confirmation remove only purchased items/quantities from the cart; preserve items on failure.
 - [ ] Session expiry mid-checkout resumes with preserved context.
 - [ ] **Tests**: full purchase (catalog → confirmed receipt); payment failure, repeated clicks, timeout recovered with the same order.
@@ -139,9 +145,12 @@ Context: initial setup is done and dependencies are installed with npm. Verify e
 
 ## Epic 9: Profile & Wallets
 
+- [ ] Add shared profile layout with sidebar navigation; active profile item uses a 4px primary bar.
 - [ ] Profile view: edit personal data, avatar upload, password change; API validation errors mapped to fields.
-- [ ] Wallets view: register and edit primary/secondary wallets; validation and error handling.
-- [ ] Confirmed changes persist after refresh; works on mobile (no dedicated frame).
+- [ ] Add avatar block with image placeholder and Alterar/Remover actions; profile fields and password flow surface API validation errors.
+- [ ] Wallets view: register and edit primary/secondary wallets; validation and error handling; include "Igual à carteira principal" and the empty secondary state.
+- [ ] Favorites view at `/favoritos` ("Lista de interesse") inside the profile layout, reusing the card grid.
+- [ ] Confirmed changes persist after refresh; profile, wallets and favorites have responsive mobile compositions (no dedicated frames).
 - [ ] **Tests**: profile/avatar/password/wallet edits with validation errors.
 
 ---

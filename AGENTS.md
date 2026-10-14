@@ -81,7 +81,8 @@ Environment variables: `VITE_ENABLE_MOCKS`, `VITE_MOCK_SCENARIO`, `VITE_API_BASE
 ## 6. Routing
 
 - All routes, private-route protection (`beforeLoad` guards) and search params go through TanStack Router.
-- `/login` and `/signup` are route-driven authentication screens. On desktop they render as a modal over the previous route; closing returns to that route. On mobile they render full-screen. Direct access works. `Mercado` remains active on detail, cart, checkout and favorites. Add `/favoritos` and an "indisponível nesta demonstração" route for out-of-scope links.
+- Routes: `/` (Início), `/nft/:id`, `/carrinho`, `/pagamento`, `/pedidos/:orderId` (reloadable receipt), `/login`, `/signup`, `/perfil`, `/carteiras`, `/favoritos` (Lista de interesse, inside the profile layout), and the "indisponível nesta demonstração" route. `/mercado` is not a route; Mercado links to the catalog anchor. Login and signup are route-driven: desktop modal over the previous route, mobile full-screen; direct access works.
+- Active navigation: Início on `/`, `/perfil`, `/carteiras`, `/favoritos`; Mercado on NFT detail, cart, checkout and receipt.
 - Catalog search, filters, sort and pagination live **in the URL** (validated search params). Changing any filter resets `page` to 1. State must survive refresh and back/forward navigation.
 - Private routes: Cart (authenticated cart), Checkout, Order confirmation, Profile, Wallets, Favorites. Unauthenticated access redirects to Login with a `redirect` param and returns to the previous flow after login.
 - Every planned screen must work on direct access and on refresh (including the deployed environment — SPA fallback required).
@@ -121,6 +122,7 @@ Environment variables: `VITE_ENABLE_MOCKS`, `VITE_MOCK_SCENARIO`, `VITE_API_BASE
 - Implement `DESIGN_SYSTEM.md`. Compare each screen against `design/reference/` at 1440 and 390/414. Never use arbitrary hex classes (`bg-[#...]`); use semantic tokens only. Record every deviation in `ARCHITECTURE.md` §14.
 - Verify at **390, 768 and 1440 px**: no unintended horizontal overflow, no content loss at 200% zoom.
 - Keyboard: full operation, visible focus, focus trap and focus return for dialogs/drawers, Escape closes.
+- Dialogs (auth, review and receipt confirmations) require a scrim, focus trap, focus return and Escape-to-close. Mobile uses bottom navigation (home, favorites, cart, profile) with a center button; desktop uses the header.
 - Semantics: landmarks, headings order, labels, error messages associated via `aria-describedby`, `aria-invalid`. Images have meaningful `alt` (decorative ones `alt=""`). State is never conveyed by color alone. Contrast ≥ WCAG AA.
 - Mutations and real-time changes give accessible feedback (toast/live region).
 - Fonts and images required to run locally must be in the repo (no private CDNs). Replace assets only with a note in `ARCHITECTURE.md`.
