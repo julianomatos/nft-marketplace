@@ -69,8 +69,8 @@ Context: initial setup is done and dependencies are installed with npm. Verify e
 - [x] Session recovery after refresh via `GET /api/auth/session`; token handling in Axios interceptor.
 - [x] Route guards for private areas; redirect to Login with `redirect` param and return to the previous flow.
 - [x] Handle session expiry during navigation and checkout, preserving return context for resumption.
-- [ ] Logout and user switch: clear Query cache, persisted private data, checkout draft; (socket cleanup hooks are completed in Epic 8).
-- [ ] **Tests**: signup (success + conflict), login, expiry, logout, user switch with no data leakage.
+- [x] Logout and user switch: clear Query cache, persisted private data, checkout draft and idempotency/order context; disconnect registered sockets and remove their listeners.
+- [x] **Tests**: signup (success + conflict), login, expiry, logout, user switch with no data leakage.
 
 **Acceptance**: no private data from user A visible to user B after switch.
 

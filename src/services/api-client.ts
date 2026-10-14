@@ -14,6 +14,7 @@ const API_BASE_URL =
 const API_TIMEOUT_MS = 15_000
 const SESSION_TOKEN_STORAGE_KEY = 'kurio.session.token'
 const SESSION_EXPIRED_EVENT = 'kurio:session-expired'
+const SESSION_CHANGED_EVENT = 'kurio:session-changed'
 
 function getSessionToken(): string | null {
   if (typeof window === 'undefined') return null
@@ -22,10 +23,20 @@ function getSessionToken(): string | null {
 
 function setSessionToken(token: string | null): void {
   if (typeof window === 'undefined') return
+  const previousToken = getSessionToken()
   if (token) {
     window.sessionStorage.setItem(SESSION_TOKEN_STORAGE_KEY, token)
   } else {
     window.sessionStorage.removeItem(SESSION_TOKEN_STORAGE_KEY)
+  }
+  if (previousToken !== token) {
+    notifySessionChanged()
+  }
+}
+
+function notifySessionChanged(): void {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event(SESSION_CHANGED_EVENT))
   }
 }
 
@@ -55,8 +66,13 @@ apiClient.interceptors.response.use(
     const normalizedError = normalizeApiError(error)
     const requestUrl = axios.isAxiosError(error) ? error.config?.url : undefined
     const isSessionLookup = requestUrl?.includes(API_ENDPOINTS.auth.session)
+    const isLogout = requestUrl?.includes(API_ENDPOINTS.auth.logout)
 
-    if (normalizedError.code === 'SESSION_EXPIRED' && !isSessionLookup) {
+    if (
+      normalizedError.code === 'SESSION_EXPIRED' &&
+      !isSessionLookup &&
+      !isLogout
+    ) {
       setSessionToken(null)
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT))
@@ -74,8 +90,10 @@ export {
   API_ERROR_STATUS,
   IDEMPOTENCY_KEY_HEADER,
   SESSION_EXPIRED_EVENT,
+  SESSION_CHANGED_EVENT,
   SESSION_TOKEN_STORAGE_KEY,
   getSessionToken,
+  notifySessionChanged,
   setSessionToken,
   apiClient,
 }

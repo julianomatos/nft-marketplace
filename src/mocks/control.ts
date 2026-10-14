@@ -13,9 +13,11 @@ import { settleMockOrder } from './settle-order'
 import type { Socket } from 'socket.io-client'
 import { API_ENDPOINTS } from '../types/endpoints'
 import { apiClient } from '../services/api-client'
+import { registerSessionSocket } from '../services/socket-registry'
+import type { Profile } from '../types/contracts'
 
 async function requestProfile() {
-  return apiClient.get(API_ENDPOINTS.profile.current)
+  return apiClient.get<Profile>(API_ENDPOINTS.profile.current)
 }
 
 async function connectSocketClient(tokenOverride?: string | null): Promise<Socket> {
@@ -32,6 +34,11 @@ async function connectSocketClient(tokenOverride?: string | null): Promise<Socke
   socket.on('connect', () => {
     socket.emit('mock:subscribe', token)
   })
+  const userId = readMockState().session.userId
+  if (token && userId) {
+    const unregister = registerSessionSocket(socket, userId)
+    socket.once('disconnect', unregister)
+  }
   socket.connect()
   return socket
 }

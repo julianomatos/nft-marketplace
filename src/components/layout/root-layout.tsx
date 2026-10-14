@@ -3,7 +3,7 @@ import {
   useRouter,
   useRouterState,
 } from '@tanstack/react-router'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { MobileBottomNavigation } from '@/components/layout/mobile-bottom-navigation'
 import { SiteFooter } from '@/components/layout/site-footer'
 import { SiteHeader } from '@/components/layout/site-header'
@@ -11,7 +11,12 @@ import { HomeIntro } from '@/components/home/home-intro'
 import { Button } from '@/components/ui/button'
 import { useSession } from '@/hooks/use-session'
 import { queryClient } from '@/lib/query-client'
-import { SESSION_EXPIRED_EVENT, setSessionToken } from '@/services/api-client'
+import {
+  getSessionToken,
+  SESSION_CHANGED_EVENT,
+  SESSION_EXPIRED_EVENT,
+  setSessionToken,
+} from '@/services/api-client'
 import { saveAuthReturnContext } from '@/utils/auth-return-context'
 import type { RouterSession } from '@/types/router'
 
@@ -42,21 +47,23 @@ function RootLayout() {
   const router = useRouter()
   const sessionQuery = useSession()
   const handledSessionExpiry = useRef(false)
+  const [, refreshSession] = useReducer((revision: number) => revision + 1, 0)
   const pathname = useRouterState({ select: (state) => state.location.pathname })
   const isAuthRoute = pathname === '/login' || pathname === '/signup'
+  const sessionToken = getSessionToken()
   const [backgroundPath, setBackgroundPath] = useState(
     isAuthRoute ? '/' : pathname,
   )
   const session = useMemo<RouterSession>(() => {
     const data = sessionQuery.data
-    return data?.authenticated
+    return sessionToken && data?.authenticated
       ? {
           status: 'authenticated',
           userId: data.user.id,
           displayName: data.user.displayName,
         }
       : { status: 'guest' }
-  }, [sessionQuery.data])
+  }, [sessionQuery.data, sessionToken])
 
   useEffect(
     () =>
@@ -90,6 +97,16 @@ function RootLayout() {
       handledSessionExpiry.current = false
     }
   }, [session.status])
+
+  useEffect(() => {
+    function handleSessionChanged() {
+      refreshSession()
+    }
+
+    window.addEventListener(SESSION_CHANGED_EVENT, handleSessionChanged)
+    return () =>
+      window.removeEventListener(SESSION_CHANGED_EVENT, handleSessionChanged)
+  }, [])
 
   useEffect(() => {
     function handleSessionExpired() {

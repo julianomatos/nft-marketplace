@@ -10,8 +10,24 @@ import { queryKeys } from '@/hooks/queryKeys'
 import { API_ENDPOINTS } from '@/types/endpoints'
 import { apiClient, setSessionToken } from '@/services/api-client'
 import { authResponseSchema } from '@/types/contracts'
+import { clearPrivateSessionStorage } from '@/utils/auth-return-context'
+import { disconnectSessionSockets } from '@/services/socket-registry'
 
-function persistAuthenticatedSession(response: LoginResponse | SignupResponse) {
+function persistAuthenticatedSession(
+  response: LoginResponse | SignupResponse,
+): void {
+  const previousSession = queryClient.getQueryData<{
+    authenticated: boolean
+    user?: { id: string }
+  }>(queryKeys.auth.session)
+  const switchedUser =
+    previousSession?.authenticated === true &&
+    previousSession.user?.id !== response.user.id
+
+  if (switchedUser && previousSession.user) {
+    clearPrivateSessionStorage()
+    disconnectSessionSockets(previousSession.user.id)
+  }
   queryClient.clear()
   setSessionToken(response.token)
   queryClient.setQueryData(queryKeys.auth.session, {
@@ -47,4 +63,4 @@ function useSignup() {
   })
 }
 
-export { useLogin, useSignup }
+export { persistAuthenticatedSession, useLogin, useSignup }

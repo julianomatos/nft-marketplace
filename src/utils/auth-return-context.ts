@@ -3,6 +3,7 @@ import { z } from 'zod'
 const AUTH_RETURN_CONTEXT_STORAGE_KEY = 'kurio.auth.return-context'
 const CHECKOUT_DRAFT_STORAGE_KEY = 'kurio.checkout.draft'
 const CHECKOUT_IDEMPOTENCY_KEY_STORAGE_KEY = 'kurio.checkout.idempotency-key'
+const PENDING_ORDER_ID_STORAGE_KEY = 'kurio.pending-order-id'
 const AUTH_RETURN_CONTEXT_SCHEMA = z.object({
   redirect: z.string(),
   checkoutDraft: z.string().optional(),
@@ -87,11 +88,21 @@ function clearAuthReturnContext(): void {
   window.sessionStorage.removeItem(AUTH_RETURN_CONTEXT_STORAGE_KEY)
 }
 
+function clearPrivateSessionStorage(): void {
+  if (typeof window === 'undefined') return
+  window.sessionStorage.removeItem(CHECKOUT_DRAFT_STORAGE_KEY)
+  window.sessionStorage.removeItem(CHECKOUT_IDEMPOTENCY_KEY_STORAGE_KEY)
+  window.sessionStorage.removeItem(PENDING_ORDER_ID_STORAGE_KEY)
+  window.sessionStorage.removeItem(AUTH_RETURN_CONTEXT_STORAGE_KEY)
+}
+
 export {
   AUTH_RETURN_CONTEXT_STORAGE_KEY,
   CHECKOUT_DRAFT_STORAGE_KEY,
   CHECKOUT_IDEMPOTENCY_KEY_STORAGE_KEY,
+  PENDING_ORDER_ID_STORAGE_KEY,
   clearAuthReturnContext,
+  clearPrivateSessionStorage,
   getAuthReturnTarget,
   getSafeInternalRedirect,
   restoreAuthReturnContext,

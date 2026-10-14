@@ -337,3 +337,110 @@ test('session expiry from an Axios-protected request saves checkout state and re
     ),
   ).toContain('review')
 })
+
+test('logout calls the API and clears the client session, checkout data, and sockets', async ({
+  page,
+}) => {
+  await page.goto('/login')
+  await page.getByLabel('E-mail', { exact: true }).fill('ana@kurio.example.test')
+  await page.getByLabel('Senha', { exact: true }).fill('KurioDemo!A2026')
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click()
+  await expect(page.getByText('Ana Oliveira', { exact: true })).toBeVisible()
+
+  await page.evaluate(async () => {
+    window.sessionStorage.setItem('kurio.checkout.draft', '{"step":"review"}')
+    window.sessionStorage.setItem(
+      'kurio.checkout.idempotency-key',
+      'logout-attempt',
+    )
+    window.sessionStorage.setItem('kurio.pending-order-id', 'order-pending')
+    const socket = await window.__KURIO_MOCKS__.connectSocketClient()
+    window.__KURIO_TEST_SOCKET__ = socket
+  })
+  await expect.poll(() =>
+    page.evaluate(() => window.__KURIO_TEST_SOCKET__?.connected),
+  ).toBe(true)
+
+  const logoutRequest = page.waitForRequest((request) =>
+    request.url().endsWith('/api/auth/logout'),
+  )
+  await page.getByText('Ana Oliveira', { exact: true }).click()
+  await page.getByRole('button', { name: 'Sair' }).click()
+  await logoutRequest
+
+  await expect.poll(() =>
+    page.evaluate(() => window.sessionStorage.getItem('kurio.session.token')),
+  ).toBeNull()
+  await expect(
+    page.getByRole('link', { name: 'Entrar', includeHidden: true }),
+  ).toHaveCount(1)
+  await expect(page.getByText('Ana Oliveira', { exact: true })).toHaveCount(0)
+  await expect.poll(() =>
+    page.evaluate(() => window.__KURIO_TEST_SOCKET__?.connected),
+  ).toBe(false)
+  const privateState = await page.evaluate(() => {
+    return {
+      draft: window.sessionStorage.getItem('kurio.checkout.draft'),
+      idempotencyKey: window.sessionStorage.getItem(
+        'kurio.checkout.idempotency-key',
+      ),
+      pendingOrderId: window.sessionStorage.getItem('kurio.pending-order-id'),
+    }
+  })
+  expect(privateState).toEqual({
+    draft: null,
+    idempotencyKey: null,
+    pendingOrderId: null,
+  })
+})
+
+test('switching from Ana to Caio removes Ana from the UI and disconnects her socket', async ({
+  page,
+}) => {
+  await page.goto('/login')
+  await page.getByLabel('E-mail', { exact: true }).fill('ana@kurio.example.test')
+  await page.getByLabel('Senha', { exact: true }).fill('KurioDemo!A2026')
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click()
+  await expect(page.getByText('Ana Oliveira', { exact: true })).toBeVisible()
+
+  await page.evaluate(async () => {
+    window.sessionStorage.setItem('kurio.checkout.draft', '{"user":"ana"}')
+    const socket = await window.__KURIO_MOCKS__.connectSocketClient()
+    window.__KURIO_TEST_SOCKET__ = socket
+  })
+  await expect.poll(() =>
+    page.evaluate(() => window.__KURIO_TEST_SOCKET__?.connected),
+  ).toBe(true)
+
+  await page.evaluate(async () => {
+    const routerUrl = new URL('/src/router.tsx', location.origin).href
+    const routerModule = (await import(
+      /* @vite-ignore */ routerUrl
+    )) as { router: { navigate: (options: { to: string }) => Promise<void> } }
+    await routerModule.router.navigate({ to: '/login' })
+  })
+  await page.getByLabel('E-mail', { exact: true }).fill('caio@kurio.example.test')
+  await page.getByLabel('Senha', { exact: true }).fill('KurioDemo!B2026')
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click()
+
+  await expect(page.getByText('Caio Martins', { exact: true })).toBeVisible()
+  await expect(page.getByText('Ana Oliveira', { exact: true })).toHaveCount(0)
+  await expect.poll(() =>
+    page.evaluate(() => window.__KURIO_TEST_SOCKET__?.connected),
+  ).toBe(false)
+  const privateState = await page.evaluate(() => {
+    return {
+      draft: window.sessionStorage.getItem('kurio.checkout.draft'),
+    }
+  })
+  expect(privateState).toEqual({ draft: null })
+
+  const profile = await page.evaluate(async () => {
+    const response = await window.__KURIO_MOCKS__.requestProfile()
+    return response.data
+  })
+  expect(profile).toMatchObject({
+    displayName: 'Caio Martins',
+    email: 'caio@kurio.example.test',
+  })
+})

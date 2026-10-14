@@ -1,5 +1,6 @@
-import { Link, useRouterState } from '@tanstack/react-router'
+import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
 import { LogIn, Search, ShoppingCart, UserRound } from 'lucide-react'
+import { useLogout } from '@/hooks/use-logout'
 import kurioWordmark from '@/assets/kurio-wordmark.svg'
 import { Badge } from '@/components/ui/badge'
 import type { RouterSession } from '@/types/router'
@@ -12,6 +13,8 @@ type SiteHeaderProps = {
 }
 
 function SiteHeader({ session, cartCount }: SiteHeaderProps) {
+  const logout = useLogout()
+  const navigate = useNavigate()
   const pathname = useRouterState({
     select: (state) => state.location.pathname,
   })
@@ -117,18 +120,30 @@ function SiteHeader({ session, cartCount }: SiteHeaderProps) {
                   </Link>
                 ))}
                 <button
-                  className="block w-full cursor-not-allowed px-3 py-2 text-left text-xs text-muted-foreground"
-                  disabled
-                  title="Sair ficará disponível quando a sessão estiver implementada."
+                  className="block w-full px-3 py-2 text-left text-xs text-foreground hover:bg-surface-raised hover:text-highlight focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-wait disabled:opacity-60"
+                  disabled={logout.isPending}
+                  onClick={() =>
+                    logout.mutate(undefined, {
+                      onSettled: () => void navigate({ to: '/' }),
+                    })
+                  }
                   type="button"
                 >
-                  Sair
+                  {logout.isPending ? 'Saindo…' : 'Sair'}
                 </button>
               </nav>
             </details>
           )}
         </div>
       </div>
+      {logout.isError && (
+        <p
+          className="kurio-container py-2 text-xs text-destructive"
+          role="alert"
+        >
+          {logout.error.message} A sessão local foi encerrada.
+        </p>
+      )}
     </header>
   )
 }
