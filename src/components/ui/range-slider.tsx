@@ -1,5 +1,5 @@
-import Decimal from 'decimal.js'
 import type { ChangeEvent, CSSProperties } from 'react'
+import { clamp, compare, format, rangePercentage } from '@/utils/eth'
 
 type RangeSliderProps = {
   label: string
@@ -20,48 +20,34 @@ function RangeSlider({
   onValueChange,
   unit = 'ETH',
 }: RangeSliderProps) {
-  const minValue = new Decimal(min)
-  const maxValue = new Decimal(max)
-  const stepValue = new Decimal(step)
-  const lowerValue = new Decimal(value[0])
-  const upperValue = new Decimal(value[1])
-  const range = maxValue.minus(minValue)
-
   if (
-    !minValue.isFinite() ||
-    !maxValue.isFinite() ||
-    !stepValue.isFinite() ||
-    !lowerValue.isFinite() ||
-    !upperValue.isFinite() ||
-    range.lte(0) ||
-    stepValue.lte(0) ||
-    lowerValue.lt(minValue) ||
-    upperValue.gt(maxValue) ||
-    lowerValue.gt(upperValue)
+    compare(min, max) >= 0 ||
+    compare(step, '0') <= 0 ||
+    compare(value[0], min) < 0 ||
+    compare(value[1], max) > 0 ||
+    compare(value[0], value[1]) > 0
   ) {
     throw new RangeError('Range slider values must be finite and within bounds.')
   }
 
-  const startPercent = lowerValue.minus(minValue).div(range).mul(100).toFixed()
-  const endPercent = upperValue.minus(minValue).div(range).mul(100).toFixed()
+  const startPercent = rangePercentage(value[0], min, max)
+  const endPercent = rangePercentage(value[1], min, max)
   const trackStyle: CSSProperties = {
     background: `linear-gradient(to right, var(--border) ${startPercent}%, var(--primary) ${startPercent}%, var(--primary) ${endPercent}%, var(--border) ${endPercent}%)`,
   }
 
   function handleLowerChange(event: ChangeEvent<HTMLInputElement>) {
-    const nextValue = Decimal.min(
-      Decimal.max(new Decimal(event.currentTarget.value), minValue),
-      upperValue,
-    )
-    onValueChange([nextValue.toFixed(), value[1]])
+    onValueChange([
+      clamp(event.currentTarget.value, min, value[1]),
+      value[1],
+    ])
   }
 
   function handleUpperChange(event: ChangeEvent<HTMLInputElement>) {
-    const nextValue = Decimal.max(
-      Decimal.min(new Decimal(event.currentTarget.value), maxValue),
-      lowerValue,
-    )
-    onValueChange([value[0], nextValue.toFixed()])
+    onValueChange([
+      value[0],
+      clamp(event.currentTarget.value, value[0], max),
+    ])
   }
 
   return (
@@ -91,7 +77,7 @@ function RangeSlider({
         />
       </div>
       <p className="text-xs text-muted-foreground">
-        {label}: {value[0]} – {value[1]} {unit}
+        {label}: {format(value[0])} – {format(value[1])} {unit}
       </p>
     </div>
   )

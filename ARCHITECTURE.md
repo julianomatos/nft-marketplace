@@ -51,6 +51,7 @@ The initial dependency audit found 8 high and 19 moderate advisories in the Ligh
 ## 3. Domain Rules [Planned]
 
 - **ETH amounts** are decimal strings. No `number` arithmetic. Quantities are integers.
+- `src/utils/eth.ts` is the shared decimal.js boundary for ETH math (`add`, `mul`, `sum`, `compare`, `format`); it uses a local Decimal clone with 80 significant digits. `format` validates and preserves the API decimal string verbatim (dot separator, no grouping or rounding); arithmetic results use fixed notation. The range slider uses the same helpers for its ETH bounds.
 - **The quote is the source of truth** for subtotal, discount, network fee and total. The UI formats; it does not compute authoritative totals.
 - **Orders** have states `pending → confirmed | rejected`. `confirmed` and `rejected` are terminal.
 - **Receipts** are immutable snapshots taken at order creation/confirmation; later catalog changes never alter them.
