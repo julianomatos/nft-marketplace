@@ -42,6 +42,32 @@ test('filter changes reset page while page-only changes are preserved', () => {
   })
 })
 
+test('sort changes reset pagination while page changes preserve the active sort', () => {
+  const current = nftSearchParamsSchema.parse({
+    feed: 'trending',
+    sort: 'recent',
+    page: 4,
+  })
+
+  expect(
+    updateNftSearchParams(current, { sort: 'price-asc' }),
+  ).toMatchObject({
+    feed: 'trending',
+    sort: 'price-asc',
+    page: 1,
+  })
+  expect(
+    updateNftSearchParams(
+      { ...current, sort: 'price-asc' },
+      { page: 2 },
+    ),
+  ).toMatchObject({
+    feed: 'trending',
+    sort: 'price-asc',
+    page: 2,
+  })
+})
+
 test('catalog route search schema retains the complete set of filters', async () => {
   const { catalogSearchSchema } = await import('../../src/utils/search-params')
   const defaults = catalogSearchSchema.parse({})

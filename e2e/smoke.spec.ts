@@ -5,8 +5,12 @@ test('the application starts in Chromium', async ({ page }) => {
   await page.goto('/')
 
   await expect(page).toHaveTitle('KURIO | Marketplace de NFTs')
+  const heroTitle =
+    test.info().project.name === 'chromium-mobile'
+      ? 'Seja dono da cultura digital'
+      : 'Seja dono do futuro da arte digital'
   await expect(
-    page.getByRole('heading', { name: 'Seja dono do futuro da arte digital' }),
+    page.getByRole('heading', { name: heroTitle }),
   ).toBeVisible()
 })
 

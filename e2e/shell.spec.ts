@@ -49,17 +49,17 @@ test('renders the responsive KURIO shell', async ({ page }) => {
     await expect(
       mobileNavigation.getByRole('listitem'),
     ).toHaveCount(4)
-    const exploreLink = mobileNavigation.getByRole('link', {
+    const exploreButton = mobileNavigation.getByRole('button', {
       name: 'Explorar coleções',
     })
     await expect(
       mobileNavigation.getByRole('link', { name: 'Início' }),
     ).toBeVisible()
     await page.goto('/indisponivel')
-    await exploreLink.click()
-    await expect(page).toHaveURL(/\/\?page=1#catalog$/)
+    await exploreButton.click()
+    await expect(page).toHaveURL(/\/\?page=1$/)
     await expect(
-      page.getByRole('link', { name: 'Buscar coleções' }),
+      page.getByRole('searchbox', { name: 'Buscar NFTs' }),
     ).toBeFocused()
   } else {
     await expect(
@@ -84,10 +84,12 @@ test('unavailable destinations explain the outcome and provide a return path', a
   await expect(page.getByText('Nenhuma ação foi realizada.')).toBeVisible()
 
   await page.getByRole('link', { name: 'Voltar ao início' }).click()
+  const heroTitle =
+    test.info().project.name === 'chromium-mobile'
+      ? 'Seja dono da cultura digital'
+      : 'Seja dono do futuro da arte digital'
   await expect(
-    page.getByRole('heading', {
-      name: 'Seja dono do futuro da arte digital',
-    }),
+    page.getByRole('heading', { name: heroTitle }),
   ).toBeVisible()
 })
 

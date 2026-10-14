@@ -1,18 +1,24 @@
 import { useState } from 'react'
 import { Link, useNavigate, useSearch } from '@tanstack/react-router'
-import { Search, SlidersHorizontal } from 'lucide-react'
 import { ErrorState } from '@/components/ui/error-state'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
+import { Pagination } from '@/components/ui/pagination'
+import { Select } from '@/components/ui/select'
 import { ModalSurface } from '@/components/ui/dialog'
+import { CatalogSearchForm } from '@/components/home/catalog-search-form'
 import { NftCard } from '@/components/home/nft-card'
 import { CatalogFilterPanel } from '@/components/home/catalog-filter-panel'
 import { HomeIntro } from '@/components/home/home-intro'
 import { useNftCatalog } from '@/hooks/use-nft-catalog'
 import { useFeaturedNfts } from '@/hooks/use-featured-nfts'
 import { format } from '@/utils/eth'
-import { nftSearchParamsSchema, type NftSearchParams } from '@/types/contracts'
+import {
+  nftSearchParamsSchema,
+  nftSortSchema,
+  type NftSearchParams,
+} from '@/types/contracts'
 import { updateNftSearchParams } from '@/utils/search-params'
 import { homePromoBanners, mintJournalTeasers } from '@/content/home-copy'
 import { compare } from '@/utils/eth'
@@ -95,17 +101,29 @@ function HomePage() {
       network: undefined,
       minPrice: undefined,
       maxPrice: undefined,
+      sort: 'recent',
     })
   }
 
   return (
     <>
+      <div className="kurio-container pt-4 lg:hidden">
+        <CatalogSearchForm
+          filtersDisabled={!facets}
+          inputId="mobile-catalog-search"
+          mobile
+          onChange={updateSearchDraft}
+          onOpenFilters={() => setFilterDrawerOpen(true)}
+          onSubmit={() => updateSearch({ q: searchDraft.trim() || undefined })}
+          value={searchDraft}
+        />
+      </div>
       <HomeIntro />
-      <div className="kurio-container pb-12 md:pb-20">
+      <div className="kurio-container flex flex-col pb-12 md:pb-20">
         {spotlight && spotlightImage && (
           <section
             aria-labelledby="featured-nft-title"
-            className="mb-10 border-y border-border-header py-5"
+            className="order-2 mb-10 border-y border-border-header py-5 md:order-1"
           >
             <h2
               className="mb-4 text-lg font-bold uppercase text-highlight"
@@ -137,7 +155,10 @@ function HomePage() {
           </section>
         )}
 
-        <section aria-label="Destaques editoriais" className="mb-12 space-y-5">
+        <section
+          aria-label="Destaques editoriais"
+          className="order-3 mb-12 space-y-5 md:order-2"
+        >
           <div className="grid gap-4 md:grid-cols-2">
             {homePromoBanners.map((banner) => (
               <article
@@ -164,7 +185,11 @@ function HomePage() {
           </div>
         </section>
 
-        <section aria-labelledby="catalog-title" id="catalog">
+        <section
+          aria-labelledby="catalog-title"
+          className="order-1 md:order-3"
+          id="catalog"
+        >
           <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
@@ -177,9 +202,14 @@ function HomePage() {
                 NFTs para descobrir
               </h2>
             </div>
-            <p className="text-xs text-muted-foreground">
-              {catalogQuery.data ? `${catalogQuery.data.total} itens` : ' '}
-            </p>
+            <CatalogSearchForm
+              inputId="desktop-catalog-search"
+              onChange={updateSearchDraft}
+              onSubmit={() =>
+                updateSearch({ q: searchDraft.trim() || undefined })
+              }
+              value={searchDraft}
+            />
           </div>
 
           <div className="mb-5 flex flex-wrap items-center gap-2" aria-label="Feeds">
@@ -200,39 +230,26 @@ function HomePage() {
             ))}
           </div>
 
-          <form
-            className="mb-5 flex gap-2 lg:hidden"
-            onSubmit={(event) => {
-              event.preventDefault()
-              updateSearch({ q: searchDraft.trim() || undefined })
-            }}
-            role="search"
-          >
-            <label className="sr-only" htmlFor="mobile-catalog-search">
-              Buscar NFTs
-            </label>
-            <input
-              className="min-h-11 min-w-0 flex-1 border border-input bg-card px-4 text-sm text-foreground placeholder:text-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-              id="mobile-catalog-search"
-              onChange={(event) => updateSearchDraft(event.currentTarget.value)}
-              placeholder="Buscar NFTs"
-              type="search"
-              value={searchDraft}
-            />
-            <Button aria-label="Buscar" size="icon" type="submit">
-              <Search aria-hidden="true" size={18} />
-            </Button>
-            <Button
-              aria-label="Abrir filtros"
-              disabled={!facets}
-              onClick={() => setFilterDrawerOpen(true)}
-              size="icon"
-              type="button"
-              variant="secondary"
+          <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
+            <p className="text-xs text-muted-foreground">
+              {catalogQuery.data ? `${catalogQuery.data.total} itens` : ' '}
+            </p>
+            <Select
+              containerClassName="w-full max-w-56"
+              label="Ordenar por"
+              onChange={(event) =>
+                updateSearch({
+                  sort: nftSortSchema.parse(event.currentTarget.value),
+                })
+              }
+              value={search.sort}
             >
-              <SlidersHorizontal aria-hidden="true" size={18} />
-            </Button>
-          </form>
+              <option value="recent">Mais recentes</option>
+              <option value="price-asc">Menor preço</option>
+              <option value="price-desc">Maior preço</option>
+              <option value="popular">Mais populares</option>
+            </Select>
+          </div>
 
           {facets && (
             <>
@@ -305,9 +322,26 @@ function HomePage() {
                         </p>
                       )}
                       <div className="grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-2 md:gap-x-8 md:gap-y-10 xl:grid-cols-3">
-                        {catalogQuery.data.items.map((nft) => (
-                          <NftCard key={nft.id} nft={nft} />
+                        {catalogQuery.data.items.map((nft, index) => (
+                          <div
+                            className={
+                              index % 2 === 1
+                                ? 'mt-8 min-w-0 md:mt-0'
+                                : 'min-w-0'
+                            }
+                            key={nft.id}
+                          >
+                            <NftCard nft={nft} />
+                          </div>
                         ))}
+                      </div>
+                      <div className="mt-10 flex justify-center">
+                        <Pagination
+                          label="Catálogo de NFTs"
+                          onPageChange={(page) => updateSearch({ page })}
+                          page={catalogQuery.data.page}
+                          totalPages={catalogQuery.data.totalPages}
+                        />
                       </div>
                     </>
                   )}
@@ -332,7 +366,10 @@ function HomePage() {
           )}
         </section>
 
-        <section aria-labelledby="mint-journal-title" className="mt-16">
+        <section
+          aria-labelledby="mint-journal-title"
+          className="order-4 mt-16"
+        >
           <div className="mb-5 flex items-end justify-between gap-4 border-b border-border-header pb-3">
             <h2
               className="text-xl font-bold text-foreground"
@@ -384,7 +421,8 @@ function hasActiveFilters(search: NftSearchParams) {
       search.category?.length ||
       search.network?.length ||
       search.minPrice ||
-      search.maxPrice,
+      search.maxPrice ||
+      search.sort !== 'recent',
   )
 }
 

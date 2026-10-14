@@ -140,10 +140,12 @@ test('does not request an auth session for a visitor without a token', async ({
   })
 
   await page.goto('/')
+  const heroTitle =
+    test.info().project.name === 'chromium-mobile'
+      ? 'Seja dono da cultura digital'
+      : 'Seja dono do futuro da arte digital'
   await expect(
-    page.getByRole('heading', {
-      name: 'Seja dono do futuro da arte digital',
-    }),
+    page.getByRole('heading', { name: heroTitle }),
   ).toBeVisible()
   expect(sessionRequests).toEqual([])
 })

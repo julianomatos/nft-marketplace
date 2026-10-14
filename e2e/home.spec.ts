@@ -7,8 +7,13 @@ test.beforeEach(async ({ page }) => {
 })
 
 test('renders hero and catalog data from the REST mock', async ({ page }) => {
+  const isMobile = (page.viewportSize()?.width ?? 0) < 768
   await expect(
-    page.getByRole('heading', { name: 'Seja dono do futuro da arte digital' }),
+    page.getByRole('heading', {
+      name: isMobile
+        ? 'Seja dono da cultura digital'
+        : 'Seja dono do futuro da arte digital',
+    }),
   ).toBeVisible()
   await expect(page.getByRole('heading', { name: 'NFT em destaque' })).toBeVisible()
   await expect(
@@ -31,7 +36,10 @@ test('home layout stays within the viewport at required widths', async ({
     await page.setViewportSize({ width, height: 1000 })
     await expect(
       page.getByRole('heading', {
-        name: 'Seja dono do futuro da arte digital',
+        name:
+          width < 768
+            ? 'Seja dono da cultura digital'
+            : 'Seja dono do futuro da arte digital',
       }),
     ).toBeVisible()
     const horizontalOverflow = await page.evaluate(
@@ -42,13 +50,43 @@ test('home layout stays within the viewport at required widths', async ({
 })
 
 test('home has no automated accessibility violations', async ({ page }) => {
+  const isMobile = (page.viewportSize()?.width ?? 0) < 768
   await expect(
     page.getByRole('heading', {
-      name: 'Seja dono do futuro da arte digital',
+      name: isMobile
+        ? 'Seja dono da cultura digital'
+        : 'Seja dono do futuro da arte digital',
     }),
   ).toBeVisible()
   const accessibility = await new AxeBuilder({ page }).analyze()
   expect(accessibility.violations).toEqual([])
+})
+
+test('mobile home uses the compact hero, carousel dots, staggered grid, and search focus', async ({
+  page,
+}) => {
+  test.skip((page.viewportSize()?.width ?? 0) >= 768)
+
+  await expect(
+    page.getByRole('heading', { name: 'Seja dono da cultura digital' }),
+  ).toBeVisible()
+  const dots = page.getByRole('button', { name: /Exibir destaque/ })
+  await expect(dots).toHaveCount(3)
+  const secondDot = page.getByRole('button', {
+    name: 'Exibir destaque 2: Sage Nomad #009',
+  })
+  await secondDot.click()
+  await expect(secondDot).toHaveAttribute('aria-pressed', 'true')
+
+  const secondCard = page.locator('#catalog article').nth(1)
+  await expect
+    .poll(() =>
+      secondCard.evaluate((card) => getComputedStyle(card.parentElement!).marginTop),
+    )
+    .toBe('32px')
+
+  await page.getByRole('button', { name: 'Explorar coleções' }).click()
+  await expect(page.getByRole('searchbox', { name: 'Buscar NFTs' })).toBeFocused()
 })
 
 test('shows the valid empty catalog state', async ({ page }) => {
@@ -100,6 +138,40 @@ test('feed tabs and facets update catalog results and URL search params', async 
   await expect(page.locator('#catalog article')).toHaveCount(3)
 })
 
+test('search, sort, pagination, refresh, and browser history stay synchronized', async ({
+  page,
+}) => {
+  await page.getByLabel('Ordenar por').selectOption('price-asc')
+  await expect(page).toHaveURL(/sort=price-asc/)
+  await page.getByRole('button', { name: 'Página 2' }).click()
+  await expect(page).toHaveURL(/page=2/)
+  await expect(page.getByText('Página 2 de 5')).toBeVisible()
+
+  await page.reload()
+  await expect(page.getByLabel('Ordenar por')).toHaveValue('price-asc')
+  await expect(page.getByText('Página 2 de 5')).toBeVisible()
+
+  await page.goBack()
+  await expect(page).toHaveURL(/sort=price-asc/)
+  await expect(page).not.toHaveURL(/page=2/)
+  await expect(page.getByText('Página 1 de 5')).toBeVisible()
+  await page.goForward()
+  await expect(page).toHaveURL(/page=2/)
+
+  const searchbox = page.getByRole('searchbox', { name: 'Buscar NFTs' })
+  await searchbox.fill('Violet Nomad')
+  await searchbox.press('Enter')
+  await expect(page).toHaveURL(/q=Violet/)
+  await expect(page).not.toHaveURL(/page=2/)
+  await expect(page.locator('#catalog article')).toHaveCount(1)
+  await expect(page.getByText('Página 1 de 1')).toBeVisible()
+
+  await page.goBack()
+  await expect(page).toHaveURL(/page=2/)
+  await expect(page).not.toHaveURL(/q=Violet/)
+  await expect(page.getByText('Página 2 de 5')).toBeVisible()
+})
+
 test('price range is applied to the URL and searches can be cleared', async ({
   page,
 }) => {
@@ -120,8 +192,9 @@ test('price range is applied to the URL and searches can be cleared', async ({
     await page.getByRole('button', { name: 'Ver resultados' }).click()
   }
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.getByRole('searchbox', { name: 'Buscar NFTs' }).fill('Emerald Ape')
-  await page.getByRole('button', { name: 'Buscar' }).click()
+  const searchbox = page.getByRole('searchbox', { name: 'Buscar NFTs' })
+  await searchbox.fill('Emerald Ape')
+  await searchbox.press('Enter')
   await expect(page).toHaveURL(/q=Emerald/)
   await expect(page.locator('#catalog article')).toHaveCount(1)
 

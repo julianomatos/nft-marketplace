@@ -1,4 +1,4 @@
-import { Link, useRouterState } from '@tanstack/react-router'
+import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
 import {
   Heart,
   Home,
@@ -39,9 +39,17 @@ const destinations = [
 ]
 
 function MobileBottomNavigation() {
+  const navigate = useNavigate()
   const pathname = useRouterState({
     select: (state) => state.location.pathname,
   })
+
+  async function focusCatalogSearch() {
+    if (pathname !== '/') {
+      await navigate({ to: '/', search: { page: 1 } })
+    }
+    document.getElementById('mobile-catalog-search')?.focus()
+  }
 
   return (
     <nav
@@ -75,16 +83,14 @@ function MobileBottomNavigation() {
           )
         })}
       </ul>
-      <Link
+      <button
         aria-label="Explorar coleções"
         className="absolute left-1/2 top-0 flex size-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-4 border-background bg-primary-gradient text-primary-foreground shadow-lg transition-transform hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-        hash="catalog"
-        onClick={() => document.getElementById('site-search-trigger')?.focus()}
-        search={{ page: 1 }}
-        to="/"
+        onClick={() => void focusCatalogSearch()}
+        type="button"
       >
         <ScanLine aria-hidden="true" size={32} />
-      </Link>
+      </button>
     </nav>
   )
 }
