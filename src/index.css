@@ -212,6 +212,13 @@
   background: color-mix(in srgb, var(--background) 82%, transparent);
 }
 
+.kurio-auth-dialog {
+  width: min(31.25rem, calc(100vw - 2rem));
+  max-height: min(85dvh, 48rem);
+  border: 0;
+  border-bottom: 0.5rem solid var(--primary);
+}
+
 .kurio-dialog--drawer {
   inset-block: 0;
   inset-inline: auto 0;
@@ -225,6 +232,16 @@
 }
 
 @media (max-width: 767px) {
+  .kurio-auth-dialog {
+    inset: 0;
+    width: 100vw;
+    max-width: 100vw;
+    height: 100dvh;
+    max-height: 100dvh;
+    margin: 0;
+    border: 0;
+  }
+
   .kurio-dialog--drawer {
     inset: auto 0 0;
     width: 100%;

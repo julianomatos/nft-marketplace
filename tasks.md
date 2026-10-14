@@ -65,7 +65,7 @@ Context: initial setup is done and dependencies are installed with npm. Verify e
 
 ## Epic 3: Authentication & Session
 
-- [ ] Build Login/Signup at `/login` and `/signup` (desktop modal over previous route, mobile full-screen) with React Hook Form + Zod and API error mapping (`fieldErrors`, `EMAIL_TAKEN`); "Esqueceu a senha?" and social buttons follow `DESIGN_SYSTEM.md` §9. The Cadastro frame is pending.
+- [x] Build Login/Signup at `/login` and `/signup` (desktop modal over previous route, mobile full-screen) with React Hook Form + Zod and API error mapping (`fieldErrors`, `EMAIL_TAKEN`); "Esqueceu a senha?" and social buttons follow `DESIGN_SYSTEM.md` §9. The Cadastro frame is pending.
 - [ ] Session recovery after refresh via `GET /api/auth/session`; token handling in Axios interceptor.
 - [ ] Route guards for private areas; redirect to Login with `redirect` param and return to the previous flow.
 - [ ] Handle session expiry during navigation and checkout, preserving return context for resumption.

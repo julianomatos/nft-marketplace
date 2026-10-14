@@ -92,7 +92,7 @@ function SiteHeader({ session, cartCount }: SiteHeaderProps) {
           {session.status === 'guest' ? (
             <Link
               className="hidden min-h-8 items-center gap-1.5 rounded-sm bg-primary px-3 text-xs font-bold text-primary-foreground transition-colors hover:bg-highlight focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:inline-flex"
-              to="/indisponivel"
+              to="/login"
             >
               <LogIn aria-hidden="true" size={14} />
               Entrar
