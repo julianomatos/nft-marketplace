@@ -14,6 +14,20 @@ const API_BASE_URL =
 const API_TIMEOUT_MS = 15_000
 const SESSION_TOKEN_STORAGE_KEY = 'kurio.session.token'
 
+function getSessionToken(): string | null {
+  if (typeof window === 'undefined') return null
+  return window.sessionStorage.getItem(SESSION_TOKEN_STORAGE_KEY)
+}
+
+function setSessionToken(token: string | null): void {
+  if (typeof window === 'undefined') return
+  if (token) {
+    window.sessionStorage.setItem(SESSION_TOKEN_STORAGE_KEY, token)
+  } else {
+    window.sessionStorage.removeItem(SESSION_TOKEN_STORAGE_KEY)
+  }
+}
+
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   timeout: API_TIMEOUT_MS,
@@ -28,7 +42,7 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use((config) => {
   if (typeof window === 'undefined') return config
 
-  const token = window.sessionStorage.getItem(SESSION_TOKEN_STORAGE_KEY)
+  const token = getSessionToken()
   if (token) config.headers.set('Authorization', `Bearer ${token}`)
 
   return config
@@ -46,5 +60,7 @@ export {
   API_ERROR_STATUS,
   IDEMPOTENCY_KEY_HEADER,
   SESSION_TOKEN_STORAGE_KEY,
+  getSessionToken,
+  setSessionToken,
   apiClient,
 }

@@ -5,8 +5,21 @@ import type {
   SignupRequest,
   SignupResponse,
 } from '@/types/contracts'
+import { queryClient } from '@/lib/query-client'
+import { queryKeys } from '@/hooks/queryKeys'
 import { API_ENDPOINTS } from '@/types/endpoints'
-import { apiClient } from '@/services/api-client'
+import { apiClient, setSessionToken } from '@/services/api-client'
+import { authResponseSchema } from '@/types/contracts'
+
+function persistAuthenticatedSession(response: LoginResponse | SignupResponse) {
+  queryClient.clear()
+  setSessionToken(response.token)
+  queryClient.setQueryData(queryKeys.auth.session, {
+    authenticated: true,
+    user: response.user,
+    expiresAt: response.expiresAt,
+  })
+}
 
 function useLogin() {
   return useMutation({
@@ -15,8 +28,9 @@ function useLogin() {
         API_ENDPOINTS.auth.login,
         payload,
       )
-      return response.data
+      return authResponseSchema.parse(response.data)
     },
+    onSuccess: persistAuthenticatedSession,
   })
 }
 
@@ -27,8 +41,9 @@ function useSignup() {
         API_ENDPOINTS.auth.signup,
         payload,
       )
-      return response.data
+      return authResponseSchema.parse(response.data)
     },
+    onSuccess: persistAuthenticatedSession,
   })
 }
 

@@ -87,6 +87,34 @@ export const passwordUpdateRequestSchema = z
     message: 'Passwords do not match',
   })
 
+export const authUserSchema = z.object({
+  id: z.string().min(1),
+  displayName: z.string().min(1),
+  username: z.string().min(1),
+  email: z.string().email(),
+  ensName: z.string().min(1),
+  referralCode: z.string().min(1),
+  avatar: z.string().optional(),
+})
+
+export const authResponseSchema = z.object({
+  token: z.string().min(1),
+  expiresAt: z.string().datetime(),
+  user: authUserSchema,
+})
+
+export const authSessionResponseSchema = z.discriminatedUnion('authenticated', [
+  z.object({
+    authenticated: z.literal(true),
+    user: authUserSchema,
+    expiresAt: z.string().datetime(),
+  }),
+  z.object({
+    authenticated: z.literal(false),
+    user: z.null(),
+  }),
+])
+
 export const collectorDataSchema = z.object({
   displayName: z.string().min(1),
   username: z.string().min(1),

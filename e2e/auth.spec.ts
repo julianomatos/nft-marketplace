@@ -4,6 +4,9 @@ import { expect, test } from '@playwright/test'
 test.beforeEach(async ({ page }) => {
   await page.goto('/')
   await page.evaluate(() => window.__KURIO_MOCKS__.reset('success'))
+  await page.evaluate(() =>
+    window.sessionStorage.removeItem('kurio.session.token'),
+  )
 })
 
 test('logs in through the API and returns from the desktop auth dialog', async ({
@@ -121,4 +124,68 @@ test('opens the desktop auth dialog over the route the visitor came from', async
       hasText: 'O marketplace está em construção.',
     }),
   ).toHaveCount(0)
+})
+
+test('does not request an auth session for a visitor without a token', async ({
+  page,
+}) => {
+  await page.evaluate(() =>
+    window.sessionStorage.removeItem('kurio.session.token'),
+  )
+  const sessionRequests: string[] = []
+  page.on('request', (request) => {
+    if (request.url().endsWith('/api/auth/session')) {
+      sessionRequests.push(request.url())
+    }
+  })
+
+  await page.goto('/')
+  await expect(
+    page.getByRole('heading', { name: 'O marketplace está em construção.' }),
+  ).toBeVisible()
+  expect(sessionRequests).toEqual([])
+})
+
+test('persists login token, restores the session after reload, and authenticates session request', async ({
+  page,
+}) => {
+  await page.goto('/login')
+  await page.getByLabel('E-mail', { exact: true }).fill('ana@kurio.example.test')
+  await page.getByLabel('Senha', { exact: true }).fill('KurioDemo!A2026')
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click()
+
+  await expect(page.getByText('Ana Oliveira', { exact: true })).toBeVisible()
+  const token = await page.evaluate(() =>
+    window.sessionStorage.getItem('kurio.session.token'),
+  )
+  expect(token).toContain('mock-token-collector-ana-')
+
+  const sessionRequest = page.waitForRequest((request) =>
+    request.url().endsWith('/api/auth/session'),
+  )
+  await page.reload()
+  const request = await sessionRequest
+
+  expect(request.headers().authorization).toBe(`Bearer ${token}`)
+  await expect(page.getByText('Ana Oliveira', { exact: true })).toBeVisible()
+})
+
+test('clears an expired session token and offers retry feedback', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    window.sessionStorage.setItem(
+      'kurio.session.token',
+      'expired-session-token',
+    )
+  })
+  await page.goto('/?mockScenario=expired-session')
+
+  await expect(page.getByRole('alert')).toContainText(
+    'Sua sessão expirou. Entre novamente para continuar.',
+  )
+  await expect.poll(() =>
+    page.evaluate(() => window.sessionStorage.getItem('kurio.session.token')),
+  ).toBeNull()
+  await expect(page.getByText('Ana Oliveira', { exact: true })).toHaveCount(0)
 })

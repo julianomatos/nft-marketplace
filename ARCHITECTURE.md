@@ -122,10 +122,11 @@ Axios responses are validated against this envelope and normalized to `ApiClient
 - Pending orders are recovered after refresh or reconnection (order id kept in session storage + `GET /api/orders/:id`).
 - Receipt is the reloadable `/pedidos/:orderId` route, rendered as a receipt panel on a plain page. It handles `pending` (spinner and "Aguardando confirmação"), `confirmed` (full immutable receipt and simulated network explorer link opening in a new tab), and `rejected` (message and "Tentar novamente" back to checkout with items preserved). Confirmed and rejected are terminal.
 
-## 6. Session Policy [Planned]
+## 6. Session Policy [Bootstrap implemented; guards and lifecycle handling planned]
 
 - Login returns a token with `expiresAt`. The token lives in `sessionStorage` under `kurio.session.token` (mock-grade; documented limitation) and is attached by an Axios request interceptor. Passwords are hashed in the mock layer; only fictitious credentials are used.
-- On boot, call `GET /api/auth/session` only when a session token exists; a visitor without a token does not make this request. A valid token restores the session after refresh. An expired token returns `401 SESSION_EXPIRED`.
+- On boot, `useSession` calls `GET /api/auth/session` only when a session token exists; a visitor without a token does not make this request. The response is validated against `authSessionResponseSchema`; a valid token restores the authenticated header and router context after refresh. An expired token returns `401 SESSION_EXPIRED`, is removed from `sessionStorage`, and leaves the visitor unauthenticated. Other request/validation failures remain visible with a retry action and do not silently clear the token.
+- Successful login/signup validates the response, persists its token in `sessionStorage`, and seeds the session query cache so the authenticated header updates without a second request. The Axios interceptor attaches the stored token to subsequent requests.
 - The default success scenario must not produce 4xx responses in the browser console, so Lighthouse runs stay free of expected-error noise.
 - Authentication is route-driven: `/login` and `/signup` render as a modal over the previous route on desktop and full-screen on mobile. Direct access works; closing the desktop modal returns to the previous route.
 - `401 SESSION_EXPIRED` during navigation or checkout: save the return context (route + checkout draft + pending idempotency key) in session storage, redirect to Login with `redirect`, and resume after re-authentication.

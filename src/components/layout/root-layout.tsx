@@ -1,14 +1,16 @@
 import {
   Outlet,
-  useRouteContext,
   useRouter,
   useRouterState,
 } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { MobileBottomNavigation } from '@/components/layout/mobile-bottom-navigation'
 import { SiteFooter } from '@/components/layout/site-footer'
 import { SiteHeader } from '@/components/layout/site-header'
 import { HomeIntro } from '@/components/home/home-intro'
+import { Button } from '@/components/ui/button'
+import { useSession } from '@/hooks/use-session'
+import type { RouterSession } from '@/types/router'
 
 function AuthBackground({ pathname }: { pathname: string }) {
   if (pathname === '/indisponivel') {
@@ -34,13 +36,23 @@ function AuthBackground({ pathname }: { pathname: string }) {
 }
 
 function RootLayout() {
-  const { session } = useRouteContext({ from: '__root__' })
   const router = useRouter()
+  const sessionQuery = useSession()
   const pathname = useRouterState({ select: (state) => state.location.pathname })
   const isAuthRoute = pathname === '/login' || pathname === '/signup'
   const [backgroundPath, setBackgroundPath] = useState(
     isAuthRoute ? '/' : pathname,
   )
+  const session = useMemo<RouterSession>(() => {
+    const data = sessionQuery.data
+    return data?.authenticated
+      ? {
+          status: 'authenticated',
+          userId: data.user.id,
+          displayName: data.user.displayName,
+        }
+      : { status: 'guest' }
+  }, [sessionQuery.data])
 
   useEffect(
     () =>
@@ -53,6 +65,22 @@ function RootLayout() {
     [router],
   )
 
+  useEffect(() => {
+    const currentSession = router.options.context.session
+    if (
+      currentSession.status === session.status &&
+      (currentSession.status === 'guest' ||
+        (session.status === 'authenticated' &&
+          currentSession.userId === session.userId &&
+          currentSession.displayName === session.displayName))
+    ) {
+      return
+    }
+
+    router.update({ context: { session } })
+    void router.invalidate()
+  }, [router, session])
+
   return (
     <div className="flex min-h-screen flex-col bg-background pb-24 text-foreground antialiased md:pb-0">
       <a
@@ -63,6 +91,27 @@ function RootLayout() {
       </a>
       <SiteHeader session={session} />
       <main id="main-content" className="flex-1">
+        {sessionQuery.isError && (
+          <div
+            aria-live="assertive"
+            className="kurio-container flex items-center justify-between gap-4 py-3 text-sm text-destructive"
+            role="alert"
+          >
+            <span>
+              {sessionQuery.error instanceof Error
+                ? sessionQuery.error.message
+                : 'Não foi possível recuperar sua sessão.'}
+            </span>
+            <Button
+              onClick={() => void sessionQuery.refetch()}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              Tentar novamente
+            </Button>
+          </div>
+        )}
         {isAuthRoute && (
           <div
             aria-hidden="true"
