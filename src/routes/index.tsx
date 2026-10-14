@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { HomeIntro } from '@/components/home/home-intro'
+import { HomePage } from '@/components/home/home-page'
 import {
   catalogSearchSchema,
   validateSearchWithZod,
@@ -7,5 +7,5 @@ import {
 
 export const Route = createFileRoute('/')({
   validateSearch: validateSearchWithZod(catalogSearchSchema),
-  component: HomeIntro,
+  component: HomePage,
 })
