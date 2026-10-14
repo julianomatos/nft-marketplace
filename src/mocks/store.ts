@@ -21,17 +21,15 @@ import {
   users,
   wallets,
 } from './fixtures'
+import {
+  isMockScenario,
+  mockScenarioSchema,
+  type MockScenario,
+} from './scenario-contract'
 
 export const MOCK_STATE_STORAGE_KEY = 'kurio.mock.state'
 export const SESSION_TOKEN_STORAGE_KEY = 'kurio.session.token'
-
-export type MockScenario =
-  | 'success'
-  | 'empty'
-  | 'design-cart'
-  | 'expired-session'
-  | 'network-error'
-  | 'validation-error'
+export const MOCK_TIMEOUT_RESPONSE_DELAY_MS = 16_000
 
 export type MockSessionState = {
   userId: string | null
@@ -114,6 +112,9 @@ function getStorage(): Storage {
 }
 
 let currentMockTime: string | null = null
+let mockRequestSequence = 0
+let mockLatencyMs = 0
+let mockTimeoutResponseDelayMs = MOCK_TIMEOUT_RESPONSE_DELAY_MS
 
 export function getMockNow(): string {
   return currentMockTime ?? MOCK_NOW
@@ -132,24 +133,43 @@ export function resetMockNow(): void {
   currentMockTime = null
 }
 
+export function setMockLatency(milliseconds: number): void {
+  if (!Number.isInteger(milliseconds) || milliseconds < 0 || milliseconds > 15_000) {
+    throw new RangeError('Mock latency must be an integer between 0 and 15000 ms.')
+  }
+  mockLatencyMs = milliseconds
+}
+
+export function getMockLatency(): number {
+  return mockLatencyMs
+}
+
+export function setMockTimeoutResponseDelay(milliseconds: number): void {
+  if (!Number.isInteger(milliseconds) || milliseconds < 0 || milliseconds > 60_000) {
+    throw new RangeError('Mock timeout response delay must be an integer between 0 and 60000 ms.')
+  }
+  mockTimeoutResponseDelayMs = milliseconds
+}
+
+export function getMockTimeoutResponseDelay(): number {
+  return mockTimeoutResponseDelayMs
+}
+
+export function nextMockRequestSequence(): number {
+  mockRequestSequence += 1
+  return mockRequestSequence
+}
+
 export function resolveMockScenario(
   value?: string | null,
 ): MockScenario {
-  const scenario = value ??
-    (typeof import.meta !== 'undefined' ? import.meta.env.VITE_MOCK_SCENARIO : undefined) ??
-    'success'
+  const configuredScenario =
+    (typeof import.meta !== 'undefined' && import.meta.env?.VITE_MOCK_SCENARIO) ||
+    undefined
+  const scenario = value ?? configuredScenario ?? 'success'
 
-  switch (scenario) {
-    case 'empty':
-    case 'design-cart':
-    case 'expired-session':
-    case 'network-error':
-    case 'validation-error':
-      return scenario
-    case 'success':
-    default:
-      return 'success'
-  }
+  const parsed = mockScenarioSchema.safeParse(scenario)
+  return parsed.success ? parsed.data : 'success'
 }
 
 export function createMockState(scenario: MockScenario = 'success'): MockState {
@@ -168,7 +188,16 @@ export function createMockState(scenario: MockScenario = 'success'): MockState {
     idempotencyRecords: {},
   }
 
-  if (scenario === 'design-cart') {
+  const purchaseScenarios: readonly MockScenario[] = [
+    'design-cart',
+    'price-changed',
+    'sold-out',
+    'timeout-after-order',
+    'payment-confirmed',
+    'payment-rejected',
+  ]
+
+  if (purchaseScenarios.includes(scenario)) {
     nextState.carts = [
       clone(designCart),
       ...clone(emptyCarts).filter(({ userId }) => userId !== 'collector-ana'),
@@ -183,7 +212,7 @@ export function createMockState(scenario: MockScenario = 'success'): MockState {
     }
   }
 
-  if (scenario === 'success' || scenario === 'design-cart') {
+  if (scenario === 'success' || purchaseScenarios.includes(scenario)) {
     nextState.session = {
       userId: 'collector-ana',
       token: 'mock-token-collector-ana',
@@ -209,7 +238,9 @@ export function readMockState(): MockState {
     }
 
     return {
-      scenario: resolveMockScenario(parsed.scenario),
+      scenario: isMockScenario(parsed.scenario)
+        ? parsed.scenario
+        : resolveMockScenario(),
       lastResetAt: parsed.lastResetAt ?? getMockNow(),
       session: { ...defaultSession, ...(parsed.session ?? {}) },
       users: Array.isArray(parsed.users) ? (parsed.users as readonly FixtureUser[]) : (clone(users) as readonly FixtureUser[]),
@@ -234,6 +265,9 @@ export function persistMockState(state: MockState): MockState {
 
 export function resetMockState(scenario?: string): MockState {
   resetMockNow()
+  mockRequestSequence = 0
+  mockLatencyMs = 0
+  mockTimeoutResponseDelayMs = MOCK_TIMEOUT_RESPONSE_DELAY_MS
   const nextScenario = resolveMockScenario(scenario)
   const nextState = createMockState(nextScenario)
   try {

@@ -6,6 +6,7 @@ import { RouterProvider } from '@tanstack/react-router'
 import { queryClient } from './lib/query-client'
 import { router } from './router'
 import { startMocking } from './mocks/browser'
+import './mocks/control'
 import './index.css'
 
 async function bootstrap() {

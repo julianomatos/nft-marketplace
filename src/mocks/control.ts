@@ -5,12 +5,16 @@ import {
   readMockState,
   resetMockNow,
   resetMockState,
+  setMockLatency,
   setMockNow,
+  setMockTimeoutResponseDelay,
   settleOrder,
 } from './store'
 
 export const kurioMocks = {
   reset: resetMockState,
+  setLatency: setMockLatency,
+  setTimeoutResponseDelay: setMockTimeoutResponseDelay,
   settleOrder,
   setMockTime: setMockNow,
   advanceMockTime: advanceMockNow,

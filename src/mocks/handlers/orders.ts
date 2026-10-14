@@ -5,8 +5,15 @@ import {
   type OrderReceiptSnapshot,
   type PositiveInteger,
 } from '../../types/contracts'
-import { getMockNow, persistMockState, readMockState } from '../store'
+import {
+  getMockNow,
+  getMockTimeoutResponseDelay,
+  persistMockState,
+  readMockState,
+  settleOrder,
+} from '../store'
 import type { OrderRecord } from '../types'
+import { applyOrderScenarioMutation } from './scenarios'
 import {
   buildErrorResponse,
   calculateQuote,
@@ -85,7 +92,7 @@ export const orderHandlers = [
     }
 
     const payloadHash = await hashPayload(parsed.data)
-    const state = readMockState()
+    let state = readMockState()
     const scopedKey = `${auth.user.id}:${idempotencyKey}`
     const existingKeyRecord = state.idempotencyRecords[scopedKey]
 
@@ -115,6 +122,11 @@ export const orderHandlers = [
 
     const couponError = validateCartCoupon(auth.user.id, cart)
     if (couponError) return couponError
+
+    if (state.scenario === 'price-changed' || state.scenario === 'sold-out') {
+      applyOrderScenarioMutation(state.scenario, auth.user.id)
+      state = readMockState()
+    }
 
     const currentQuote = calculateQuote(cart, undefined, state)
 
@@ -192,6 +204,20 @@ export const orderHandlers = [
         },
       },
     })
+
+    if (
+      state.scenario === 'payment-confirmed' ||
+      state.scenario === 'payment-rejected'
+    ) {
+      const outcome = state.scenario === 'payment-confirmed' ? 'confirmed' : 'rejected'
+      return HttpResponse.json(toReceipt(settleOrder(orderId, outcome)))
+    }
+
+    if (state.scenario === 'timeout-after-order') {
+      await new Promise((resolve) =>
+        setTimeout(resolve, getMockTimeoutResponseDelay()),
+      )
+    }
 
     return HttpResponse.json(snapshot)
   }),

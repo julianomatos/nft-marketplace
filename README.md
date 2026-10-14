@@ -44,6 +44,14 @@ Copy `.env.example` to a local `.env` file when you need to override defaults:
 
 The browser bootstrap and REST handlers are available for local development. Production/demo build activation still needs a separate check; do not assume mocks are enabled in the deployed build.
 
+### Deterministic mock scenarios
+
+Available scenarios are `success`, `empty`, `design-cart`, `expired-session`, `network-error`, `server-error`, `unauthorized`, `signup-conflict`, `validation-error`, `invalid-coupon`, `expired-coupon`, `price-changed`, `sold-out`, `timeout-after-order`, `payment-confirmed`, `payment-rejected`, and `variable-latency`.
+
+`VITE_MOCK_SCENARIO` seeds the first mock state. Add `?mockScenario=empty` (or another scenario name) to the app URL to reset and select a scenario before MSW starts. Without a URL override, a persisted scenario is retained across refresh. To reset during development, run `window.__KURIO_MOCKS__.reset('success')` in the browser console. `window.__KURIO_MOCKS__` also exposes `setMockTime`, `advanceMockTime`, `setLatency` (0–15000 ms), and `setTimeoutResponseDelay` (0–60000 ms). Playwright equivalents are in `e2e/mock-helpers.ts`.
+
+`variable-latency` intentionally completes concurrent requests out of order. The `timeout-after-order` scenario saves an order before delaying its response beyond Axios's timeout; retrying with the same idempotency key recovers that order. Price and sold-out scenarios start from the reference `design-cart` and return a new quote when order creation revalidates it. Payment scenarios settle an order immediately; socket delivery remains a later step.
+
 ## Fictitious demo credentials
 
 These accounts are fictional and intended only for the local mock demonstration:

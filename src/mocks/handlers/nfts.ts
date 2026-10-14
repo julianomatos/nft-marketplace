@@ -43,7 +43,7 @@ export const nftHandlers = [
     } = params
 
     const state = readMockState()
-    const allNfts = state.nfts
+    const allNfts = state.scenario === 'empty' ? [] : state.nfts
 
     function applyFilters(
       source: readonly NftRecord[],

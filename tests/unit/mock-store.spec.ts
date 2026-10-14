@@ -4,9 +4,15 @@ import {
   hashPassword,
   persistMockState,
   getMockNow,
+  getMockLatency,
+  getMockTimeoutResponseDelay,
+  MOCK_TIMEOUT_RESPONSE_DELAY_MS,
+  nextMockRequestSequence,
   readMockState,
   resetMockState,
+  setMockLatency,
   setMockNow,
+  setMockTimeoutResponseDelay,
   validatePassword,
 } from '../../src/mocks/store'
 
@@ -33,6 +39,9 @@ test('Node memory storage supports persistence, complete reset, controlled time,
     },
   })
   setMockNow('2026-07-30T12:00:00.000Z')
+  setMockLatency(25)
+  setMockTimeoutResponseDelay(50)
+  expect(nextMockRequestSequence()).toBe(1)
 
   expect(readMockState()).toMatchObject({
     scenario: 'empty',
@@ -48,6 +57,9 @@ test('Node memory storage supports persistence, complete reset, controlled time,
   expect(nextState.scenario).toBe('design-cart')
   expect(nextState.lastResetAt).toBe('2026-07-29T12:00:00.000Z')
   expect(getMockNow()).toBe('2026-07-29T12:00:00.000Z')
+  expect(getMockLatency()).toBe(0)
+  expect(getMockTimeoutResponseDelay()).toBe(MOCK_TIMEOUT_RESPONSE_DELAY_MS)
+  expect(nextMockRequestSequence()).toBe(1)
   expect(nextState.session.userId).toBe('collector-ana')
   expect(nextState.nfts).toHaveLength(40)
   expect(nextState.carts.find(({ userId }) => userId === 'collector-ana')?.cart.items)
