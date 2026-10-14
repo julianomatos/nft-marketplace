@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog } from '@/components/ui/dialog'
 import { Drawer } from '@/components/ui/drawer'
+import { EmptyState } from '@/components/ui/empty-state'
+import { ErrorState } from '@/components/ui/error-state'
 import { Input } from '@/components/ui/input'
 import { Pagination } from '@/components/ui/pagination'
 import { QuantityStepper } from '@/components/ui/quantity-stepper'
@@ -26,6 +28,7 @@ function UiPrimitivesSmokePage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [toastOpen, setToastOpen] = useState(true)
+  const [retryCount, setRetryCount] = useState(0)
 
   return (
     <main className="mx-auto grid max-w-300 gap-8 px-6 py-8">
@@ -135,12 +138,23 @@ function UiPrimitivesSmokePage() {
 
       <section aria-label="Loading and feedback" className="grid gap-4">
         <Skeleton className="h-8 w-32" data-testid="skeleton" />
+        <EmptyState
+          description="Novos itens aparecerão aqui quando estiverem disponíveis."
+          title="Nenhum item encontrado"
+        />
+        <ErrorState
+          description="Não foi possível carregar os dados."
+          onRetry={() => setRetryCount((count) => count + 1)}
+          title="Falha ao carregar"
+        />
+        <p data-testid="retry-count">Tentativas: {retryCount}</p>
         <Toast
           message="Ação concluída."
           onDismiss={() => setToastOpen(false)}
           open={toastOpen}
           variant="info"
         />
+        <Toast message="Falha ao salvar." open variant="error" />
       </section>
     </main>
   )

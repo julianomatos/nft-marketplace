@@ -16,7 +16,10 @@ test('primitive controls expose accessible states and behavior', async ({
   await expect(name).toHaveAttribute('required', '')
   await expect(name).toHaveAttribute('aria-invalid', 'true')
   await expect(name).toHaveAttribute('aria-describedby', /collector-name-error/)
-  await expect(page.getByRole('alert')).toHaveText('Informe seu nome.')
+  await expect(page.getByText('Informe seu nome.')).toHaveAttribute(
+    'role',
+    'alert',
+  )
 
   await page.getByLabel('Rede').selectOption('ethereum')
   await expect(page.getByLabel('Rede')).toHaveValue('ethereum')
@@ -71,11 +74,21 @@ test('primitive controls expose accessible states and behavior', async ({
   ).toBeHidden()
 
   await expect(page.getByTestId('skeleton')).toBeVisible()
+  const feedback = page.getByRole('region', { name: 'Loading and feedback' })
   await expect(
-    page
-      .getByRole('region', { name: 'Loading and feedback' })
-      .getByRole('status'),
-  ).toContainText('Ação concluída.')
+    feedback.getByRole('heading', { name: 'Nenhum item encontrado' }),
+  ).toBeVisible()
+  await expect(
+    feedback.getByRole('alert').filter({ hasText: 'Falha ao carregar' }),
+  ).toContainText('Não foi possível carregar os dados.')
+  await expect(
+    feedback.getByRole('status').filter({ hasText: 'Ação concluída.' }),
+  ).toHaveAttribute('aria-live', 'polite')
+  await expect(
+    feedback.getByRole('alert').filter({ hasText: 'Falha ao salvar.' }),
+  ).toHaveAttribute('aria-live', 'assertive')
+  await feedback.getByRole('button', { name: 'Tentar novamente' }).click()
+  await expect(feedback.getByTestId('retry-count')).toHaveText('Tentativas: 1')
   await page.emulateMedia({ reducedMotion: 'reduce' })
   const animationName = await page
     .getByTestId('skeleton')

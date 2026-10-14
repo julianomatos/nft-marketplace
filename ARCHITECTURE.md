@@ -178,6 +178,7 @@ TanStack Router uses file-based routes under `src/routes/`; the root route suppl
 
 ## 13. UX Decisions [Defined by DESIGN_SYSTEM.md]
 
+- Shared async UI uses `Skeleton` with reduced-motion-safe shimmer, `EmptyState` as a polite status, `ErrorState` with an assertive error message and required retry action, and `Toast` with polite success/info or assertive error announcements.
 - **Mercado** links to the catalog (`/` anchored at the catalog) and stays highlighted on detail, cart, checkout and favorites; **Início** is active only on `/`.
 - **Criadores, Aprenda, footer link columns, "Diário da Cunhagem" cards, "Explorar →" banners, "Esqueceu a senha?", "Trocar carteira" extras and "Atividade"** link to a shared "indisponível nesta demonstração" page or are `aria-disabled` with an explanatory tooltip. They never imply success.
 - **Newsletter "Enviar"** and **Google/Facebook** buttons remain visible and show an inline "indisponível nesta demonstração" message; no fake success.
