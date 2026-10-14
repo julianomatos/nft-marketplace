@@ -1,7 +1,13 @@
 import axios from 'axios'
 import { normalizeApiError } from '@/utils/errors'
+import {
+  API_BASE_PATH,
+  API_ENDPOINTS,
+  API_ERROR_STATUS,
+  IDEMPOTENCY_KEY_HEADER,
+} from '@/types/endpoints'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || API_BASE_PATH
 const API_TIMEOUT_MS = 15_000
 const SESSION_TOKEN_STORAGE_KEY = 'kurio.session.token'
 
@@ -30,6 +36,9 @@ apiClient.interceptors.response.use(
 export {
   API_BASE_URL,
   API_TIMEOUT_MS,
+  API_ENDPOINTS,
+  API_ERROR_STATUS,
+  IDEMPOTENCY_KEY_HEADER,
   SESSION_TOKEN_STORAGE_KEY,
   apiClient,
 }

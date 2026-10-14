@@ -20,9 +20,19 @@ const nftUpdatedEventSchema = eventEnvelopeSchema.extend({
   data: z.object({
     nftId: z.string().min(1),
     price: ethAmountSchema,
-    editionId: z.string().min(1),
-    availableEdition: nonNegativeIntegerSchema,
+    editions: z.array(z.object({
+      id: z.string().min(1),
+      available: nonNegativeIntegerSchema,
+    })),
   }),
+}).superRefine((event, context) => {
+  if (event.resource.id !== event.data.nftId) {
+    context.addIssue({
+      code: 'custom',
+      path: ['data', 'nftId'],
+      message: 'NFT resource id must match data nftId',
+    })
+  }
 })
 
 const orderUpdatedEventSchema = eventEnvelopeSchema.extend({
@@ -38,6 +48,14 @@ const orderUpdatedEventSchema = eventEnvelopeSchema.extend({
     transactionHash: z.string().min(1).optional(),
     reason: z.string().min(1).optional(),
   }),
+}).superRefine((event, context) => {
+  if (event.resource.id !== event.data.orderId) {
+    context.addIssue({
+      code: 'custom',
+      path: ['data', 'orderId'],
+      message: 'Order resource id must match data orderId',
+    })
+  }
 })
 
 export const socketEventSchema = z.discriminatedUnion('type', [

@@ -7,9 +7,12 @@ import {
 const API_ERROR_MESSAGES: Readonly<Record<string, string>> = {
   UNAUTHENTICATED: 'Entre na sua conta para continuar.',
   SESSION_EXPIRED: 'Sua sessão expirou. Entre novamente para continuar.',
+  INVALID_CREDENTIALS: 'E-mail ou senha incorretos.',
   FORBIDDEN: 'Você não tem permissão para realizar esta ação.',
   NOT_FOUND: 'O conteúdo solicitado não foi encontrado.',
   EMAIL_TAKEN: 'Este e-mail já está cadastrado.',
+  COUPON_INVALID: 'Este cupom não é válido.',
+  COUPON_EXPIRED: 'Este cupom expirou.',
   AVAILABILITY_CONFLICT: 'A disponibilidade deste item foi alterada.',
   PRICE_CHANGED: 'O preço foi alterado. Revise os valores antes de continuar.',
   IDEMPOTENCY_KEY_REUSED: 'Esta tentativa de compra não pode ser reutilizada.',
@@ -25,7 +28,7 @@ type ApiClientErrorOptions = {
   code: string
   message?: string
   status?: number
-  fieldErrors?: Readonly<Record<string, unknown>>
+  fieldErrors?: Readonly<Record<string, string[]>>
   details?: unknown
   cause?: unknown
 }
@@ -33,7 +36,7 @@ type ApiClientErrorOptions = {
 class ApiClientError extends Error {
   readonly code: string
   readonly status?: number
-  readonly fieldErrors?: Readonly<Record<string, unknown>>
+  readonly fieldErrors?: Readonly<Record<string, string[]>>
   readonly details?: unknown
 
   constructor({

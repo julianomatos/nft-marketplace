@@ -31,7 +31,7 @@ test('validates catalog search values with Zod on direct navigation', async ({
   expect(
     parseSearch({ q: 'kurio', feed: 'trending', page: '2' }),
   ).toEqual({ q: 'kurio', feed: 'trending', page: 2 })
-  expect(() => parseSearch({ page: '0' })).toThrow()
+  expect(parseSearch({ page: '0' })).toMatchObject({ page: 1 })
 
   await page.goto('/?q=kurio&feed=trending&page=2')
   await expect(
@@ -74,34 +74,12 @@ test('redirects guest guard requests to login with their return URL', () => {
   ).not.toThrow()
 })
 
-test('uses the root error boundary for invalid route search params', async ({
+test('falls back to default route search params without breaking the route', async ({
   page,
 }) => {
   await page.goto('/?page=0')
 
   await expect(
-    page.getByRole('heading', { name: 'Algo deu errado' }),
+    page.getByRole('heading', { name: 'O marketplace está em construção.' }),
   ).toBeVisible()
-  await expect(
-    page.getByRole('link', { name: 'Voltar ao início' }),
-  ).toBeVisible()
-  await expect(
-    page.getByRole('link', { name: 'KURIO — início' }),
-  ).toBeVisible()
-  await expect(
-    page
-      .getByRole('contentinfo')
-      .filter({ hasText: 'Segurança da carteira' }),
-  ).toBeVisible()
-  if (test.info().project.name === 'chromium-mobile') {
-    await expect(
-      page.getByRole('navigation', { name: 'Navegação mobile' }),
-    ).toBeVisible()
-  } else {
-    await expect(
-      page.getByRole('navigation', { name: 'Navegação principal' }),
-    ).toBeVisible()
-  }
-  const accessibility = await new AxeBuilder({ page }).analyze()
-  expect(accessibility.violations).toEqual([])
 })

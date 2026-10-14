@@ -16,7 +16,7 @@ test('normalizes API envelopes and maps known error codes', () => {
           error: {
             code: 'VALIDATION_ERROR',
             message: 'Invalid form',
-            fieldErrors: { email: 'Invalid email' },
+            fieldErrors: { email: ['Invalid email'] },
             details: { trace: 'test' },
           },
         },
@@ -31,9 +31,21 @@ test('normalizes API envelopes and maps known error codes', () => {
     code: 'VALIDATION_ERROR',
     status: 422,
     message: 'Revise os campos destacados e tente novamente.',
-    fieldErrors: { email: 'Invalid email' },
+    fieldErrors: { email: ['Invalid email'] },
     details: { trace: 'test' },
   })
+})
+
+test('maps the additional authentication and coupon errors', () => {
+  expect(getUserFacingErrorMessage('INVALID_CREDENTIALS')).toBe(
+    'E-mail ou senha incorretos.',
+  )
+  expect(getUserFacingErrorMessage('COUPON_INVALID')).toBe(
+    'Este cupom não é válido.',
+  )
+  expect(getUserFacingErrorMessage('COUPON_EXPIRED')).toBe(
+    'Este cupom expirou.',
+  )
 })
 
 test('surfaces malformed, network, cancelled, and unknown failures explicitly', () => {

@@ -40,7 +40,7 @@ Single Page Application built with React 19 and TypeScript. **TanStack Router** 
 | Mocking | MSW **2.x** + `@mswjs/socket.io-binding@0.2.x` | Binding peer-depends on `msw@^2.10.2`; MSW 3 not used (see Limitations) |
 | TypeScript | 6.0.x | Pinned below 6.1 for `typescript-eslint` support |
 | Node types | `@types/node` 22.x | Matches the Node 22.19 runtime target; `.nvmrc` pins 22.19.0 |
-| Validation | Zod 4.x | Retested with `npm install zod@^4`, clean `npm ci`, `npm run typecheck` and `npm run lint`; all passed with `@hookform/resolvers@5.9.1` |
+| Validation | Zod `^4.6.7` | Installed 4.6.7; retested with `npm install zod@^4`, clean `npm ci`, typecheck and lint; all passed with `@hookform/resolvers@5.9.1` |
 | HTTP | Axios 1.x | `VITE_API_BASE_URL` (default `/api`), 15 s timeout, bearer token from session storage, normalized errors |
 | UI foundation | shadcn-style source components with KURIO CSS tokens and locally bundled Roboto Mono | Native form controls and `<dialog>` avoid additional runtime dependencies; `@radix-ui/react-slot` remains for Button composition |
 | Lighthouse | Lighthouse 13.5 + direct `chrome-launcher` | The audit runner imports the launcher directly and uses Playwright's Chromium binary |
@@ -59,7 +59,9 @@ The initial dependency audit found 8 high and 19 moderate advisories in the Ligh
 
 ## 4. REST Contracts [In progress: typed contracts defined]
 
-REST request/response types live in `src/types/contracts.ts` and are shared by Axios wrappers, hooks and (in the next task) MSW handlers. `EthAmount` is a decimal string validated by the common `ethAmountSchema` (`/^\d+(\.\d+)?$/`); quantities use integer types and the shared positive-quantity schema at request boundaries. No ETH amount is represented as a JavaScript number.
+REST request/response types live in `src/types/contracts.ts` and are shared by Axios wrappers, hooks and (in the next task) MSW handlers. `EthAmount` is a decimal string validated by the common `ethAmountSchema` (`/^\d+(?:\.\d{1,18})?$/`); quantities use integer types and the shared positive-quantity schema at request boundaries. No ETH amount is represented as a JavaScript number.
+
+Shared endpoint paths, the `/api` base path, `X-Idempotency-Key`, and API error HTTP statuses live in `src/types/endpoints.ts`. Axios uses the shared base path; MSW handlers will use the same endpoint map when implemented. `category` and `network` arrays in catalog search are JSON arrays in the query string (for example, `category=%5B%22art%22%2C%22collectibles%22%5D`); the search utility accepts TanStack Router's already-parsed arrays and this serialized representation. Search defaults are `sort=recent`, `page=1`, and `limit=9`; malformed individual values fall back to their defaults / omitted optional filters. Changing any catalog filter resets `page` to 1.
 
 | Resource | Endpoints |
 | --- | --- |
@@ -72,19 +74,21 @@ REST request/response types live in `src/types/contracts.ts` and are shared by A
 | Profile | `GET /api/profile`, `PUT /api/profile` (data/avatar), `PUT /api/profile/password` |
 | Wallets | `GET /api/wallets`, `POST /api/wallets`, `PUT /api/wallets/:id`, `POST /api/wallets/:id/connect`, `POST /api/wallets/:id/disconnect` (simulated connect/refuse/disconnect) |
 
-`GET /api/nfts` returns `{ items, page, limit, total, totalPages, facets: { categories: [{ id, label, count }], networks: [{ id, label, count }], priceRange: { min, max } } }`. Facet counts reflect all other active filters, excluding that facet's own selection; fixtures keep the counts consistent.
+`GET /api/nfts` returns `{ items, page, limit, total, totalPages, facets: { categories: [{ id, label, count }], networks: [{ id, label, count }], priceRange: { min, max } } }`. Facet counts reflect all other active filters, excluding that facet's own selection; fixtures keep the counts consistent. Supported `sort` values are `recent`, `price-asc`, `price-desc`, and `popular`.
 
 The corresponding TypeScript names are `AuthResponse` / `AuthSessionResponse`, `NftListResponse` / `NftFacets` / `NftEdition`, `FavoritesResponse`, `CartResponse` / `MergeCartRequest` / `MergeCartResponse`, `QuoteResponse`, `CreateOrderRequest` / `OrderReceiptSnapshot`, `ProfileResponse`, `WalletsResponse`, and `ApiErrorEnvelope`. Form/request Zod schemas define `SignupRequest`, `LoginRequest`, `CartItemInput`, `MergeCartRequest`, `ApplyCouponRequest`, `CreateOrderRequest`, `ProfileUpdateRequest`, `PasswordUpdateRequest`, and `WalletUpsertRequest`; these schemas validate untrusted input rather than duplicating response types. Wallet addresses are checked against the documented network formats at profile/order form boundaries.
 
-An NFT has `id`, `tokenId`, `name`, `collection`, `category`, `network`, `price`, optional `compareAtPrice` and `rarity`, `isNew`, `trending`, `rating: { average, count }`, `attributes`, `description`, `images[]`, `editions[{ id, label: '1/1' | '1/10' | '1/50' | 'ABERTA', supply, available }]` and `version`. Editions are tiers; `ABERTA` is uncapped and uses a large `available` value (for example 500). Quantity is limited by the selected tier's availability. Cart line identity is the combination of NFT and edition. `POST /api/cart/items` accepts `{ nftId, editionId, quantity }`.
+An NFT has `id`, `tokenId`, `name`, `collection`, `category`, `network`, `price`, optional `compareAtPrice` and `rarity`, `isNew`, `trending`, `rating: { average, count }`, `attributes`, `description`, `images[]`, `editions[{ id, label: '1/1' | '1/10' | '1/50' | 'ABERTA', supply, available }]` and `version`. `supply: null` represents an uncapped `ABERTA` edition; `available` remains the current integer availability. Quantity is limited by the selected tier's availability. Cart line identity is the combination of NFT and edition. `POST /api/cart/items` accepts `{ nftId, editionId, quantity }`.
+
+Each `CartItem` and `QuoteItem` carries API-authoritative `lineTotal`; quote items also carry `editionId`. `CartCoupon.status` is only `valid | expired`. An invalid or expired coupon is rejected by the API and is not stored on the cart.
 
 `POST /api/orders` includes `quoteId`, `provider`, `walletId`, collector data (`displayName`, `username`, `profileName`, `email`, `walletAddress`, `walletType`, `network`, `ensName`, `referralCode`, optional `note`). Ethereum and Polygon addresses validate as `0x` followed by 40 hex characters; Solana addresses validate as base58.
 
 Wallet create/update payload: `{ kind: 'primary' | 'secondary', displayName, nickname, network, profileName, address, altAddressOrEns?, walletType, referralCode, email, ensName }`; all fields are required except `altAddressOrEns`. `PUT /api/profile` accepts `{ displayName, username, email, ensName, walletNickname, avatar? }`; `PUT /api/profile/password` accepts `{ currentPassword, newPassword, confirmPassword }`.
 
-`GET /api/orders/:id` returns the immutable receipt snapshot `{ orderId, status, transactionHash, network, explorerUrl, provider, wallet: { nickname, address }, items: [{ nftId, name, tokenId, edition, quantity, subtotal }], fee, total, createdAt }`.
+`GET /api/orders/:id` returns the immutable receipt snapshot `{ orderId, version, quoteId, status, transactionHash, network, explorerUrl, provider, wallet: { nickname, address }, items: [{ nftId, name, tokenId, edition, quantity, unitPrice, subtotal }], subtotal, discount, fee, total, createdAt }`.
 
-Response shapes not explicitly specified by the challenge are made concrete as follows: `GET /api/auth/session` is a discriminated authenticated/guest result; featured NFTs return `{ hero, featured }`; favorites return records with their NFT embedded, while delete returns `{ nftId, removed: true }`; cart merge accepts guest `CartItemInput[]` and returns the cart plus `mergedItemCount`; wallet connect returns `outcome: connected | refused`. Reviews use `{ id, displayName, rating, comment, createdAt }`. Serialized network/provider identifiers are lowercase (`ethereum | polygon | solana`, `metamask | walletconnect | coinbase`); category, sort and facet identifiers remain opaque strings because the architecture does not define their wire values. These are contract assumptions for consistent client/mock implementation, not additional business rules.
+Response shapes not explicitly specified by the challenge are made concrete as follows: `GET /api/auth/session` is a discriminated authenticated/guest result; featured NFTs return `{ hero, featured }`; favorites return records with their NFT embedded, while delete returns `{ nftId, removed: true }`; cart merge accepts guest `CartItemInput[]` and returns the cart plus `mergedItemCount`; wallet connect returns `outcome: connected | refused`. Reviews use `{ id, displayName, rating, comment, createdAt }`. Serialized network/provider identifiers are lowercase (`ethereum | polygon | solana`, `metamask | walletconnect | coinbase`); category and facet identifiers remain opaque strings. The `sort` enum is set to `recent`, `price-asc`, `price-desc`, and `popular`; this list is an implementation assumption because the challenge does not enumerate sort values. A wallet upsert using a `kind` already present returns `409` rather than replacing that wallet. Remaining assumptions awaiting confirmation are the receipt's `version` meaning, the quote wrapper shape `{ quote }` in conflict-error `details`, and the complete list of supported sort values. These are contract assumptions for consistent client/mock implementation, not additional business rules.
 
 ### 4.1 Quote
 
@@ -92,17 +96,17 @@ Response shapes not explicitly specified by the challenge are made concrete as f
 
 ### 4.2 Error envelope
 
-Every error response uses `{ error: { code, message, fieldErrors?, details? } }`.
+Every error response uses `{ error: { code, message, fieldErrors?: Record<string, string[]>, details? } }`. `ApiErrorCode` is derived from `apiErrorCodeSchema`; `PRICE_CHANGED` and `AVAILABILITY_CONFLICT` carry `details: { quote: QuoteResponse }`. Error codes and HTTP statuses are centralized in `src/types/endpoints.ts`.
 Axios responses are validated against this envelope and normalized to `ApiClientError`; `src/utils/errors.ts` maps known API codes to user-facing Portuguese messages and preserves status, field errors and details.
 
 | HTTP | `code` examples | Meaning |
 | --- | --- | --- |
-| 401 | `UNAUTHENTICATED`, `SESSION_EXPIRED` | Missing/invalid/expired session |
+| 401 | `UNAUTHENTICATED`, `SESSION_EXPIRED`, `INVALID_CREDENTIALS` | Missing/invalid/expired session or credentials |
 | 403 | `FORBIDDEN` | No permission for the resource |
 | 404 | `NOT_FOUND` | Resource does not exist |
 | 409 | `EMAIL_TAKEN`, `AVAILABILITY_CONFLICT`, `PRICE_CHANGED`, `IDEMPOTENCY_KEY_REUSED` | Conflict (payload includes a fresh quote when relevant) |
-| 422 | `VALIDATION_ERROR` (+ `fieldErrors`) | Invalid input |
-| 502/503/504 | `TRANSIENT_FAILURE` | Retryable failure |
+| 422 | `VALIDATION_ERROR` (+ `fieldErrors`), `COUPON_INVALID`, `COUPON_EXPIRED` | Invalid input or rejected coupon |
+| 503 | `TRANSIENT_FAILURE` | Retryable service failure |
 
 ## 5. Orders & Idempotency [Planned]
 
@@ -118,7 +122,8 @@ Axios responses are validated against this envelope and normalized to `ApiClient
 ## 6. Session Policy [Planned]
 
 - Login returns a token with `expiresAt`. The token lives in `sessionStorage` under `kurio.session.token` (mock-grade; documented limitation) and is attached by an Axios request interceptor. Passwords are hashed in the mock layer; only fictitious credentials are used.
-- On boot, `GET /api/auth/session` restores the session after refresh.
+- On boot, call `GET /api/auth/session` only when a session token exists; a visitor without a token does not make this request. A valid token restores the session after refresh. An expired token returns `401 SESSION_EXPIRED`.
+- The default success scenario must not produce 4xx responses in the browser console, so Lighthouse runs stay free of expected-error noise.
 - Authentication is route-driven: `/login` and `/signup` render as a modal over the previous route on desktop and full-screen on mobile. Direct access works; closing the desktop modal returns to the previous route.
 - `401 SESSION_EXPIRED` during navigation or checkout: save the return context (route + checkout draft + pending idempotency key) in session storage, redirect to Login with `redirect`, and resume after re-authentication.
 - **Logout / user switch**: clear the Query cache, persisted private data (session, cart snapshot, checkout draft, order ids), disconnect the socket and remove every listener. Private query keys include the user id.
@@ -145,7 +150,7 @@ The QueryClient is initialized in `src/lib/query-client.ts` and provided above t
 
 - Retries: network errors and 5xx retry up to 2 times with exponential backoff; 4xx never retries; mutations do not auto-retry (order creation retry is a user/idempotent action).
 - Key factory `src/hooks/queryKeys.ts`; public catalog keys include the full parameter object and private resource keys use `['user', userId, ...]`.
-- The session bootstrap query uses `['auth', 'session']` until the response reveals the user id; this is the only private-data key without a user segment. Logout, expiry and user switch clear the complete QueryClient cache before another user's data can render.
+- When a token exists, the session bootstrap query uses `['auth', 'session']` until the response reveals the user id; visitors without a token skip the request. This is the only private-data key without a user segment. Logout, expiry and user switch clear the complete QueryClient cache before another user's data can render.
 - Optimistic updates: favorites toggle and cart quantity (`onMutate` snapshot → `onError` rollback → `onSettled` invalidate).
 - Background refetch states are surfaced in the UI without blocking content.
 
@@ -156,8 +161,8 @@ The QueryClient is initialized in `src/lib/query-client.ts` and provided above t
 
 | Event | `data` | Client behavior |
 | --- | --- | --- |
-| `nft.updated` | `{ nftId, price, editionId, availableEdition }` | `price` is `EthAmount`; `availableEdition` is the remaining integer quantity for `editionId`. Patch NFT in catalog pages, detail and cart caches; invalidate quote; announce change |
-| `order.updated` | `{ orderId, status: 'confirmed' \| 'rejected', transactionHash?, reason?, network? }` | Private event requires `userId`; update order/receipt; show confirmation or rejection; terminal states are never overwritten |
+| `nft.updated` | `{ nftId, price, editions: [{ id, available }] }` | Carries the full current price and edition availability state for the NFT. `resource.id` must equal `data.nftId`; patch catalog pages, detail and cart caches, invalidate quote and announce change |
+| `order.updated` | `{ orderId, status: 'confirmed' \| 'rejected', transactionHash?, reason? }` | Private event requires `userId`; `resource.id` must equal `data.orderId`; update order/receipt; show confirmation or rejection; terminal states are never overwritten |
 
 - **Dedup & ordering**: keep a bounded set of processed `eventId`s and the last applied `version` per resource; ignore duplicates and events with `version ≤ applied`.
 - **Session isolation**: ignore events whose `userId` differs from the current session user; disconnect and unsubscribe on logout/user switch; remove listeners on unmount.
@@ -180,7 +185,7 @@ The QueryClient is initialized in `src/lib/query-client.ts` and provided above t
 
 TanStack Router uses file-based routes under `src/routes/`; the root route supplies the shared header/footer/mobile navigation, a root error boundary and the not-found fallback. `src/routes/$.tsx` is the explicit catch-all 404 route. The router context carries the current session, and `requireAuthenticated` redirects guests to `/login` with the original URL encoded in `redirect`; auth screens and protected route registrations are added with the authentication flows.
 
-`validateSearchWithZod` applies Zod schemas to route search values. The current home/catalog entry validates `q`, `feed` and `page`; malformed values surface through the root error boundary with retry and a return-to-home path. Catalog category/network filters, sort, price bounds, and resetting `page` when filters change are wired with the catalog flow. Unknown routes render a 404; every planned screen supports direct access and refresh (SPA fallback configured on the host).
+`validateSearchWithZod` applies Zod schemas to route search values. The current home/catalog entry validates `q`, `feed` and `page`; malformed values fall back to the corresponding defaults rather than breaking navigation. The shared `nftSearchParamsSchema` also validates catalog category/network arrays, sort, price bounds and pagination. Filter changes reset `page` to 1. Unknown routes render a 404; every planned screen supports direct access and refresh (SPA fallback configured on the host).
 
 ## 12. Testing & Audit Strategy [Planned]
 

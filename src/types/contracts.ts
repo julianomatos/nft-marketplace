@@ -1,8 +1,9 @@
 import { z } from 'zod'
+import { parseSearchArray } from './search-params'
 
 export const ethAmountSchema = z
   .string()
-  .regex(/^\d+(\.\d+)?$/, 'Expected a decimal ETH string')
+  .regex(/^\d+(?:\.\d{1,18})?$/, 'Expected a decimal ETH string')
 
 export const positiveIntegerSchema = z.number().int().min(1)
 export const positiveQuantitySchema = positiveIntegerSchema
@@ -20,7 +21,7 @@ export const walletProviderSchema = z.enum([
 const walletAddressPatterns: Record<Network, RegExp> = {
   ethereum: /^0x[a-fA-F0-9]{40}$/,
   polygon: /^0x[a-fA-F0-9]{40}$/,
-  solana: /^[1-9A-HJ-NP-Za-km-z]+$/,
+  solana: /^[1-9A-HJ-NP-Za-km-z]{32,44}$/,
 }
 
 function validateWalletAddress(
@@ -59,16 +60,21 @@ export const profileUpdateRequestSchema = z.object({
   displayName: z.string().min(1),
   username: z.string().min(1),
   email: z.string().email(),
-  ensName: z.string(),
+  ensName: z.string().min(1),
   walletNickname: z.string().min(1),
   avatar: z.string().optional(),
 })
 
-export const passwordUpdateRequestSchema = z.object({
-  currentPassword: z.string().min(1),
-  newPassword: z.string().min(1),
-  confirmPassword: z.string().min(1),
-})
+export const passwordUpdateRequestSchema = z
+  .object({
+    currentPassword: z.string().min(1),
+    newPassword: z.string().min(8),
+    confirmPassword: z.string().min(8),
+  })
+  .refine((passwords) => passwords.newPassword === passwords.confirmPassword, {
+    path: ['confirmPassword'],
+    message: 'Passwords do not match',
+  })
 
 export const collectorDataSchema = z.object({
   displayName: z.string().min(1),
@@ -121,35 +127,41 @@ export const walletUpsertRequestSchema = z.object({
   validateWalletAddress(wallet.address, wallet.network, 'address', context)
 })
 
+export const nftSortSchema = z.enum([
+  'recent',
+  'price-asc',
+  'price-desc',
+  'popular',
+])
+
+const searchArraySchema = z.preprocess(
+  parseSearchArray,
+  z.array(z.string().min(1)).optional(),
+)
+
+export const nftSearchParamsSchema = z.object({
+  q: z.string().max(120).optional().catch(undefined),
+  feed: z.enum(['all', 'new', 'trending']).optional().catch(undefined),
+  category: searchArraySchema.catch(undefined),
+  network: z.preprocess(
+    parseSearchArray,
+    z.array(networkSchema).optional(),
+  ).catch(undefined),
+  minPrice: ethAmountSchema.optional().catch(undefined),
+  maxPrice: ethAmountSchema.optional().catch(undefined),
+  sort: nftSortSchema.catch('recent').default('recent'),
+  page: z.coerce.number().int().min(1).catch(1).default(1),
+  limit: z.coerce.number().int().min(1).catch(9).default(9),
+})
+
 export type EthAmount = z.infer<typeof ethAmountSchema>
 export type PositiveInteger = z.infer<typeof positiveIntegerSchema>
 export type PositiveQuantity = z.infer<typeof positiveQuantitySchema>
 export type NonNegativeInteger = z.infer<typeof nonNegativeIntegerSchema>
 export type Network = z.infer<typeof networkSchema>
 export type WalletProvider = z.infer<typeof walletProviderSchema>
-
-export type ApiErrorCode =
-  | 'UNAUTHENTICATED'
-  | 'SESSION_EXPIRED'
-  | 'FORBIDDEN'
-  | 'NOT_FOUND'
-  | 'EMAIL_TAKEN'
-  | 'AVAILABILITY_CONFLICT'
-  | 'PRICE_CHANGED'
-  | 'IDEMPOTENCY_KEY_REUSED'
-  | 'VALIDATION_ERROR'
-  | 'TRANSIENT_FAILURE'
-
-export const apiErrorEnvelopeSchema = z.object({
-  error: z.object({
-    code: z.string().min(1),
-    message: z.string().min(1),
-    fieldErrors: z.record(z.string(), z.unknown()).optional(),
-    details: z.unknown().optional(),
-  }),
-})
-
-export type ApiErrorEnvelope = z.infer<typeof apiErrorEnvelopeSchema>
+export type NftSort = z.infer<typeof nftSortSchema>
+export type NftSearchParams = z.infer<typeof nftSearchParamsSchema>
 
 export type SignupRequest = z.infer<typeof signupRequestSchema>
 export type LoginRequest = z.infer<typeof loginRequestSchema>
@@ -183,24 +195,12 @@ export type LogoutResponse = {
 
 export type Feed = 'all' | 'new' | 'trending'
 
-export type NftSearchParams = {
-  q?: string
-  feed?: Feed
-  category?: string[]
-  network?: Network[]
-  minPrice?: EthAmount
-  maxPrice?: EthAmount
-  sort?: string
-  page?: PositiveInteger
-  limit?: PositiveInteger
-}
-
 export type NftEditionLabel = '1/1' | '1/10' | '1/50' | 'ABERTA'
 
 export type NftEdition = {
   id: string
   label: NftEditionLabel
-  supply: NonNegativeInteger
+  supply: NonNegativeInteger | null
   available: NonNegativeInteger
 }
 
@@ -319,16 +319,20 @@ export type CartItem = {
   edition: NftEditionLabel
   quantity: PositiveQuantity
   unitPrice: EthAmount
+  lineTotal: EthAmount
   available: NonNegativeInteger
   nft: NftSummary
 }
 
-export type CouponStatus = 'valid' | 'invalid' | 'expired'
+export const couponStatusSchema = z.enum(['valid', 'expired'])
 
-export type CartCoupon = {
-  code: string
-  status: CouponStatus
-}
+export const cartCouponSchema = z.object({
+  code: z.string().min(1),
+  status: couponStatusSchema,
+})
+
+export type CouponStatus = z.infer<typeof couponStatusSchema>
+export type CartCoupon = z.infer<typeof cartCouponSchema>
 
 export type Cart = {
   items: CartItem[]
@@ -366,25 +370,81 @@ export type RemoveCouponResponse = {
 
 export type QuoteRequest = Record<string, never>
 
-export type QuoteItem = {
-  nftId: string
-  edition: NftEditionLabel
-  quantity: PositiveQuantity
-  unitPrice: EthAmount
-  available: NonNegativeInteger
+export const quoteItemSchema = z.object({
+  nftId: z.string().min(1),
+  editionId: z.string().min(1),
+  edition: z.enum(['1/1', '1/10', '1/50', 'ABERTA']),
+  quantity: positiveQuantitySchema,
+  unitPrice: ethAmountSchema,
+  lineTotal: ethAmountSchema,
+  available: nonNegativeIntegerSchema,
+})
+
+export const quoteResponseSchema = z.object({
+  quoteId: z.string().min(1),
+  items: z.array(quoteItemSchema),
+  subtotal: ethAmountSchema,
+  discount: ethAmountSchema,
+  networkFee: ethAmountSchema,
+  total: ethAmountSchema,
+  coupon: cartCouponSchema.nullable(),
+  expiresAt: z.string().datetime(),
+  version: positiveIntegerSchema,
+})
+
+export type QuoteItem = z.infer<typeof quoteItemSchema>
+export type QuoteResponse = z.infer<typeof quoteResponseSchema>
+
+export const apiErrorCodeSchema = z.enum([
+  'UNAUTHENTICATED',
+  'SESSION_EXPIRED',
+  'INVALID_CREDENTIALS',
+  'FORBIDDEN',
+  'NOT_FOUND',
+  'EMAIL_TAKEN',
+  'AVAILABILITY_CONFLICT',
+  'PRICE_CHANGED',
+  'IDEMPOTENCY_KEY_REUSED',
+  'COUPON_INVALID',
+  'COUPON_EXPIRED',
+  'VALIDATION_ERROR',
+  'TRANSIENT_FAILURE',
+])
+
+export type ApiErrorCode = z.infer<typeof apiErrorCodeSchema>
+
+const apiErrorCommonSchema = z.object({
+  message: z.string().min(1),
+  fieldErrors: z.record(z.string(), z.array(z.string())).optional(),
+})
+
+const quoteConflictErrorSchema = apiErrorCommonSchema.extend({
+  code: z.enum(['PRICE_CHANGED', 'AVAILABILITY_CONFLICT']),
+  details: z.object({
+    quote: quoteResponseSchema,
+  }),
+})
+
+const standardApiErrorSchema = apiErrorCommonSchema.extend({
+  code: apiErrorCodeSchema.exclude([
+    'PRICE_CHANGED',
+    'AVAILABILITY_CONFLICT',
+  ]),
+  details: z.record(z.string(), z.unknown()).optional(),
+})
+
+export const apiErrorEnvelopeSchema = z.object({
+  error: z.discriminatedUnion('code', [
+    quoteConflictErrorSchema,
+    standardApiErrorSchema,
+  ]),
+})
+
+export type QuoteConflictDetails = {
+  quote: QuoteResponse
 }
 
-export type QuoteResponse = {
-  quoteId: string
-  items: QuoteItem[]
-  subtotal: EthAmount
-  discount: EthAmount
-  networkFee: EthAmount
-  total: EthAmount
-  coupon: CartCoupon | null
-  expiresAt: string
-  version: PositiveInteger
-}
+export type ApiErrorEnvelope = z.infer<typeof apiErrorEnvelopeSchema>
 
 export type OrderStatus = 'pending' | 'confirmed' | 'rejected'
 
@@ -398,11 +458,14 @@ export type OrderReceiptItem = {
   tokenId: string
   edition: NftEditionLabel
   quantity: PositiveQuantity
+  unitPrice: EthAmount
   subtotal: EthAmount
 }
 
 export type OrderReceiptSnapshot = {
   orderId: string
+  version: PositiveInteger
+  quoteId: string
   status: OrderStatus
   transactionHash: string | null
   network: Network
@@ -413,6 +476,8 @@ export type OrderReceiptSnapshot = {
     address: string
   }
   items: OrderReceiptItem[]
+  subtotal: EthAmount
+  discount: EthAmount
   fee: EthAmount
   total: EthAmount
   createdAt: string
@@ -474,7 +539,9 @@ export type WalletUpsertResponse = {
   wallet: Wallet
 }
 
-export type ConnectWalletRequest = Record<string, never>
+export type ConnectWalletRequest = {
+  provider: WalletProvider
+}
 
 export type ConnectWalletResponse = {
   wallet: Wallet
