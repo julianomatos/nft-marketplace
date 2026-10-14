@@ -1,6 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { AuthPage } from '@/components/auth/auth-page'
+import { SignupRoutePage } from '@/components/auth/auth-route-pages'
+import { authSearchSchema } from '@/types/contracts'
 
 export const Route = createFileRoute('/signup')({
-  component: () => <AuthPage mode="signup" />,
+  validateSearch: authSearchSchema,
+  component: SignupRoutePage,
 })

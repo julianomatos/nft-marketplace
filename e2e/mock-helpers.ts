@@ -8,6 +8,7 @@ type MockControl = {
   setLatency: (milliseconds: number) => void
   connectSocketClient: (tokenOverride?: string | null) => Promise<MockSocketClient>
   getState: () => { scenario: string }
+  requestProfile: () => Promise<unknown>
 }
 
 type MockSocketClient = {

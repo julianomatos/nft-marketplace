@@ -115,6 +115,11 @@ export const authSessionResponseSchema = z.discriminatedUnion('authenticated', [
   }),
 ])
 
+export const authSearchSchema = z.object({
+  redirect: z.string().max(2048).optional().catch(undefined),
+  reason: z.enum(['expired']).optional().catch(undefined),
+})
+
 export const collectorDataSchema = z.object({
   displayName: z.string().min(1),
   username: z.string().min(1),

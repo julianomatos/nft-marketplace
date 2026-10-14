@@ -3,13 +3,16 @@ import {
   useRouter,
   useRouterState,
 } from '@tanstack/react-router'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { MobileBottomNavigation } from '@/components/layout/mobile-bottom-navigation'
 import { SiteFooter } from '@/components/layout/site-footer'
 import { SiteHeader } from '@/components/layout/site-header'
 import { HomeIntro } from '@/components/home/home-intro'
 import { Button } from '@/components/ui/button'
 import { useSession } from '@/hooks/use-session'
+import { queryClient } from '@/lib/query-client'
+import { SESSION_EXPIRED_EVENT, setSessionToken } from '@/services/api-client'
+import { saveAuthReturnContext } from '@/utils/auth-return-context'
 import type { RouterSession } from '@/types/router'
 
 function AuthBackground({ pathname }: { pathname: string }) {
@@ -38,6 +41,7 @@ function AuthBackground({ pathname }: { pathname: string }) {
 function RootLayout() {
   const router = useRouter()
   const sessionQuery = useSession()
+  const handledSessionExpiry = useRef(false)
   const pathname = useRouterState({ select: (state) => state.location.pathname })
   const isAuthRoute = pathname === '/login' || pathname === '/signup'
   const [backgroundPath, setBackgroundPath] = useState(
@@ -80,6 +84,35 @@ function RootLayout() {
     router.update({ context: { session } })
     void router.invalidate()
   }, [router, session])
+
+  useEffect(() => {
+    if (session.status === 'authenticated') {
+      handledSessionExpiry.current = false
+    }
+  }, [session.status])
+
+  useEffect(() => {
+    function handleSessionExpired() {
+      if (handledSessionExpiry.current) return
+      handledSessionExpiry.current = true
+      const currentLocation = router.state.location
+      const returnTarget = saveAuthReturnContext(currentLocation.href)
+      queryClient.clear()
+      setSessionToken(null)
+      router.update({ context: { session: { status: 'guest' } } })
+      void router.navigate({
+        to: '/login',
+        search: {
+          redirect: returnTarget ?? undefined,
+          reason: 'expired',
+        },
+      })
+    }
+
+    window.addEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired)
+    return () =>
+      window.removeEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired)
+  }, [router])
 
   return (
     <div className="flex min-h-screen flex-col bg-background pb-24 text-foreground antialiased md:pb-0">

@@ -11,6 +11,12 @@ import {
 } from './store'
 import { settleMockOrder } from './settle-order'
 import type { Socket } from 'socket.io-client'
+import { API_ENDPOINTS } from '../types/endpoints'
+import { apiClient } from '../services/api-client'
+
+async function requestProfile() {
+  return apiClient.get(API_ENDPOINTS.profile.current)
+}
 
 async function connectSocketClient(tokenOverride?: string | null): Promise<Socket> {
   const { io } = await import('socket.io-client')
@@ -36,6 +42,7 @@ export const kurioMocks = {
   setTimeoutResponseDelay: setMockTimeoutResponseDelay,
   settleOrder: settleMockOrder,
   connectSocketClient,
+  requestProfile,
   setMockTime: setMockNow,
   advanceMockTime: advanceMockNow,
   resetMockTime: resetMockNow,

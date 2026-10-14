@@ -17,12 +17,19 @@ import {
   type SignupRequest,
 } from '@/types/contracts'
 import { ApiClientError } from '@/utils/errors'
+import {
+  clearAuthReturnContext,
+  getAuthReturnTarget,
+  restoreAuthReturnContext,
+} from '@/utils/auth-return-context'
 import { useLogin, useSignup } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
 type AuthPageProps = {
   mode: 'login' | 'signup'
+  redirectTo?: string
+  sessionExpired?: boolean
 }
 
 type AuthField = 'displayName' | 'email' | 'password'
@@ -53,7 +60,11 @@ function applyApiFieldErrors(
   return hasMappedFieldError ? null : error.message
 }
 
-function AuthPage({ mode }: AuthPageProps) {
+function AuthPage({
+  mode,
+  redirectTo,
+  sessionExpired = false,
+}: AuthPageProps) {
   const navigate = useNavigate()
   const router = useRouter()
   const dialogRef = useRef<HTMLDialogElement>(null)
@@ -83,6 +94,18 @@ function AuthPage({ mode }: AuthPageProps) {
 
   function closeDialog() {
     returnToPreviousRoute()
+  }
+
+  function completeAuthentication() {
+    const returnTarget = getAuthReturnTarget(redirectTo)
+    if (!returnTarget) {
+      returnToPreviousRoute()
+      return
+    }
+
+    restoreAuthReturnContext()
+    clearAuthReturnContext()
+    void router.navigate({ href: returnTarget })
   }
 
   function handleCancel(event: SyntheticEvent<HTMLDialogElement>) {
@@ -123,6 +146,10 @@ function AuthPage({ mode }: AuthPageProps) {
                 className={`text-lg font-bold transition-colors ${
                   !isSignup ? 'text-highlight' : 'text-foreground hover:text-highlight'
                 }`}
+                search={{
+                  redirect: redirectTo,
+                  reason: sessionExpired ? 'expired' : undefined,
+                }}
                 to="/login"
               >
                 Entrar
@@ -135,6 +162,10 @@ function AuthPage({ mode }: AuthPageProps) {
                 className={`text-lg font-bold transition-colors ${
                   isSignup ? 'text-highlight' : 'text-foreground hover:text-highlight'
                 }`}
+                search={{
+                  redirect: redirectTo,
+                  reason: sessionExpired ? 'expired' : undefined,
+                }}
                 to="/signup"
               >
                 Criar conta
@@ -152,9 +183,15 @@ function AuthPage({ mode }: AuthPageProps) {
               </p>
 
               {isSignup ? (
-                <SignupFields onSuccess={returnToPreviousRoute} />
+                <SignupFields onSuccess={completeAuthentication} />
               ) : (
-                <LoginFields onSuccess={returnToPreviousRoute} />
+                <LoginFields onSuccess={completeAuthentication} />
+              )}
+
+              {sessionExpired && (
+                <p className="mt-4 text-center text-xs text-highlight" role="status">
+                  Sua sessão expirou. Entre novamente para continuar.
+                </p>
               )}
 
               <div aria-live="polite" className="mt-5 space-y-2 text-center">

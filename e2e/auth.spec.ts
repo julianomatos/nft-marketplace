@@ -189,3 +189,151 @@ test('clears an expired session token and offers retry feedback', async ({
   ).toBeNull()
   await expect(page.getByText('Ana Oliveira', { exact: true })).toHaveCount(0)
 })
+
+test('guards direct access to private routes and returns there after login', async ({
+  page,
+}) => {
+  await page.goto('/carrinho?item=emerald-ape&quantity=2')
+
+  await expect(page).toHaveURL(/\/login\?/)
+  await expect(page.getByRole('dialog')).toBeVisible()
+  expect(new URL(page.url()).searchParams.get('redirect')).toBe(
+    '/carrinho?item=emerald-ape&quantity=2',
+  )
+
+  await page.getByLabel('E-mail', { exact: true }).fill('ana@kurio.example.test')
+  await page.getByLabel('Senha', { exact: true }).fill('KurioDemo!A2026')
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click()
+
+  await expect(page).toHaveURL(
+    (url) =>
+      url.pathname === '/carrinho' &&
+      url.searchParams.get('item') === 'emerald-ape' &&
+      url.searchParams.get('quantity') === '2',
+  )
+})
+
+test('allows authenticated direct access and does not redirect to login', async ({
+  page,
+}) => {
+  await page.evaluate(() =>
+    window.__KURIO_MOCKS__.reset('success'),
+  )
+  await page.goto('/perfil?tab=profile')
+
+  await expect(page).toHaveURL(
+    (url) =>
+      url.pathname === '/perfil' &&
+      url.searchParams.get('tab') === 'profile',
+  )
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+})
+
+test('expired session during a protected route redirects with the context and resumes after login', async ({
+  page,
+}) => {
+  await page.evaluate(() => {
+    window.__KURIO_MOCKS__.reset('expired-session')
+    window.sessionStorage.setItem(
+      'kurio.checkout.draft',
+      JSON.stringify({ collector: { displayName: 'Ana Oliveira' } }),
+    )
+    window.sessionStorage.setItem(
+      'kurio.checkout.idempotency-key',
+      'checkout-attempt-42',
+    )
+  })
+  await page.goto('/pagamento?step=review')
+
+  await expect(page).toHaveURL(/\/login\?/)
+  const loginUrl = new URL(page.url())
+  expect(loginUrl.searchParams.get('redirect')).toBe('/pagamento?step=review')
+  expect(loginUrl.searchParams.get('reason')).toBe('expired')
+  await expect(page.getByRole('status')).toContainText('Sua sessão expirou.')
+  await expect.poll(() =>
+    page.evaluate(() => window.sessionStorage.getItem('kurio.session.token')),
+  ).toBeNull()
+
+  const savedContext = await page.evaluate(() =>
+    window.sessionStorage.getItem('kurio.auth.return-context'),
+  )
+  expect(savedContext).toContain('checkout-attempt-42')
+  await page.evaluate(() => {
+    window.sessionStorage.removeItem('kurio.checkout.draft')
+    window.sessionStorage.removeItem('kurio.checkout.idempotency-key')
+  })
+
+  await page.getByLabel('E-mail', { exact: true }).fill('ana@kurio.example.test')
+  await page.getByLabel('Senha', { exact: true }).fill('KurioDemo!A2026')
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click()
+
+  await expect(page).toHaveURL(
+    (url) =>
+      url.pathname === '/pagamento' &&
+      url.searchParams.get('step') === 'review',
+  )
+  await expect(page).toHaveURL((url) => !url.searchParams.has('redirect'))
+  await expect.poll(() =>
+    page.evaluate(() =>
+      window.sessionStorage.getItem('kurio.checkout.idempotency-key'),
+    ),
+  ).toBe('checkout-attempt-42')
+  await expect.poll(() =>
+    page.evaluate(() =>
+      window.sessionStorage.getItem('kurio.checkout.draft'),
+    ),
+  ).toContain('Ana Oliveira')
+})
+
+test('session expiry from an Axios-protected request saves checkout state and returns after login', async ({
+  page,
+}) => {
+  await page.evaluate(() => {
+    window.__KURIO_MOCKS__.reset('success')
+    window.sessionStorage.setItem(
+      'kurio.checkout.draft',
+      JSON.stringify({ step: 'review' }),
+    )
+    window.sessionStorage.setItem(
+      'kurio.checkout.idempotency-key',
+      'pending-order-attempt',
+    )
+  })
+  await page.goto('/pagamento?step=review')
+  await expect(page.getByText('Ana Oliveira', { exact: true })).toBeVisible()
+
+  await page.evaluate(async () => {
+    window.__KURIO_MOCKS__.advanceMockTime(48 * 60 * 60 * 1000)
+    try {
+      await window.__KURIO_MOCKS__.requestProfile()
+    } catch {
+      // The request is expected to reject with the expired-session API envelope.
+    }
+  })
+
+  await expect(page).toHaveURL(/\/login\?/)
+  const loginUrl = new URL(page.url())
+  expect(loginUrl.searchParams.get('redirect')).toBe('/pagamento?step=review')
+  expect(loginUrl.searchParams.get('reason')).toBe('expired')
+  await expect(page.getByRole('status')).toContainText('Sua sessão expirou.')
+
+  await page.getByLabel('E-mail', { exact: true }).fill('ana@kurio.example.test')
+  await page.getByLabel('Senha', { exact: true }).fill('KurioDemo!A2026')
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click()
+
+  await expect(page).toHaveURL(
+    (url) =>
+      url.pathname === '/pagamento' &&
+      url.searchParams.get('step') === 'review',
+  )
+  await expect.poll(() =>
+    page.evaluate(() =>
+      window.sessionStorage.getItem('kurio.checkout.idempotency-key'),
+    ),
+  ).toBe('pending-order-attempt')
+  await expect.poll(() =>
+    page.evaluate(() =>
+      window.sessionStorage.getItem('kurio.checkout.draft'),
+    ),
+  ).toContain('review')
+})

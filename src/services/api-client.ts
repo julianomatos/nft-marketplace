@@ -13,6 +13,7 @@ const API_BASE_URL =
   API_BASE_PATH
 const API_TIMEOUT_MS = 15_000
 const SESSION_TOKEN_STORAGE_KEY = 'kurio.session.token'
+const SESSION_EXPIRED_EVENT = 'kurio:session-expired'
 
 function getSessionToken(): string | null {
   if (typeof window === 'undefined') return null
@@ -50,7 +51,20 @@ apiClient.interceptors.request.use((config) => {
 
 apiClient.interceptors.response.use(
   (response) => response,
-  (error: unknown) => Promise.reject(normalizeApiError(error)),
+  (error: unknown) => {
+    const normalizedError = normalizeApiError(error)
+    const requestUrl = axios.isAxiosError(error) ? error.config?.url : undefined
+    const isSessionLookup = requestUrl?.includes(API_ENDPOINTS.auth.session)
+
+    if (normalizedError.code === 'SESSION_EXPIRED' && !isSessionLookup) {
+      setSessionToken(null)
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT))
+      }
+    }
+
+    return Promise.reject(normalizedError)
+  },
 )
 
 export {
@@ -59,6 +73,7 @@ export {
   API_ENDPOINTS,
   API_ERROR_STATUS,
   IDEMPOTENCY_KEY_HEADER,
+  SESSION_EXPIRED_EVENT,
   SESSION_TOKEN_STORAGE_KEY,
   getSessionToken,
   setSessionToken,
