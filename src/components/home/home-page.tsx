@@ -27,7 +27,7 @@ function CatalogSkeleton() {
   return (
     <div
       aria-label="Carregando catálogo"
-      className="grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-3 md:gap-x-8 md:gap-y-10"
+      className="grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-2 md:gap-x-8 md:gap-y-10 xl:grid-cols-3"
       role="status"
     >
       {Array.from({ length: 9 }, (_, index) => (

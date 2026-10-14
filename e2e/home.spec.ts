@@ -1,6 +1,10 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
-import { openWithMockScenario, resetMockScenario } from './mock-helpers'
+import {
+  openWithMockScenario,
+  resetMockScenario,
+  setMockRequestLatency,
+} from './mock-helpers'
 
 test.beforeEach(async ({ page }) => {
   await openWithMockScenario(page, 'success')
@@ -87,6 +91,67 @@ test('mobile home uses the compact hero, carousel dots, staggered grid, and sear
 
   await page.getByRole('button', { name: 'Explorar coleções' }).click()
   await expect(page.getByRole('searchbox', { name: 'Buscar NFTs' })).toBeFocused()
+})
+
+test('mobile filter drawer traps focus and restores it after Escape', async ({
+  page,
+}) => {
+  test.skip((page.viewportSize()?.width ?? 0) >= 768)
+
+  const trigger = page.getByRole('button', { name: 'Abrir filtros' })
+  await trigger.focus()
+  await trigger.press('Enter')
+
+  const dialog = page.getByRole('dialog', { name: 'Filtrar NFTs' })
+  await expect(dialog).toBeVisible()
+  const closeButton = dialog.getByRole('button', { name: 'Fechar' })
+  await expect(closeButton).toBeFocused()
+
+  await page.keyboard.press('Shift+Tab')
+  expect(
+    await dialog.evaluate((element) =>
+      element.contains(document.activeElement),
+    ),
+  ).toBe(true)
+  await page.keyboard.press('Escape')
+
+  await expect(dialog).not.toBeVisible()
+  await expect(trigger).toBeFocused()
+})
+
+test('slow catalog loading shows the shimmer skeleton and resolves to results', async ({
+  page,
+}) => {
+  await setMockRequestLatency(page, 900)
+  await page.getByRole('button', { name: 'Novos', exact: true }).click()
+
+  const catalogSkeleton = page.getByRole('status', {
+    name: 'Carregando catálogo',
+  })
+  await expect(catalogSkeleton).toBeVisible()
+  await expect(catalogSkeleton.locator('.skeleton-shimmer')).toHaveCount(27)
+  await expect(page.locator('#catalog article')).toHaveCount(9)
+})
+
+test('the latest catalog query wins when feed requests complete out of order', async ({
+  page,
+}) => {
+  await resetMockScenario(page, 'variable-latency')
+  await page.getByRole('button', { name: 'Novos', exact: true }).click()
+  await expect(page).toHaveURL(/feed=new/)
+  await expect(
+    page.getByRole('status', { name: 'Carregando catálogo' }),
+  ).toBeVisible()
+
+  await page.getByRole('button', { name: 'Em alta', exact: true }).click()
+  await expect(page).toHaveURL(/feed=trending/)
+  await expect(
+    page.getByRole('button', { name: 'Em alta', exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.locator('#catalog article')).toHaveCount(9)
+  await expect(
+    page.locator('#catalog').getByText('Sage Nomad #009', { exact: true }),
+  ).toHaveCount(0)
 })
 
 test('shows the valid empty catalog state', async ({ page }) => {

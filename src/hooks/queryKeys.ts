@@ -1,14 +1,6 @@
-type CatalogQueryParams = Readonly<{
-  q?: string
-  feed?: 'all' | 'new' | 'trending'
-  category?: readonly string[]
-  network?: readonly string[]
-  minPrice?: string
-  maxPrice?: string
-  sort?: string
-  page?: number
-  limit?: number
-}>
+import type { NftSearchParams } from '@/types/contracts'
+
+type CatalogQueryParams = NftSearchParams
 
 type QueryParams = Readonly<Record<string, unknown>>
 

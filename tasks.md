@@ -82,10 +82,10 @@ Context: initial setup is done and dependencies are installed with npm. Verify e
 - [x] Add `feed` tabs, price-range slider with "Aplicar" (decimal strings in URL), network facet, category facet with counts, card hover/focus actions (cart, favorite, view), "NFT em destaque", promo banners and "Diário da Cunhagem" teasers (static copy); mobile search and filter drawer.
 - [x] Implement home-specific mobile composition: search pill + gradient filter button, breakpoint-specific hero copy and gradient/art layout, staggered two-column grid, hero/carousel dots (active filled, inactive outlined, ≥24px hit area), and center bottom-nav action that focuses search.
 - [x] Search, combinable filters, sort and pagination synced to URL search params; changing a filter resets `page`; survives refresh and back/forward.
-- [ ] Query keys reflect exact params; cancel stale requests via `signal`; handle out-of-order responses.
-- [ ] Skeleton (shimmer) loading, empty state, error state with retry, background-refetch indicator.
-- [ ] Responsive filters/navigation (drawer on mobile with focus management).
-- [ ] **Tests**: search + combined filters + sort + pagination + history restoration; slow-network skeleton + retry recovery.
+- [x] Query keys reflect exact params; cancel stale requests via `signal`; handle out-of-order responses.
+- [x] Skeleton (shimmer) loading, empty state, error state with retry, background-refetch indicator.
+- [x] Responsive filters/navigation (drawer on mobile with focus management).
+- [x] **Tests**: search + combined filters + sort + pagination + history restoration; slow-network skeleton + retry recovery.
 
 **Acceptance**: URL is the single source of truth; no layout shift when skeletons resolve.
 

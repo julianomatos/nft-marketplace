@@ -1,4 +1,12 @@
-import { useEffect, useId, useRef, type MouseEvent, type ReactNode, type SyntheticEvent } from 'react'
+import {
+  useEffect,
+  useId,
+  useRef,
+  type KeyboardEvent,
+  type MouseEvent,
+  type ReactNode,
+  type SyntheticEvent,
+} from 'react'
 import { X } from 'lucide-react'
 import { Button } from './button'
 
@@ -20,6 +28,7 @@ function ModalSurface({
   variant,
 }: ModalSurfaceProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null)
   const generatedId = useId()
   const titleId = `${generatedId}-title`
   const descriptionId = `${generatedId}-description`
@@ -28,8 +37,18 @@ function ModalSurface({
     const dialog = dialogRef.current
     if (!dialog) return
 
-    if (open && !dialog.open) dialog.showModal()
-    if (!open && dialog.open) dialog.close()
+    if (open && !dialog.open) {
+      previouslyFocusedRef.current =
+        document.activeElement instanceof HTMLElement
+          ? document.activeElement
+          : null
+      dialog.showModal()
+      getFocusableElements(dialog)[0]?.focus()
+    }
+    if (!open && dialog.open) {
+      dialog.close()
+      previouslyFocusedRef.current?.focus()
+    }
   }, [open])
 
   function handleCancel(event: SyntheticEvent<HTMLDialogElement>) {
@@ -41,6 +60,28 @@ function ModalSurface({
     if (event.target === event.currentTarget) onOpenChange(false)
   }
 
+  function handleKeyDown(event: KeyboardEvent<HTMLDialogElement>) {
+    if (event.key !== 'Tab') return
+
+    const dialog = event.currentTarget
+    const focusable = getFocusableElements(dialog)
+    const first = focusable[0]
+    const last = focusable.at(-1)
+
+    if (!first || !last) {
+      event.preventDefault()
+      return
+    }
+
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault()
+      last.focus()
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault()
+      first.focus()
+    }
+  }
+
   return (
     <dialog
       aria-describedby={description ? descriptionId : undefined}
@@ -49,6 +90,7 @@ function ModalSurface({
       className={`kurio-dialog ${variant === 'drawer' ? 'kurio-dialog--drawer' : ''}`}
       onCancel={handleCancel}
       onClick={handleBackdropClick}
+      onKeyDown={handleKeyDown}
       ref={dialogRef}
     >
       <header className="flex items-start justify-between gap-4 border-b border-border px-6 py-5">
@@ -78,6 +120,14 @@ function ModalSurface({
       <div className="overflow-y-auto p-6">{children}</div>
     </dialog>
   )
+}
+
+function getFocusableElements(dialog: HTMLDialogElement): HTMLElement[] {
+  return Array.from(
+    dialog.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    ),
+  ).filter((element) => element.getAttribute('aria-hidden') !== 'true')
 }
 
 type DialogProps = Omit<ModalSurfaceProps, 'variant'>

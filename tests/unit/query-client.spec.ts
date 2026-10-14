@@ -9,6 +9,7 @@ import {
 } from '../../src/lib/query-client'
 import { queryKeys } from '../../src/hooks/queryKeys'
 import { ApiClientError } from '../../src/utils/errors'
+import { nftSearchParamsSchema } from '../../src/types/contracts'
 
 test('configures query retry, delay, stale time, and mutation defaults', () => {
   const serverError = Object.assign(
@@ -63,12 +64,17 @@ test('configures query retry, delay, stale time, and mutation defaults', () => {
 })
 
 test('keeps public parameter keys and private user keys isolated', () => {
-  const catalogParams = {
+  const catalogParams = nftSearchParamsSchema.parse({
     q: 'kurio',
     feed: 'trending' as const,
     category: ['art'],
+    network: ['ethereum'],
+    minPrice: '0.25',
+    maxPrice: '2.50',
+    sort: 'price-asc',
     page: 2,
-  }
+    limit: 18,
+  })
   const userA = queryKeys.user('user-a')
   const userB = queryKeys.user('user-b')
 
@@ -77,6 +83,12 @@ test('keeps public parameter keys and private user keys isolated', () => {
     'list',
     catalogParams,
   ])
+  expect(
+    queryKeys.catalog.list({ ...catalogParams, page: catalogParams.page + 1 }),
+  ).not.toEqual(queryKeys.catalog.list(catalogParams))
+  expect(
+    queryKeys.catalog.list({ ...catalogParams, network: ['polygon'] }),
+  ).not.toEqual(queryKeys.catalog.list(catalogParams))
   expect(queryKeys.auth.session).toEqual(['auth', 'session'])
   expect(userA.cart).toEqual(['user', 'user-a', 'cart'])
   expect(userA.cartQuote({ couponCode: 'KURIO' })).toEqual([
