@@ -48,6 +48,8 @@ Single Page Application built with React 19 and TypeScript. **TanStack Router** 
 
 The initial dependency audit found 8 high and 19 moderate advisories in the Lighthouse 12.8.2 dependency graph. Lighthouse was updated to 13.5.0 (Node ≥ 22.19); the follow-up audit reported no vulnerabilities. The remaining `npm outdated` entries are deliberate compatibility pins: MSW 2.x for the Socket.IO binding, TypeScript 6.0.x for `typescript-eslint` and Node 22 types for the runtime target. Zod 4 was re-tested after the initial Zod 3 selection: installation, clean install, typecheck and lint all pass, so the project uses Zod 4. The shadcn CLI was not kept as a dependency because its package tree introduced seven high-severity advisories; generated primitives and CSS remain in the project.
 
+Mock state is centralized in `src/mocks/store.ts`: it persists a resettable scenario in `localStorage`, restores fixture data from `src/mocks/fixtures`, and salts + hashes mock credentials with SHA-256 before comparing them during auth flows. Resetting or bootstrapping the state always returns the same known scenario (`success`, `empty`, `design-cart`, etc.) so tests stay deterministic.
+
 ## 3. Domain Rules [Planned]
 
 - **ETH amounts** are decimal strings. No `number` arithmetic. Quantities are integers.
