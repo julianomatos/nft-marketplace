@@ -3,6 +3,7 @@ import {
   add,
   clamp,
   compare,
+  div,
   format,
   mul,
   rangePercentage,
@@ -12,6 +13,7 @@ import {
 test('calculates ETH values without binary floating-point loss', () => {
   expect(add('0.1', '0.2')).toBe('0.3')
   expect(mul('1.19', '2')).toBe('2.38')
+  expect(div(mul('26.83', '10'), '100')).toBe('2.683')
   expect(sum(['2.38', '8.34', '16.11', '0.016'])).toBe('26.846')
   expect(sum([])).toBe('0')
 })
@@ -35,6 +37,7 @@ test('clamps range values and calculates slider percentages with decimals', () =
 test('rejects non-finite amounts and invalid range bounds', () => {
   expect(() => format('Infinity')).toThrow(RangeError)
   expect(() => format('1e-7')).toThrow(RangeError)
+  expect(() => div('1', '0')).toThrow(RangeError)
   expect(() => compare('NaN', '0')).toThrow()
   expect(() => clamp('0.5', '1', '0')).toThrow(RangeError)
   expect(() => rangePercentage('0.5', '0.5', '0.5')).toThrow(RangeError)

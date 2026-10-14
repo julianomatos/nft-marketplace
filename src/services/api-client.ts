@@ -8,7 +8,9 @@ import {
 } from '@/types/endpoints'
 import { serializeNftApiParams } from '@/utils/search-params'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || API_BASE_PATH
+const API_BASE_URL =
+  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) ||
+  API_BASE_PATH
 const API_TIMEOUT_MS = 15_000
 const SESSION_TOKEN_STORAGE_KEY = 'kurio.session.token'
 

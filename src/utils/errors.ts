@@ -16,6 +16,7 @@ const API_ERROR_MESSAGES: Readonly<Record<string, string>> = {
   AVAILABILITY_CONFLICT: 'A disponibilidade deste item foi alterada.',
   PRICE_CHANGED: 'O preço foi alterado. Revise os valores antes de continuar.',
   IDEMPOTENCY_KEY_REUSED: 'Esta tentativa de compra não pode ser reutilizada.',
+  WALLET_KIND_CONFLICT: 'Já existe uma carteira deste tipo.',
   VALIDATION_ERROR: 'Revise os campos destacados e tente novamente.',
   TRANSIENT_FAILURE: 'O serviço está temporariamente indisponível.',
   REQUEST_CANCELLED: 'A solicitação foi cancelada.',

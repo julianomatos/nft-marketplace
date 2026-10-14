@@ -56,6 +56,17 @@ export const cartItemInputSchema = z.object({
   quantity: positiveQuantitySchema,
 })
 
+export const favoriteRequestSchema = z.object({
+  nftId: z.string().min(1),
+})
+
+export const connectWalletRequestSchema = z.object({
+  provider: walletProviderSchema,
+})
+
+export const disconnectWalletRequestSchema = z.object({}).strict()
+export const quoteRequestSchema = z.object({}).strict()
+
 export const profileUpdateRequestSchema = z.object({
   displayName: z.string().min(1),
   username: z.string().min(1),
@@ -302,9 +313,7 @@ export type FavoritesResponse = {
   items: Favorite[]
 }
 
-export type AddFavoriteRequest = {
-  nftId: string
-}
+export type AddFavoriteRequest = z.infer<typeof favoriteRequestSchema>
 
 export type AddFavoriteResponse = Favorite
 
@@ -371,7 +380,7 @@ export type RemoveCouponResponse = {
   cart: Cart
 }
 
-export type QuoteRequest = Record<string, never>
+export type QuoteRequest = z.infer<typeof quoteRequestSchema>
 
 export const quoteItemSchema = z.object({
   nftId: z.string().min(1),
@@ -408,6 +417,7 @@ export const apiErrorCodeSchema = z.enum([
   'AVAILABILITY_CONFLICT',
   'PRICE_CHANGED',
   'IDEMPOTENCY_KEY_REUSED',
+  'WALLET_KIND_CONFLICT',
   'COUPON_INVALID',
   'COUPON_EXPIRED',
   'VALIDATION_ERROR',
@@ -542,16 +552,16 @@ export type WalletUpsertResponse = {
   wallet: Wallet
 }
 
-export type ConnectWalletRequest = {
-  provider: WalletProvider
-}
+export type ConnectWalletRequest = z.infer<typeof connectWalletRequestSchema>
 
 export type ConnectWalletResponse = {
   wallet: Wallet
   outcome: 'connected' | 'refused'
 }
 
-export type DisconnectWalletRequest = Record<string, never>
+export type DisconnectWalletRequest = z.infer<
+  typeof disconnectWalletRequestSchema
+>
 
 export type DisconnectWalletResponse = {
   wallet: Wallet

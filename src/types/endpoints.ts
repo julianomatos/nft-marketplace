@@ -13,18 +13,23 @@ export const API_ENDPOINTS = {
     list: '/nfts',
     featured: '/nfts/featured',
     detail: (id: string) => `/nfts/${encodeURIComponent(id)}`,
+    detailPattern: '/nfts/:id',
     related: (id: string) => `/nfts/${encodeURIComponent(id)}/related`,
+    relatedPattern: '/nfts/:id/related',
     reviews: (id: string) => `/nfts/${encodeURIComponent(id)}/reviews`,
+    reviewsPattern: '/nfts/:id/reviews',
   },
   favorites: {
     list: '/favorites',
     create: '/favorites',
     delete: (nftId: string) => `/favorites/${encodeURIComponent(nftId)}`,
+    deletePattern: '/favorites/:nftId',
   },
   cart: {
     current: '/cart',
     items: '/cart/items',
     item: (id: string) => `/cart/items/${encodeURIComponent(id)}`,
+    itemPattern: '/cart/items/:id',
     merge: '/cart/merge',
     coupon: '/cart/coupon',
     quote: '/cart/quote',
@@ -32,6 +37,7 @@ export const API_ENDPOINTS = {
   orders: {
     create: '/orders',
     detail: (id: string) => `/orders/${encodeURIComponent(id)}`,
+    detailPattern: '/orders/:id',
   },
   profile: {
     current: '/profile',
@@ -40,8 +46,11 @@ export const API_ENDPOINTS = {
   wallets: {
     list: '/wallets',
     detail: (id: string) => `/wallets/${encodeURIComponent(id)}`,
+    detailPattern: '/wallets/:id',
     connect: (id: string) => `/wallets/${encodeURIComponent(id)}/connect`,
+    connectPattern: '/wallets/:id/connect',
     disconnect: (id: string) => `/wallets/${encodeURIComponent(id)}/disconnect`,
+    disconnectPattern: '/wallets/:id/disconnect',
   },
 } as const
 
@@ -57,6 +66,7 @@ export const API_ERROR_STATUS: Readonly<Record<ApiErrorCode, number>> = {
   AVAILABILITY_CONFLICT: 409,
   PRICE_CHANGED: 409,
   IDEMPOTENCY_KEY_REUSED: 409,
+  WALLET_KIND_CONFLICT: 409,
   COUPON_INVALID: 422,
   COUPON_EXPIRED: 422,
   VALIDATION_ERROR: 422,

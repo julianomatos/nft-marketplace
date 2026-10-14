@@ -23,6 +23,14 @@ function mul(left: string, right: string) {
   return toDecimal(left).mul(toDecimal(right)).toFixed()
 }
 
+function div(left: string, right: string) {
+  const divisor = toDecimal(right)
+  if (divisor.isZero()) {
+    throw new RangeError('ETH division requires a non-zero divisor.')
+  }
+  return toDecimal(left).div(divisor).toFixed()
+}
+
 function sum(values: readonly string[]) {
   return values.reduce(
     (total, value) => total.plus(toDecimal(value)),
@@ -78,4 +86,4 @@ function rangePercentage(value: string, min: string, max: string) {
     .toFixed()
 }
 
-export { add, clamp, compare, format, mul, rangePercentage, sum }
+export { add, clamp, compare, div, format, mul, rangePercentage, sum }
