@@ -180,8 +180,8 @@ test('payment scenarios settle orders and apply terminal outcomes', async () => 
 
 test('timeout-after-order stores the order before losing the response and replays by key', async () => {
   kurioMocks.reset('timeout-after-order')
-  kurioMocks.setTimeoutResponseDelay(100)
-  apiClient.defaults.timeout = 20
+  kurioMocks.setTimeoutResponseDelay(1_000)
+  apiClient.defaults.timeout = 500
 
   const quote = await apiClient.post('/cart/quote', {}, authHeader)
   const orderPayload = {

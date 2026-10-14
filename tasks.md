@@ -54,10 +54,10 @@ Context: initial setup is done and dependencies are installed with npm. Verify e
 - [x] Implement REST handlers: auth/session (incl. expiry), NFTs (search, combinable filters, sort, pagination, detail, not-found, unavailable edition), favorites, cart (+ merge, coupon), quote, orders (idempotency: same key/payload → same order; different payload → 409), profile (+ avatar, password), wallets (+ connect/refuse/disconnect).
 - [x] Implement deterministic REST scenario switches: success, empty, variable latency + out-of-order, connection failure, 4xx/5xx, expired session, unauthorized, signup conflict / validation error, invalid/expired coupon, price change / sold-out during purchase, timeout after order creation, payment confirmed, payment rejected.
 - [x] Choose and document scenario selection (`VITE_MOCK_SCENARIO`, `?mockScenario=...`, `window.__KURIO_MOCKS__.reset(scenario)`) and reset the complete mock state.
-- [ ] Wire `@mswjs/socket.io-binding` to emit `nft.updated` and `order.updated` deterministically from the same mock state changes as REST.
-- [ ] Bootstrap MSW by config (`VITE_ENABLE_MOCKS`) for dev **and** production demo build; commit `public/mockServiceWorker.js`.
+- [x] Wire `@mswjs/socket.io-binding` to emit `nft.updated` and `order.updated` deterministically from the same mock state changes as REST.
+- [x] Bootstrap MSW by config (`VITE_ENABLE_MOCKS`) for dev **and** production demo build; commit `public/mockServiceWorker.js`.
 - [x] Add Playwright browser helpers to select/reset scenarios and control the mock clock and request latency; add browser coverage for URL selection.
-- [ ] Add Playwright helper and browser coverage for triggering Socket.IO events after the server-originated event flow is implemented.
+- [x] Add Playwright helper and browser coverage for triggering Socket.IO events after the server-originated event flow is implemented.
 
 **Acceptance**: every scenario reachable and reproducible; reset restores the scenario fully; a socket event emitted from the mock reaches `socket.io-client`.
 

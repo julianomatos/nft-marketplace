@@ -10,9 +10,9 @@ import {
   getMockTimeoutResponseDelay,
   persistMockState,
   readMockState,
-  settleOrder,
 } from '../store'
 import type { OrderRecord } from '../types'
+import { settleMockOrder } from '../settle-order'
 import { applyOrderScenarioMutation } from './scenarios'
 import {
   buildErrorResponse,
@@ -210,7 +210,7 @@ export const orderHandlers = [
       state.scenario === 'payment-rejected'
     ) {
       const outcome = state.scenario === 'payment-confirmed' ? 'confirmed' : 'rejected'
-      return HttpResponse.json(toReceipt(settleOrder(orderId, outcome)))
+      return HttpResponse.json(toReceipt(settleMockOrder(orderId, outcome)))
     }
 
     if (state.scenario === 'timeout-after-order') {

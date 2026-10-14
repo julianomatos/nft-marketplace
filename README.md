@@ -38,11 +38,11 @@ Copy `.env.example` to a local `.env` file when you need to override defaults:
 
 | Variable | Development default | Purpose |
 | --- | --- | --- |
-| `VITE_ENABLE_MOCKS` | `true` in `.env.development` | Enables the MSW browser worker before the app mounts |
+| `VITE_ENABLE_MOCKS` | `true` in `.env.development` and `.env.production` | Enables the MSW browser worker before the app mounts, including the demo build |
 | `VITE_MOCK_SCENARIO` | `success` | Selects a deterministic mock scenario |
 | `VITE_API_BASE_URL` | `/api` | Base path for REST requests |
 
-The browser bootstrap and REST handlers are available for local development. Production/demo build activation still needs a separate check; do not assume mocks are enabled in the deployed build.
+The browser bootstrap and REST/socket handlers run in local development and the production/demo build. `public/mockServiceWorker.js` is committed and served with the app assets.
 
 ### Deterministic mock scenarios
 
@@ -50,7 +50,7 @@ Available scenarios are `success`, `empty`, `design-cart`, `expired-session`, `n
 
 `VITE_MOCK_SCENARIO` seeds the first mock state. Add `?mockScenario=empty` (or another scenario name) to the app URL to reset and select a scenario before MSW starts. Without a URL override, a persisted scenario is retained across refresh. To reset during development, run `window.__KURIO_MOCKS__.reset('success')` in the browser console. `window.__KURIO_MOCKS__` also exposes `setMockTime`, `advanceMockTime`, `setLatency` (0–15000 ms), and `setTimeoutResponseDelay` (0–60000 ms). Playwright equivalents are in `e2e/mock-helpers.ts`.
 
-`variable-latency` intentionally completes concurrent requests out of order. The `timeout-after-order` scenario saves an order before delaying its response beyond Axios's timeout; retrying with the same idempotency key recovers that order. Price and sold-out scenarios start from the reference `design-cart` and return a new quote when order creation revalidates it. Payment scenarios settle an order immediately; socket delivery remains a later step.
+`variable-latency` intentionally completes concurrent requests out of order. The `timeout-after-order` scenario saves an order before delaying its response beyond Axios's timeout; retrying with the same idempotency key recovers that order. Price and sold-out scenarios start from the reference `design-cart`, emit `nft.updated`, and return a new quote when order creation revalidates it. Payment scenarios settle an order immediately and emit terminal `order.updated`; confirmation also emits inventory `nft.updated` events. The demo mock socket validates the token sent in `mock:subscribe`; private order events are filtered by `userId`. This binding is a test/demo transport, not a production Socket.IO server.
 
 ## Fictitious demo credentials
 
@@ -65,4 +65,4 @@ Fixture records store only a salt and a precomputed SHA-256 password hash; these
 
 ## Current test coverage
 
-`npm run test:unit` covers contracts, fixtures, the mock store and REST handlers through Axios + MSW Node. `npm run test:e2e` checks the KURIO shell at desktop and mobile sizes, unavailable destinations, and the Epic 0 Socket.IO smoke. Full marketplace browser flows and server-originated socket events remain pending.
+`npm run test:unit` covers contracts, fixtures, the mock store and REST handlers through Axios + MSW Node. `npm run test:e2e` checks the KURIO shell at desktop and mobile sizes, unavailable destinations, the Epic 0 Socket.IO smoke, and REST-triggered server-originated events through `socket.io-client`. Marketplace UI socket consumption remains pending with the relevant feature flows.

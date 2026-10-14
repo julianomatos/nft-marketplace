@@ -9,6 +9,7 @@ import {
   readMockState,
 } from '../store'
 import type { MockScenario } from '../scenario-contract'
+import { publishNftUpdated } from '../socket'
 import {
   buildErrorResponse,
   getCartForUser,
@@ -76,7 +77,15 @@ export function applyOrderScenarioMutation(
     return { ...nft, editions, version: nft.version + 1 }
   })
 
-  if (changed) persistMockState({ ...state, nfts: nextNfts })
+  if (!changed) return
+
+  persistMockState({ ...state, nfts: nextNfts })
+  for (const nft of nextNfts) {
+    const previousNft = state.nfts.find((entry) => entry.id === nft.id)
+    if (previousNft && nft.version > previousNft.version) {
+      publishNftUpdated(nft)
+    }
+  }
 }
 
 export const scenarioHandlers = [
