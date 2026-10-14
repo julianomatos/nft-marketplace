@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test'
 test('the application starts in Chromium', async ({ page }) => {
   await page.goto('/')
 
-  await expect(page).toHaveTitle(/nft-marketplace/i)
+  await expect(page).toHaveTitle('KURIO | Marketplace de NFTs')
   await expect(
     page.getByRole('heading', { name: 'O marketplace está em construção.' }),
   ).toBeVisible()

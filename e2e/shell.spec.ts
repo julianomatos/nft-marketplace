@@ -3,6 +3,19 @@ import { expect, test } from '@playwright/test'
 test('renders the responsive KURIO shell', async ({ page }) => {
   await page.goto('/')
 
+  await expect(page).toHaveTitle('KURIO | Marketplace de NFTs')
+  await expect(page.locator('html')).toHaveAttribute('lang', 'pt-BR')
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute(
+    'content',
+    /marketplace KURIO/,
+  )
+  await expect(page.locator('link[rel="icon"]')).toHaveAttribute(
+    'href',
+    '/favicon.svg',
+  )
+  const faviconResponse = await page.request.get('/favicon.svg')
+  expect(faviconResponse.ok()).toBe(true)
+
   await expect(
     page.getByRole('link', { name: 'KURIO — início' }),
   ).toBeVisible()

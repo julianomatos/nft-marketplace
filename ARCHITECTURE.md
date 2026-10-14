@@ -218,4 +218,4 @@ Known so far:
 - Token in `sessionStorage` is mock-grade and not production-secure.
 - The reference resting input border has 1.34:1 contrast against the page background. Keep it for visual fidelity, while retaining visible labels/placeholders and a strong focus state.
 - Figma frames are not available for the Cadastro tab, order confirmation, profile, wallets or tablet layouts; compose them from the documented design patterns and verify responsive behavior.
-- Separate source exports for the KURIO wordmark and NFT artwork were not provided; the local wordmark is an SVG reconstruction of the text shown in the references, and the three NFT PNGs are crops from the desktop home reference. Replace these derived assets if the original exports become available.
+- Separate source exports for the KURIO wordmark, icon and NFT artwork were not provided; the local wordmark is an SVG reconstruction, the favicon is a matching geometric K monogram, and the three NFT PNGs are crops from the desktop home reference. Replace these derived assets if the original exports become available.

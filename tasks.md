@@ -39,7 +39,7 @@ Context: initial setup is done and dependencies are installed with npm. Verify e
 - [x] Configure Axios client: base URL, timeout, auth interceptor, error normalization to the API error envelope (`src/utils/errors.ts`), `AbortSignal` support.
 - [x] Add `src/utils/eth.ts` (`decimal.js` helpers: add, mul, sum, compare, format) with unit tests.
 - [x] Set up shared UI primitives: Skeleton with shimmer (reduced-motion safe), empty/error state components, toast + `aria-live` region.
-- [ ] Add `index.html` essentials: `lang`, `<title>`, meta description, favicon, viewport.
+- [x] Add `index.html` essentials: `lang`, `<title>`, meta description, favicon, viewport.
 
 **Acceptance**: shell matches `design/reference/` at 1440 and 390; no arbitrary hex values in the code. App shell renders at 390/768/1440; 404 route works; ETH helpers tested.
 
