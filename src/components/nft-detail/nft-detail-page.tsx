@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Link, useParams } from '@tanstack/react-router'
-import { ShoppingCart } from 'lucide-react'
+import { Expand, ShoppingCart } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { ModalSurface } from '@/components/ui/dialog'
 import { ErrorState } from '@/components/ui/error-state'
 import { QuantityStepper } from '@/components/ui/quantity-stepper'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -84,6 +85,8 @@ function NftDetailContent({ nft }: { nft: Nft }) {
   const [selectedEditionId, setSelectedEditionId] = useState<string | null>(
     null,
   )
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0)
+  const [zoomOpen, setZoomOpen] = useState(false)
   const [quantity, setQuantity] = useState(1)
   const [feedback, setFeedback] = useState<{
     kind: 'success' | 'error'
@@ -94,7 +97,7 @@ function NftDetailContent({ nft }: { nft: Nft }) {
     nft.editions.find(({ available }) => available > 0) ??
     nft.editions[0] ??
     null
-  const image = nft.images[0]
+  const image = nft.images[selectedImageIndex] ?? nft.images[0]
   const soldOut = !selectedEdition || selectedEdition.available === 0
 
   function selectEdition(edition: NftEdition) {
@@ -151,18 +154,77 @@ function NftDetailContent({ nft }: { nft: Nft }) {
       </nav>
 
       <div className="grid items-start gap-8 lg:grid-cols-2 lg:gap-10">
-        <section aria-label={`Galeria de ${nft.name}`} className="bg-card p-3 md:p-5">
+        <section
+          aria-label={`Galeria de ${nft.name}`}
+          className="grid grid-cols-1 gap-3 bg-card p-3 md:grid-cols-[5rem_minmax(0,1fr)] md:gap-4 md:p-5"
+        >
           {image ? (
-            <img
-              alt={image.alt}
-              className="aspect-square w-full rounded-sm object-cover"
-              height={image.height}
-              loading="eager"
-              src={image.url}
-              width={image.width}
-            />
+            <>
+              <div className="relative order-1 md:order-2">
+                <img
+                  alt={image.alt}
+                  className="aspect-square w-full rounded-sm object-cover"
+                  height={image.height}
+                  loading="eager"
+                  src={image.url}
+                  width={image.width}
+                />
+                <Button
+                  aria-label={`Ampliar imagem de ${nft.name}`}
+                  className="absolute right-3 top-3 rounded-full bg-background/90 text-foreground hover:bg-surface-raised"
+                  onClick={() => setZoomOpen(true)}
+                  size="icon"
+                  type="button"
+                  variant="secondary"
+                >
+                  <Expand aria-hidden="true" size={18} />
+                </Button>
+              </div>
+              <div
+                aria-label="Miniaturas da galeria"
+                className="order-2 flex gap-3 overflow-x-auto md:order-1 md:flex-col"
+              >
+                {nft.images.map((galleryImage, index) => (
+                  <button
+                    aria-label={`Exibir imagem ${index + 1} de ${nft.name}`}
+                    aria-pressed={selectedImageIndex === index}
+                    className={`size-16 shrink-0 overflow-hidden rounded-sm border-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring md:size-20 ${
+                      selectedImageIndex === index
+                        ? 'border-primary'
+                        : 'border-transparent'
+                    }`}
+                    key={`${galleryImage.url}-${index}`}
+                    onClick={() => setSelectedImageIndex(index)}
+                    type="button"
+                  >
+                    <img
+                      alt=""
+                      className="size-full object-cover"
+                      height={galleryImage.height}
+                      loading="lazy"
+                      src={galleryImage.thumbnailUrl}
+                      width={galleryImage.width}
+                    />
+                  </button>
+                ))}
+              </div>
+              <ModalSurface
+                onOpenChange={setZoomOpen}
+                open={zoomOpen}
+                title={`Imagem ampliada: ${nft.name}`}
+                variant="dialog"
+              >
+                <img
+                  alt={image.alt}
+                  className="max-h-[75vh] w-full object-contain"
+                  height={image.height}
+                  src={image.url}
+                  width={image.width}
+                />
+              </ModalSurface>
+            </>
           ) : (
-            <div className="flex aspect-square items-center justify-center bg-surface-raised text-sm text-muted-foreground">
+            <div className="order-1 flex aspect-square items-center justify-center bg-surface-raised text-sm text-muted-foreground md:order-2">
               Imagem indisponível
             </div>
           )}
@@ -188,7 +250,11 @@ function NftDetailContent({ nft }: { nft: Nft }) {
               <legend className="mb-2 font-bold text-foreground">
                 Edição
               </legend>
-              <div className="flex flex-wrap gap-2">
+              <div
+                aria-label="Edições disponíveis"
+                className="flex flex-wrap gap-2"
+                role="radiogroup"
+              >
                 {nft.editions.map((edition) => {
                   const checked = selectedEdition?.id === edition.id
                   const unavailable = edition.available === 0
@@ -275,6 +341,7 @@ function NftDetailContent({ nft }: { nft: Nft }) {
               label="quantidade"
               max={Math.max(1, selectedEdition?.available ?? 1)}
               onValueChange={setQuantity}
+              size="detail"
               value={quantity}
             />
             <p className="text-xl font-bold text-highlight">{nft.price} ETH</p>

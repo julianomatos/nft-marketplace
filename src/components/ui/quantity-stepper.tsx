@@ -8,6 +8,7 @@ type QuantityStepperProps = {
   min?: number
   max?: number
   disabled?: boolean
+  size?: 'compact' | 'detail'
 }
 
 function QuantityStepper({
@@ -17,6 +18,7 @@ function QuantityStepper({
   min = 1,
   max,
   disabled = false,
+  size = 'compact',
 }: QuantityStepperProps) {
   if (!Number.isInteger(value) || !Number.isInteger(min) || min < 1) {
     throw new RangeError('Quantity and minimum must be positive integers.')
@@ -28,36 +30,44 @@ function QuantityStepper({
     throw new RangeError('Quantity must be within the configured bounds.')
   }
 
+  const isDetail = size === 'detail'
+  const buttonClassName = isDetail
+    ? 'size-12 rounded-full bg-primary text-primary-foreground hover:bg-highlight'
+    : 'rounded-full'
+
   return (
     <div
       aria-label={label}
-      className="inline-flex items-center gap-3"
+      className={`inline-flex items-center ${isDetail ? 'gap-4' : 'gap-3'}`}
       role="group"
     >
       <Button
         aria-label={`Diminuir ${label}`}
         disabled={disabled || value <= min}
         onClick={() => onValueChange(value - 1)}
-        className="rounded-full"
-        size="icon-sm"
+        className={buttonClassName}
+        size={isDetail ? 'icon-lg' : 'icon-sm'}
         type="button"
-        variant="outline"
+        variant={isDetail ? 'default' : 'outline'}
       >
-        <Minus aria-hidden="true" size={14} />
+        <Minus aria-hidden="true" size={isDetail ? 20 : 14} />
       </Button>
-      <output aria-live="polite" className="min-w-6 text-center text-sm">
+      <output
+        aria-live="polite"
+        className={`text-center ${isDetail ? 'min-w-8 text-lg' : 'min-w-6 text-sm'}`}
+      >
         {value}
       </output>
       <Button
         aria-label={`Aumentar ${label}`}
         disabled={disabled || (max !== undefined && value >= max)}
         onClick={() => onValueChange(value + 1)}
-        className="rounded-full"
-        size="icon-sm"
+        className={buttonClassName}
+        size={isDetail ? 'icon-lg' : 'icon-sm'}
         type="button"
-        variant="outline"
+        variant={isDetail ? 'default' : 'outline'}
       >
-        <Plus aria-hidden="true" size={14} />
+        <Plus aria-hidden="true" size={isDetail ? 20 : 14} />
       </Button>
     </div>
   )

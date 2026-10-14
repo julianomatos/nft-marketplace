@@ -24,6 +24,25 @@ test('opens an NFT detail directly with metadata and bounded edition quantity', 
   ).toBeVisible()
   await expect(page.getByText('Ethereum', { exact: true })).toBeVisible()
   await expect(page.getByText('#0042', { exact: true })).toBeVisible()
+  const thumbnail = page.getByRole('button', {
+    name: 'Exibir imagem 1 de Emerald Ape #042',
+  })
+  await expect(thumbnail).toHaveAttribute('aria-pressed', 'true')
+  const zoomButton = page.getByRole('button', {
+    name: 'Ampliar imagem de Emerald Ape #042',
+  })
+  await zoomButton.click()
+  const zoomDialog = page.getByRole('dialog', {
+    name: 'Imagem ampliada: Emerald Ape #042',
+  })
+  await expect(zoomDialog).toBeVisible()
+  await expect(
+    zoomDialog.getByRole('img', { name: 'Arte de Emerald Ape #042' }),
+  ).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(zoomDialog).not.toBeVisible()
+  await expect(zoomButton).toBeFocused()
+
   if ((page.viewportSize()?.width ?? 0) >= 768) {
     await expect(
       page
@@ -41,6 +60,9 @@ test('opens an NFT detail directly with metadata and bounded edition quantity', 
   await page.getByRole('radio', { name: '1/50', exact: true }).check()
   await editions.getByRole('button', { name: 'Aumentar quantidade' }).click()
   await expect(editions.locator('output')).toHaveText('2')
+  await expect(
+    editions.getByRole('button', { name: 'Aumentar quantidade' }),
+  ).toHaveClass(/size-12/)
 
   for (const width of [390, 768, 1440]) {
     await page.setViewportSize({ width, height: 900 })

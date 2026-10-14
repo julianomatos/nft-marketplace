@@ -259,6 +259,7 @@ TanStack Router uses file-based routes under `src/routes/`; the root route suppl
 ## 15. Known Limitations [To be filled during implementation]
 
 Known so far:
+- NFT detail galleries render the images returned by the API, using each image's `thumbnailUrl` for its selectable thumbnail. Current fixtures provide one image per NFT; the UI does not fabricate additional views.
 - `@mswjs/socket.io-binding@0.2.0` targets MSW 2.x, so the project stays on MSW 2.x. Mocked responses use the wrapper's `client` endpoint; its `server` endpoint represents the upstream connection. The wrapper does not implement Socket.IO rooms, custom namespaces or broadcasting; the Epic 0 browser smoke test uses WebSocket transport and does not certify HTTP long-polling or reconnect behavior.
 - The binding wrapper does not expose Socket.IO handshake authentication, so the mock uses the first `mock:subscribe` event to validate a session token. The token is mock-grade and the transport must not be treated as a production Socket.IO server; private events re-check the active token, user and expiry before emission.
 - The MSW Socket.IO handler must be registered at the socket origin (the `ws.link(...)` origin). Import `socket.io-client` dynamically only after `worker.start()` so its transport initializes after MSW's WebSocket interceptor is active.
