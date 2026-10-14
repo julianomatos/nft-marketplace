@@ -26,6 +26,7 @@ const knownCredentials = [
   { email: 'ana@kurio.example.test', password: 'KurioDemo!A2026' },
   { email: 'caio@kurio.example.test', password: 'KurioDemo!B2026' },
 ] as const
+const expectedEditionLabels = ['1/1', '1/10', '1/50', 'ABERTA']
 
 function verifyCredential(user: FixtureUser, password: string): boolean {
   const digest = createHash('sha256')
@@ -53,10 +54,20 @@ test('fixture IDs are unique and referential records resolve', () => {
 
   for (const nft of nfts) {
     expect(categoryIds.has(nft.category)).toBe(true)
-    expect(nft.editions.length).toBeGreaterThan(0)
+    expect(nft.editions.map(({ label }) => label)).toEqual(expectedEditionLabels)
   }
   for (const review of reviews) expect(nftIds.has(review.nftId)).toBe(true)
   for (const wallet of wallets) expect(userIds.has(wallet.userId)).toBe(true)
+  expect(wallets[0]).toMatchObject({
+    nickname: 'Principal',
+    network: 'ethereum',
+    walletType: 'metamask',
+  })
+  expect(wallets[1]).toMatchObject({
+    nickname: 'Reserva',
+    network: 'polygon',
+    ensName: 'nova.kurio.eth',
+  })
   for (const user of users) {
     expect(user.walletIds.every((walletId) => walletIds.has(walletId))).toBe(true)
   }

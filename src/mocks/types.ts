@@ -53,3 +53,8 @@ export type FavoriteRecord = Favorite & {
 export type OrderRecord = OrderReceiptSnapshot & {
   userId: string
 }
+
+export type IdempotencyRecord = {
+  payloadHash: string
+  orderId: string
+}
