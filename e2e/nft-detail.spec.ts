@@ -1,3 +1,4 @@
+import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 
 test.beforeEach(async ({ page }) => {
@@ -22,7 +23,11 @@ test('opens an NFT detail directly with metadata and bounded edition quantity', 
       .getByText('1.19 ETH', { exact: true })
       .first(),
   ).toBeVisible()
-  await expect(page.getByText('Ethereum', { exact: true })).toBeVisible()
+  await expect(
+    page
+      .getByRole('tabpanel', { name: 'Detalhes do NFT' })
+      .getByText('Ethereum', { exact: true }),
+  ).toBeVisible()
   await expect(page.getByText('#0042', { exact: true })).toBeVisible()
   const thumbnail = page.getByRole('button', {
     name: 'Exibir imagem 1 de Emerald Ape #042',
@@ -76,6 +81,8 @@ test('opens an NFT detail directly with metadata and bounded edition quantity', 
       `horizontal overflow at ${width}px`,
     ).toBe(false)
   }
+  const accessibility = await new AxeBuilder({ page }).analyze()
+  expect(accessibility.violations).toEqual([])
 })
 
 test('catalog detail action opens the matching NFT', async ({ page }) => {
@@ -88,6 +95,67 @@ test('catalog detail action opens the matching NFT', async ({ page }) => {
   await expect(
     page.getByRole('heading', { name: 'Emerald Ape #042' }),
   ).toBeVisible()
+})
+
+test('loads reviews and related collection items through REST endpoints', async ({
+  page,
+}) => {
+  const reviewsResponse = page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname ===
+        '/api/nfts/emerald-ape-042/reviews' &&
+      response.request().method() === 'GET',
+  )
+  const relatedResponse = page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname ===
+        '/api/nfts/emerald-ape-042/related' &&
+      response.request().method() === 'GET',
+  )
+  await page.goto('/nft/emerald-ape-042')
+  await page.getByRole('tab', { name: 'Detalhes do NFT' }).focus()
+  await page.keyboard.press('ArrowRight')
+  await expect(
+    page.getByRole('tab', { name: /Avaliações de colecionadores/ }),
+  ).toBeFocused()
+  expect((await reviewsResponse).status()).toBe(200)
+  await expect(
+    page.getByRole('tab', { name: /Avaliações de colecionadores/ }),
+  ).toHaveAttribute('aria-selected', 'true')
+  await expect(
+    page.getByRole('heading', { name: 'Lia Costa' }),
+  ).toBeVisible()
+  await expect(
+    page
+      .getByRole('tabpanel', { name: /Avaliações de colecionadores/ })
+      .getByText('Uma peça marcante da coleção.')
+      .first(),
+  ).toBeVisible()
+
+  await page.getByRole('tab', { name: 'Detalhes do NFT' }).click()
+  await expect(
+    page.getByRole('heading', { name: 'Mais desta coleção' }),
+  ).toBeVisible()
+  expect((await relatedResponse).status()).toBe(200)
+  await expect(
+    page.getByRole('region', { name: 'NFTs relacionados' }),
+  ).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: 'Exibir Ivory Baron #088' }),
+  ).toBeVisible()
+  const relatedDot = page.getByRole('button', {
+    name: 'Exibir Ivory Baron #088',
+  })
+  await relatedDot.click()
+  await expect(relatedDot).toHaveAttribute('aria-pressed', 'true')
+
+  const shareLinks = page.getByRole('region', { name: 'Compartilhar NFT' })
+  await expect(
+    shareLinks.getByRole('link', { name: 'X', exact: true }),
+  ).toHaveAttribute('rel', 'noopener noreferrer')
+  await expect(
+    shareLinks.getByRole('link', { name: 'LinkedIn', exact: true }),
+  ).toHaveAttribute('target', '_blank')
 })
 
 test('adding a selected NFT edition uses the cart API response', async ({

@@ -1,13 +1,17 @@
-import { useState } from 'react'
+import { useState, type KeyboardEvent } from 'react'
 import { Link, useParams } from '@tanstack/react-router'
-import { Expand, ShoppingCart } from 'lucide-react'
+import { Expand, Star, ShoppingCart } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ModalSurface } from '@/components/ui/dialog'
+import { EmptyState } from '@/components/ui/empty-state'
 import { ErrorState } from '@/components/ui/error-state'
+import { NftCard } from '@/components/home/nft-card'
 import { QuantityStepper } from '@/components/ui/quantity-stepper'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAddToCart } from '@/hooks/use-add-to-cart'
 import { useNftDetail } from '@/hooks/use-nft-detail'
+import { useNftReviews } from '@/hooks/use-nft-reviews'
+import { useRelatedNfts } from '@/hooks/use-related-nfts'
 import type { Nft, NftEdition } from '@/types/contracts'
 
 const networkLabels = {
@@ -82,6 +86,9 @@ function NftDetailPage({ nftId }: { nftId: string }) {
 
 function NftDetailContent({ nft }: { nft: Nft }) {
   const actions = useAddToCart(nft)
+  const [activeTab, setActiveTab] = useState<'details' | 'reviews'>('details')
+  const reviewsQuery = useNftReviews(nft.id, activeTab === 'reviews')
+  const relatedQuery = useRelatedNfts(nft.id)
   const [selectedEditionId, setSelectedEditionId] = useState<string | null>(
     null,
   )
@@ -240,6 +247,33 @@ function NftDetailContent({ nft }: { nft: Nft }) {
           <p className="mt-3 border-b border-border-header pb-3 text-xl font-bold text-highlight">
             {nft.price} ETH
           </p>
+          <div className="mt-3">
+            <div
+              aria-label={`Nota média ${nft.rating.average} de 5, ${nft.rating.count} avaliações`}
+              className="hidden items-center gap-1 text-rating md:flex"
+            >
+              {Array.from({ length: 5 }, (_, index) => (
+                <Star
+                  aria-hidden="true"
+                  className={
+                    index < Math.round(nft.rating.average)
+                      ? 'fill-current'
+                      : ''
+                  }
+                  key={index}
+                  size={15}
+                />
+              ))}
+              <span className="ml-1 text-xs text-foreground">
+                {nft.rating.count} avaliações de colecionadores
+              </span>
+            </div>
+            <p className="inline-flex items-center gap-1 rounded-full border border-primary px-3 py-1 text-xs text-rating md:hidden">
+              <Star aria-hidden="true" className="fill-current" size={14} />
+              {nft.rating.average} ({nft.rating.count})
+              <span className="sr-only">avaliações</span>
+            </p>
+          </div>
 
           <div className="space-y-4 py-4 text-sm leading-6">
             <p>
@@ -311,15 +345,24 @@ function NftDetailContent({ nft }: { nft: Nft }) {
             </dl>
 
             {nft.attributes.length > 0 && (
-              <dl className="space-y-1">
-                <dt className="font-bold text-foreground">Atributos</dt>
-                {nft.attributes.map((attribute) => (
-                  <div className="flex flex-wrap gap-x-2" key={attribute.traitType}>
-                    <dt className="text-foreground">{attribute.traitType}:</dt>
-                    <dd className="text-muted-foreground">{attribute.value}</dd>
-                  </div>
-                ))}
-              </dl>
+              <div>
+                <h2 className="font-bold text-foreground">Atributos</h2>
+                <ul className="space-y-1">
+                  {nft.attributes.map((attribute) => (
+                    <li
+                      className="flex flex-wrap gap-x-2"
+                      key={attribute.traitType}
+                    >
+                      <span className="text-foreground">
+                        {attribute.traitType}:
+                      </span>
+                      <span className="text-muted-foreground">
+                        {attribute.value}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
           </div>
 
@@ -382,8 +425,327 @@ function NftDetailContent({ nft }: { nft: Nft }) {
           )}
         </section>
       </div>
+
+      <section className="mt-14" aria-label="Detalhes e avaliações">
+        <div
+          aria-label="Conteúdo do NFT"
+          className="flex flex-wrap border-b border-border-header"
+          role="tablist"
+        >
+          <button
+            aria-controls="nft-details-panel"
+            aria-selected={activeTab === 'details'}
+            className={`min-h-11 border-b-2 px-4 text-sm font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${
+              activeTab === 'details'
+                ? 'border-primary text-highlight'
+                : 'border-transparent text-foreground'
+            }`}
+            id="nft-details-tab"
+            onKeyDown={(event) =>
+              handleTabNavigation(event, setActiveTab)
+            }
+            onClick={() => setActiveTab('details')}
+            role="tab"
+            tabIndex={activeTab === 'details' ? 0 : -1}
+            type="button"
+          >
+            Detalhes do NFT
+          </button>
+          <button
+            aria-controls="nft-reviews-panel"
+            aria-selected={activeTab === 'reviews'}
+            className={`min-h-11 border-b-2 px-4 text-sm font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${
+              activeTab === 'reviews'
+                ? 'border-primary text-highlight'
+                : 'border-transparent text-foreground'
+            }`}
+            id="nft-reviews-tab"
+            onKeyDown={(event) =>
+              handleTabNavigation(event, setActiveTab)
+            }
+            onClick={() => setActiveTab('reviews')}
+            role="tab"
+            tabIndex={activeTab === 'reviews' ? 0 : -1}
+            type="button"
+          >
+            Avaliações de colecionadores ({nft.rating.count})
+          </button>
+        </div>
+        {activeTab === 'details' ? (
+          <div
+            aria-labelledby="nft-details-tab"
+            className="space-y-5 py-5 text-sm leading-7 text-muted-foreground"
+            id="nft-details-panel"
+            role="tabpanel"
+            tabIndex={0}
+          >
+            <p>{nft.description}</p>
+            <dl className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <dt className="font-bold text-foreground">Rede</dt>
+                <dd>{networkLabels[nft.network]}</dd>
+              </div>
+              <div>
+                <dt className="font-bold text-foreground">Coleção</dt>
+                <dd>{nft.collection}</dd>
+              </div>
+              <div>
+                <dt className="font-bold text-foreground">Categoria</dt>
+                <dd>{nft.category}</dd>
+              </div>
+              {nft.attributes.map((attribute) => (
+                <div key={attribute.traitType}>
+                  <dt className="font-bold text-foreground">
+                    {attribute.traitType}
+                  </dt>
+                  <dd>{attribute.value}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        ) : (
+          <div
+            aria-labelledby="nft-reviews-tab"
+            className="space-y-4 py-5"
+            id="nft-reviews-panel"
+            role="tabpanel"
+            tabIndex={0}
+          >
+            {reviewsQuery.isPending ? (
+              <div
+                aria-label="Carregando avaliações"
+                className="space-y-3"
+                role="status"
+              >
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-20 w-full" />
+              </div>
+            ) : reviewsQuery.isError ? (
+              <ErrorState
+                description="Não foi possível carregar as avaliações. Tente novamente."
+                onRetry={() => void reviewsQuery.refetch()}
+                retrying={reviewsQuery.isFetching}
+                title="Falha ao carregar avaliações"
+              />
+            ) : reviewsQuery.data.items.length === 0 ? (
+              <EmptyState
+                description="Este NFT ainda não recebeu avaliações."
+                title="Nenhuma avaliação"
+              />
+            ) : (
+              reviewsQuery.data.items.map((review) => (
+                <article
+                  className="border-b border-border py-4 last:border-b-0"
+                  key={review.id}
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <h3 className="font-bold text-foreground">
+                      {review.displayName}
+                    </h3>
+                    <div
+                      aria-label={`Nota ${review.rating} de 5`}
+                      className="flex items-center gap-1 text-rating"
+                    >
+                      {Array.from({ length: 5 }, (_, index) => (
+                        <Star
+                          aria-hidden="true"
+                          className={
+                            index < review.rating ? 'fill-current' : ''
+                          }
+                          key={index}
+                          size={14}
+                        />
+                      ))}
+                      <span className="ml-1 text-xs text-muted-foreground">
+                        {review.rating}/5
+                      </span>
+                    </div>
+                  </div>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                    {review.comment}
+                  </p>
+                  <time
+                    className="mt-2 block text-xs text-subtle"
+                    dateTime={review.createdAt}
+                  >
+                    {new Intl.DateTimeFormat('pt-BR', {
+                      dateStyle: 'medium',
+                    }).format(new Date(review.createdAt))}
+                  </time>
+                </article>
+              ))
+            )}
+          </div>
+        )}
+      </section>
+
+      <section aria-labelledby="related-nfts-title" className="mt-14">
+        <h2
+          className="border-b border-border-header pb-3 text-lg font-bold text-highlight"
+          id="related-nfts-title"
+        >
+          Mais desta coleção
+        </h2>
+        {relatedQuery.isPending ? (
+          <div
+            aria-label="Carregando itens relacionados"
+            className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4"
+            role="status"
+          >
+            {Array.from({ length: 4 }, (_, index) => (
+              <Skeleton className="aspect-square w-full" key={index} />
+            ))}
+          </div>
+        ) : relatedQuery.isError ? (
+          <div className="mt-5">
+            <ErrorState
+              description="Não foi possível carregar outros itens desta coleção."
+              onRetry={() => void relatedQuery.refetch()}
+              retrying={relatedQuery.isFetching}
+              title="Falha ao carregar a coleção"
+            />
+          </div>
+        ) : relatedQuery.data.items.length === 0 ? (
+          <div className="mt-5">
+            <EmptyState
+              description="Não há outros NFTs desta coleção para exibir."
+              title="Coleção sem outros itens"
+            />
+          </div>
+        ) : (
+          <RelatedNftCarousel items={relatedQuery.data.items} />
+        )}
+      </section>
+
+      <section
+        aria-label="Compartilhar NFT"
+        className="mt-10 flex flex-wrap items-center gap-3 text-sm"
+      >
+        <span className="font-bold text-foreground">
+          Compartilhar este NFT:
+        </span>
+        {getShareLinks(nft).map(({ href, label }) => (
+          <a
+            className="inline-flex min-h-9 items-center rounded-sm border border-border px-3 text-highlight hover:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            href={href}
+            key={label}
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            {label}
+          </a>
+        ))}
+      </section>
     </div>
   )
+}
+
+function handleTabNavigation(
+  event: KeyboardEvent<HTMLButtonElement>,
+  setActiveTab: (tab: 'details' | 'reviews') => void,
+) {
+  if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
+  event.preventDefault()
+
+  const nextTab =
+    event.key === 'Home' || event.key === 'ArrowLeft'
+      ? 'details'
+      : 'reviews'
+  setActiveTab(nextTab)
+  document.getElementById(`nft-${nextTab}-tab`)?.focus()
+}
+
+function RelatedNftCarousel({ items }: { items: Nft[] }) {
+  const [activeIndex, setActiveIndex] = useState(0)
+
+  function scrollToItem(index: number) {
+    const item = document.getElementById(`related-nft-${index}`)
+    item?.scrollIntoView({
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        ? 'instant'
+        : 'smooth',
+      block: 'nearest',
+      inline: 'start',
+    })
+    setActiveIndex(index)
+  }
+
+  return (
+    <>
+      <div
+        aria-label="NFTs relacionados"
+        className="mt-6 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth pb-3"
+        onScroll={(event) => {
+          const container = event.currentTarget
+          const itemWidth = container.firstElementChild?.getBoundingClientRect().width
+          if (!itemWidth) return
+          setActiveIndex(
+            Math.min(
+              items.length - 1,
+              Math.round(container.scrollLeft / (itemWidth + 16)),
+            ),
+          )
+        }}
+        role="region"
+      >
+        {items.map((nft, index) => (
+          <div
+            className="w-[72%] shrink-0 snap-start sm:w-[42%] lg:w-[calc((100%-4rem)/5)]"
+            id={`related-nft-${index}`}
+            key={nft.id}
+          >
+            <NftCard nft={nft} />
+          </div>
+        ))}
+      </div>
+      {items.length > 1 && (
+        <div
+          aria-label="Navegação dos NFTs relacionados"
+          className="mt-3 flex justify-center gap-1"
+          role="group"
+        >
+          {items.map((nft, index) => (
+            <button
+              aria-label={`Exibir ${nft.name}`}
+              aria-pressed={activeIndex === index}
+              className="flex size-8 items-center justify-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              key={nft.id}
+              onClick={() => scrollToItem(index)}
+              type="button"
+            >
+              <span
+                aria-hidden="true"
+                className={`size-2 rounded-full border border-primary ${
+                  activeIndex === index ? 'bg-primary' : 'bg-transparent'
+                }`}
+              />
+            </button>
+          ))}
+        </div>
+      )}
+    </>
+  )
+}
+
+function getShareLinks(nft: Nft) {
+  const shareUrl = new URL(window.location.href).toString()
+  const text = encodeURIComponent(nft.name)
+  const encodedUrl = encodeURIComponent(shareUrl)
+
+  return [
+    {
+      label: 'X',
+      href: `https://twitter.com/intent/tweet?text=${text}&url=${encodedUrl}`,
+    },
+    {
+      label: 'LinkedIn',
+      href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`,
+    },
+    {
+      label: 'E-mail',
+      href: `mailto:?subject=${text}&body=${encodedUrl}`,
+    },
+  ]
 }
 
 export { NftDetailPage, NftDetailRoute }
