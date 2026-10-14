@@ -1,6 +1,6 @@
 import { useState, type KeyboardEvent } from 'react'
-import { Link, useParams } from '@tanstack/react-router'
-import { Expand, Star, ShoppingCart } from 'lucide-react'
+import { Link, useNavigate, useParams } from '@tanstack/react-router'
+import { ArrowLeft, Expand, Heart, Star, ShoppingCart } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ModalSurface } from '@/components/ui/dialog'
 import { EmptyState } from '@/components/ui/empty-state'
@@ -8,7 +8,7 @@ import { ErrorState } from '@/components/ui/error-state'
 import { NftCard } from '@/components/home/nft-card'
 import { QuantityStepper } from '@/components/ui/quantity-stepper'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useAddToCart } from '@/hooks/use-add-to-cart'
+import { useCatalogCardActions } from '@/hooks/use-catalog-card-actions'
 import { useNftDetail } from '@/hooks/use-nft-detail'
 import { useNftReviews } from '@/hooks/use-nft-reviews'
 import { useRelatedNfts } from '@/hooks/use-related-nfts'
@@ -85,7 +85,8 @@ function NftDetailPage({ nftId }: { nftId: string }) {
 }
 
 function NftDetailContent({ nft }: { nft: Nft }) {
-  const actions = useAddToCart(nft)
+  const actions = useCatalogCardActions(nft)
+  const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<'details' | 'reviews'>('details')
   const reviewsQuery = useNftReviews(nft.id, activeTab === 'reviews')
   const relatedQuery = useRelatedNfts(nft.id)
@@ -139,8 +140,40 @@ function NftDetailContent({ nft }: { nft: Nft }) {
     }
   }
 
+  async function handleToggleFavorite() {
+    setFeedback(null)
+    try {
+      const wasFavorite = actions.isFavorite
+      const updated = await actions.toggleFavorite()
+      if (updated) {
+        setFeedback({
+          kind: 'success',
+          message: wasFavorite
+            ? 'Removido da lista de interesse.'
+            : 'Adicionado à lista de interesse.',
+        })
+      }
+    } catch (error) {
+      setFeedback({
+        kind: 'error',
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Não foi possível atualizar a lista de interesse.',
+      })
+    }
+  }
+
+  function handleBack() {
+    if (window.history.length > 1) {
+      window.history.back()
+      return
+    }
+    void navigate({ to: '/' })
+  }
+
   return (
-    <div className="kurio-container py-6 pb-12 md:py-8">
+    <div className="kurio-container py-6 pb-56 md:py-8 md:pb-12">
       <nav aria-label="Trilha de navegação" className="mb-6 text-xs text-muted-foreground">
         <Link
           className="hover:text-highlight focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
@@ -176,9 +209,41 @@ function NftDetailContent({ nft }: { nft: Nft }) {
                   src={image.url}
                   width={image.width}
                 />
+                <div className="absolute inset-x-3 top-3 flex justify-between md:hidden">
+                  <Button
+                    aria-label="Voltar"
+                    className="rounded-full border border-border bg-background/90 text-foreground hover:bg-surface-raised"
+                    onClick={handleBack}
+                    size="icon-lg"
+                    type="button"
+                    variant="secondary"
+                  >
+                    <ArrowLeft aria-hidden="true" size={20} />
+                  </Button>
+                  <Button
+                    aria-label={
+                      actions.isFavorite
+                        ? `Remover ${nft.name} dos favoritos`
+                        : `Adicionar ${nft.name} aos favoritos`
+                    }
+                    aria-pressed={actions.isFavorite}
+                    className="rounded-full border border-border bg-background/90 text-foreground hover:bg-surface-raised"
+                    disabled={actions.favoritePending}
+                    onClick={() => void handleToggleFavorite()}
+                    size="icon-lg"
+                    type="button"
+                    variant="secondary"
+                  >
+                    <Heart
+                      aria-hidden="true"
+                      fill={actions.isFavorite ? 'currentColor' : 'none'}
+                      size={20}
+                    />
+                  </Button>
+                </div>
                 <Button
                   aria-label={`Ampliar imagem de ${nft.name}`}
-                  className="absolute right-3 top-3 rounded-full bg-background/90 text-foreground hover:bg-surface-raised"
+                  className="absolute bottom-3 right-3 rounded-full bg-background/90 text-foreground hover:bg-surface-raised md:bottom-auto md:top-3"
                   onClick={() => setZoomOpen(true)}
                   size="icon"
                   type="button"
@@ -378,7 +443,7 @@ function NftDetailContent({ nft }: { nft: Nft }) {
               Nenhuma edição está disponível para este NFT.
             </p>
           )}
-          <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border-header py-5">
+          <div className="hidden flex-wrap items-center justify-between gap-4 border-t border-border-header py-5 md:flex">
             <QuantityStepper
               disabled={soldOut || actions.addToCartPending}
               label="quantidade"
@@ -389,7 +454,7 @@ function NftDetailContent({ nft }: { nft: Nft }) {
             />
             <p className="text-xl font-bold text-highlight">{nft.price} ETH</p>
           </div>
-          <div className="flex flex-wrap gap-3">
+          <div className="hidden flex-wrap gap-3 md:flex">
             <Button
               className="min-w-40 flex-1 uppercase"
               disabled={soldOut || actions.addToCartPending}
@@ -424,6 +489,47 @@ function NftDetailContent({ nft }: { nft: Nft }) {
             </p>
           )}
         </section>
+      </div>
+
+      <div
+        aria-label="Ações de compra"
+        className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+5.25rem)] z-40 border-t border-border-header bg-card px-4 py-3 shadow-lg md:hidden"
+        role="region"
+      >
+        <div className="mx-auto flex max-w-lg items-center justify-between gap-3">
+          <QuantityStepper
+            disabled={soldOut || actions.addToCartPending}
+            label="quantidade"
+            max={Math.max(1, selectedEdition?.available ?? 1)}
+            onValueChange={setQuantity}
+            value={quantity}
+          />
+          <p className="shrink-0 text-sm font-bold text-highlight">
+            {nft.price} ETH
+          </p>
+          <Button
+            aria-label="Comprar NFT"
+            className="min-h-11 min-w-0 flex-1 rounded-full bg-primary-gradient px-3 text-xs uppercase"
+            disabled={soldOut || actions.addToCartPending}
+            loading={actions.addToCartPending}
+            loadingLabel="Adicionando ao carrinho"
+            onClick={() => void handleAddToCart()}
+            type="button"
+          >
+            Comprar
+          </Button>
+          <Button
+            aria-label={`Adicionar ${nft.name} ao carrinho`}
+            className="size-11 shrink-0 rounded-full border-border bg-surface-raised"
+            disabled={soldOut || actions.addToCartPending}
+            onClick={() => void handleAddToCart()}
+            size="icon-lg"
+            type="button"
+            variant="secondary"
+          >
+            <ShoppingCart aria-hidden="true" size={20} />
+          </Button>
+        </div>
       </div>
 
       <section className="mt-14" aria-label="Detalhes e avaliações">

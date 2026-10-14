@@ -67,7 +67,7 @@ test('opens an NFT detail directly with metadata and bounded edition quantity', 
   await expect(editions.locator('output')).toHaveText('2')
   await expect(
     editions.getByRole('button', { name: 'Aumentar quantidade' }),
-  ).toHaveClass(/size-12/)
+  ).toHaveClass((page.viewportSize()?.width ?? 0) < 768 ? /size-8/ : /size-12/)
 
   for (const width of [390, 768, 1440]) {
     await page.setViewportSize({ width, height: 900 })
@@ -95,6 +95,42 @@ test('catalog detail action opens the matching NFT', async ({ page }) => {
   await expect(
     page.getByRole('heading', { name: 'Emerald Ape #042' }),
   ).toBeVisible()
+  if ((page.viewportSize()?.width ?? 0) < 768) {
+    await page.getByRole('button', { name: 'Voltar' }).click()
+    await expect(page).toHaveURL('/')
+  }
+})
+
+test('mobile detail keeps purchase actions above bottom navigation', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/nft/emerald-ape-042')
+
+  await expect(page.getByRole('button', { name: 'Voltar' })).toBeVisible()
+  await expect(
+    page.getByRole('button', {
+      name: 'Adicionar Emerald Ape #042 aos favoritos',
+    }),
+  ).toBeVisible()
+  const stickyActions = page.getByRole('region', { name: 'Ações de compra' })
+  await expect(stickyActions).toBeVisible()
+  await expect(stickyActions.getByRole('group', { name: 'quantidade' })).toBeVisible()
+  await expect(
+    stickyActions.getByText('1.19 ETH', { exact: true }),
+  ).toBeVisible()
+  await expect(
+    stickyActions.getByRole('button', {
+      name: 'Adicionar Emerald Ape #042 ao carrinho',
+    }),
+  ).toBeVisible()
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth > window.innerWidth,
+    ),
+  ).toBe(false)
+  const accessibility = await new AxeBuilder({ page }).analyze()
+  expect(accessibility.violations).toEqual([])
 })
 
 test('loads reviews and related collection items through REST endpoints', async ({
