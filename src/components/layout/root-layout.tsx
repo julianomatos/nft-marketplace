@@ -7,7 +7,7 @@ function RootLayout() {
   const { session } = useRouteContext({ from: '__root__' })
 
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground antialiased">
+    <div className="flex min-h-screen flex-col bg-background pb-24 text-foreground antialiased md:pb-0">
       <a
         className="sr-only z-100 bg-primary px-4 py-2 font-bold text-primary-foreground focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
         href="#main-content"
@@ -15,7 +15,7 @@ function RootLayout() {
         Pular para o conteúdo
       </a>
       <SiteHeader session={session} />
-      <main id="main-content" className="flex-1 pb-24 md:pb-0">
+      <main id="main-content" className="flex-1">
         <Outlet />
       </main>
       <SiteFooter />

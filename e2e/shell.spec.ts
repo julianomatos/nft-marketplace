@@ -26,10 +26,41 @@ test('renders the responsive KURIO shell', async ({ page }) => {
       .filter({ hasText: 'Segurança da carteira' }),
   ).toBeVisible()
 
+  const designTokens = await page.evaluate(() => {
+    const styles = getComputedStyle(document.documentElement)
+
+    return {
+      rating: styles.getPropertyValue('--rating').trim(),
+      primaryGradient: styles.getPropertyValue('--primary-gradient').trim(),
+      heroGradientMobile: styles
+        .getPropertyValue('--hero-gradient-mobile')
+        .trim(),
+    }
+  })
+  expect(designTokens.rating).toBe('#E3A44E')
+  expect(designTokens.primaryGradient).toContain('linear-gradient')
+  expect(designTokens.heroGradientMobile).toContain('radial-gradient')
+  expect(designTokens.heroGradientMobile).toContain('linear-gradient')
+
   if (test.info().project.name === 'chromium-mobile') {
+    const mobileNavigation = page.getByRole('navigation', {
+      name: 'Navegação mobile',
+    })
     await expect(
-      page.getByRole('navigation', { name: 'Navegação mobile' }),
+      mobileNavigation.getByRole('listitem'),
+    ).toHaveCount(4)
+    const exploreLink = mobileNavigation.getByRole('link', {
+      name: 'Explorar coleções',
+    })
+    await expect(
+      mobileNavigation.getByRole('link', { name: 'Início' }),
     ).toBeVisible()
+    await page.goto('/indisponivel')
+    await exploreLink.click()
+    await expect(page).toHaveURL(/\/#catalog$/)
+    await expect(
+      page.getByRole('link', { name: 'Buscar coleções' }),
+    ).toBeFocused()
   } else {
     await expect(
       page.getByRole('navigation', { name: 'Navegação principal' }),
@@ -67,6 +98,13 @@ test('does not overflow horizontally at the required viewport widths', async ({
 
     const pageWidth = await page.locator('body').evaluate((body) => body.scrollWidth)
     expect(pageWidth).toBeLessThanOrEqual(width)
+
+    const headerInset = await page
+      .locator('header .kurio-container > a')
+      .evaluate((header) => header.getBoundingClientRect().left)
+    const expectedInset =
+      width < 768 ? 24 : Math.min(120, Math.max(24, width * 0.0833))
+    expect(Math.abs(headerInset - expectedInset)).toBeLessThan(1)
   }
 })
 

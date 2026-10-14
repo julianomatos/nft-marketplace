@@ -3,7 +3,7 @@ import { Breadcrumb } from '@/components/layout/breadcrumb'
 
 export const Route = createFileRoute('/indisponivel')({
   component: () => (
-    <section className="mx-auto max-w-300 px-6 py-8 md:px-12 md:py-12">
+    <section className="kurio-container py-8 md:py-12">
       <Breadcrumb
         items={[
           { label: 'Início', to: '/' },

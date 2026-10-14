@@ -28,6 +28,9 @@
   --color-surface-raised: var(--surface-raised);
   --color-surface-band: var(--surface-band);
   --color-border-header: var(--border-header);
+  --color-rating: var(--rating);
+  --background-image-primary-gradient: var(--primary-gradient);
+  --background-image-hero-gradient-mobile: var(--hero-gradient-mobile);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -62,8 +65,30 @@
   --surface-raised: #2F1D15;
   --surface-band: #38220F;
   --border-header: #8A5B33;
+  --rating: #E3A44E;
+  --primary-gradient: linear-gradient(135deg, #D28A4C 0%, #B07542 100%);
+  --hero-gradient-mobile:
+    radial-gradient(
+      circle at 28% 48%,
+      color-mix(in srgb, var(--primary) 22%, transparent) 0%,
+      transparent 60%
+    ),
+    linear-gradient(135deg, #734F30 0%, var(--card) 100%);
   --radius: 0.25rem;
   letter-spacing: 0;
+}
+
+.kurio-container {
+  width: 100%;
+  max-width: 90rem;
+  margin-inline: auto;
+  padding-inline: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .kurio-container {
+    padding-inline: clamp(1.5rem, 8.33vw, 7.5rem);
+  }
 }
 
 @layer base {

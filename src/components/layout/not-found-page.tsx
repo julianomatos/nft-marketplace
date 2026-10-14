@@ -5,7 +5,7 @@ function NotFoundPage() {
   return (
     <section
       aria-labelledby="not-found-title"
-      className="mx-auto flex min-h-88 max-w-300 flex-col items-start justify-center px-6 py-12 md:px-12"
+      className="kurio-container flex min-h-88 flex-col items-start justify-center py-12"
     >
       <p className="mb-4 text-sm font-bold uppercase tracking-wide text-highlight">
         KURIO · 404

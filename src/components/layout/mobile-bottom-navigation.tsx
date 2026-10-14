@@ -1,12 +1,41 @@
 import { Link, useRouterState } from '@tanstack/react-router'
-import { Heart, Home, Search, ShoppingCart, UserRound } from 'lucide-react'
+import {
+  Heart,
+  Home,
+  ScanLine,
+  ShoppingCart,
+  UserRound,
+} from 'lucide-react'
 
 const destinations = [
-  { label: 'Início', icon: Home, to: '/' as const },
-  { label: 'Favoritos', icon: Heart, to: '/indisponivel' as const },
-  { label: 'Explorar', icon: Search, to: '/' as const },
-  { label: 'Carrinho', icon: ShoppingCart, to: '/indisponivel' as const },
-  { label: 'Perfil', icon: UserRound, to: '/indisponivel' as const },
+  {
+    label: 'Início',
+    icon: Home,
+    activePaths: ['/'],
+    column: 'col-start-1',
+    to: '/' as const,
+  },
+  {
+    label: 'Favoritos',
+    icon: Heart,
+    activePaths: ['/favoritos'],
+    column: 'col-start-2',
+    to: '/indisponivel' as const,
+  },
+  {
+    label: 'Carrinho',
+    icon: ShoppingCart,
+    activePaths: ['/carrinho', '/checkout', '/pedidos'],
+    column: 'col-start-4',
+    to: '/indisponivel' as const,
+  },
+  {
+    label: 'Perfil',
+    icon: UserRound,
+    activePaths: ['/perfil', '/carteiras'],
+    column: 'col-start-5',
+    to: '/indisponivel' as const,
+  },
 ]
 
 function MobileBottomNavigation() {
@@ -17,36 +46,44 @@ function MobileBottomNavigation() {
   return (
     <nav
       aria-label="Navegação mobile"
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-card/95 px-3 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] backdrop-blur md:hidden"
+      className="fixed inset-x-0 bottom-0 z-50 border-t border-border-header bg-card px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] md:hidden"
     >
-      <ul className="mx-auto flex max-w-lg items-end justify-around">
-        {destinations.map(({ icon: Icon, label, to }) => {
-          const isActive = label === 'Início' && pathname === '/'
+      <ul className="mx-auto grid max-w-lg grid-cols-5 items-center">
+        {destinations.map(({ activePaths, column, icon: Icon, label, to }) => {
+          const isActive = activePaths.some(
+            (path) =>
+              pathname === path ||
+              (path !== '/' && pathname.startsWith(`${path}/`)),
+          )
 
           return (
-            <li className="flex-1" key={label}>
+            <li className={column} key={label}>
               <Link
                 aria-current={isActive ? 'page' : undefined}
                 aria-label={label}
-                className={`mx-auto flex min-h-12 w-fit min-w-12 flex-col items-center justify-center gap-1 px-2 text-[10px] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${
-                  label === 'Explorar'
-                    ? '-mt-7 size-14 rounded-full bg-primary text-primary-foreground shadow-lg'
-                    : isActive
-                      ? 'text-highlight'
-                      : 'text-muted-foreground hover:text-highlight'
+                className={`mx-auto flex size-12 items-center justify-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${
+                  isActive
+                    ? 'text-primary'
+                    : 'text-muted-foreground hover:text-highlight'
                 }`}
-                hash={label === 'Explorar' ? 'catalog' : undefined}
                 to={to}
               >
-                <Icon aria-hidden="true" size={20} />
-                <span className={label === 'Explorar' ? 'sr-only' : undefined}>
-                  {label}
-                </span>
+                <Icon aria-hidden="true" size={24} />
+                <span className="sr-only">{label}</span>
               </Link>
             </li>
           )
         })}
       </ul>
+      <Link
+        aria-label="Explorar coleções"
+        className="absolute left-1/2 top-0 flex size-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-4 border-background bg-primary-gradient text-primary-foreground shadow-lg transition-transform hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        hash="catalog"
+        onClick={() => document.getElementById('site-search-trigger')?.focus()}
+        to="/"
+      >
+        <ScanLine aria-hidden="true" size={32} />
+      </Link>
     </nav>
   )
 }

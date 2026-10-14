@@ -31,7 +31,7 @@ function SiteHeader({ session, cartCount }: SiteHeaderProps) {
 
   return (
     <header className="border-b border-border-header">
-      <div className="mx-auto flex min-h-14 max-w-300 items-center justify-between gap-4 px-6 md:px-12">
+      <div className="kurio-container flex min-h-14 items-center justify-between gap-4">
         <Link
           aria-label="KURIO — início"
           className="shrink-0 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
@@ -64,6 +64,7 @@ function SiteHeader({ session, cartCount }: SiteHeaderProps) {
           <Link
             aria-label="Buscar coleções"
             className="flex size-9 items-center justify-center text-foreground transition-colors hover:text-highlight focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            id="site-search-trigger"
             hash="catalog"
             to="/"
           >

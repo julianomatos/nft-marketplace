@@ -53,7 +53,7 @@ function SiteFooter() {
 
   return (
     <footer className="border-t border-border">
-      <div className="mx-auto max-w-300 px-6 pt-8 md:px-12">
+      <div className="kurio-container pt-8">
         <div className="grid gap-6 bg-card p-5 sm:grid-cols-2 lg:grid-cols-4 lg:gap-0 lg:p-6">
           {features.map(({ badge, title, description }) => (
             <section

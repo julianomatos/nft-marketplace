@@ -85,6 +85,23 @@ test('uses the root error boundary for invalid route search params', async ({
   await expect(
     page.getByRole('link', { name: 'Voltar ao início' }),
   ).toBeVisible()
+  await expect(
+    page.getByRole('link', { name: 'KURIO — início' }),
+  ).toBeVisible()
+  await expect(
+    page
+      .getByRole('contentinfo')
+      .filter({ hasText: 'Segurança da carteira' }),
+  ).toBeVisible()
+  if (test.info().project.name === 'chromium-mobile') {
+    await expect(
+      page.getByRole('navigation', { name: 'Navegação mobile' }),
+    ).toBeVisible()
+  } else {
+    await expect(
+      page.getByRole('navigation', { name: 'Navegação principal' }),
+    ).toBeVisible()
+  }
   const accessibility = await new AxeBuilder({ page }).analyze()
   expect(accessibility.violations).toEqual([])
 })

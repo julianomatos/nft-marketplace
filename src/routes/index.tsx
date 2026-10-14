@@ -10,7 +10,7 @@ export const Route = createFileRoute('/')({
   component: () => (
     <section
       id="catalog"
-      className="mx-auto flex min-h-96 max-w-300 flex-col items-start justify-center px-6 py-16 md:px-12"
+      className="kurio-container flex min-h-96 flex-col items-start justify-center py-16"
     >
       <p className="mb-4 text-sm font-bold uppercase tracking-wide text-highlight">
         KURIO · Cultura digital
