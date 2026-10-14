@@ -6,7 +6,7 @@ test('the application starts in Chromium', async ({ page }) => {
 
   await expect(page).toHaveTitle('KURIO | Marketplace de NFTs')
   await expect(
-    page.getByRole('heading', { name: 'O marketplace está em construção.' }),
+    page.getByRole('heading', { name: 'Seja dono do futuro da arte digital' }),
   ).toBeVisible()
 })
 

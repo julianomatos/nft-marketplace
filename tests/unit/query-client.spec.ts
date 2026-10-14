@@ -8,6 +8,7 @@ import {
   shouldRetryQuery,
 } from '../../src/lib/query-client'
 import { queryKeys } from '../../src/hooks/queryKeys'
+import { ApiClientError } from '../../src/utils/errors'
 
 test('configures query retry, delay, stale time, and mutation defaults', () => {
   const serverError = Object.assign(
@@ -20,12 +21,26 @@ test('configures query retry, delay, stale time, and mutation defaults', () => {
   )
   const networkError = new AxiosError('Network error', 'ERR_NETWORK')
   const cancelledError = new AxiosError('Cancelled request', 'ERR_CANCELED')
+  const normalizedServerError = new ApiClientError({
+    code: 'TRANSIENT_FAILURE',
+    status: 503,
+  })
+  const normalizedClientError = new ApiClientError({
+    code: 'VALIDATION_ERROR',
+    status: 422,
+  })
+  const normalizedNetworkError = new ApiClientError({
+    code: 'NETWORK_ERROR',
+  })
 
   expect(MAX_QUERY_RETRIES).toBe(2)
   expect(shouldRetryQuery(0, networkError)).toBe(true)
   expect(shouldRetryQuery(1, serverError)).toBe(true)
   expect(shouldRetryQuery(0, clientError)).toBe(false)
   expect(shouldRetryQuery(0, cancelledError)).toBe(false)
+  expect(shouldRetryQuery(0, normalizedServerError)).toBe(true)
+  expect(shouldRetryQuery(0, normalizedClientError)).toBe(false)
+  expect(shouldRetryQuery(0, normalizedNetworkError)).toBe(true)
   expect(shouldRetryQuery(2, networkError)).toBe(false)
   expect(shouldRetryQuery(0, new Error('Unknown failure'))).toBe(false)
   expect(queryRetryDelay(0)).toBe(1_000)

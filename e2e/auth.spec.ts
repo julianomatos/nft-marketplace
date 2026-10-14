@@ -121,7 +121,7 @@ test('opens the desktop auth dialog over the route the visitor came from', async
   ).toBeVisible()
   await expect(
     page.locator('h1').filter({
-      hasText: 'O marketplace está em construção.',
+      hasText: 'Seja dono do futuro da arte digital',
     }),
   ).toHaveCount(0)
 })
@@ -141,7 +141,9 @@ test('does not request an auth session for a visitor without a token', async ({
 
   await page.goto('/')
   await expect(
-    page.getByRole('heading', { name: 'O marketplace está em construção.' }),
+    page.getByRole('heading', {
+      name: 'Seja dono do futuro da arte digital',
+    }),
   ).toBeVisible()
   expect(sessionRequests).toEqual([])
 })

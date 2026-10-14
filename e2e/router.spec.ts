@@ -14,7 +14,9 @@ test('renders the catch-all 404 route and offers a return path', async ({
 
   await page.getByRole('link', { name: 'Voltar ao início' }).click()
   await expect(
-    page.getByRole('heading', { name: 'O marketplace está em construção.' }),
+    page.getByRole('heading', {
+      name: 'Seja dono do futuro da arte digital',
+    }),
   ).toBeVisible()
 })
 
@@ -23,7 +25,9 @@ test('supports valid catalog search params during direct navigation', async ({
 }) => {
   await page.goto('/?q=kurio&feed=trending&page=2')
   await expect(
-    page.getByRole('heading', { name: 'O marketplace está em construção.' }),
+    page.getByRole('heading', {
+      name: 'Seja dono do futuro da arte digital',
+    }),
   ).toBeVisible()
 })
 
@@ -33,6 +37,8 @@ test('falls back to default route search params without breaking the route', asy
   await page.goto('/?page=0')
 
   await expect(
-    page.getByRole('heading', { name: 'O marketplace está em construção.' }),
+    page.getByRole('heading', {
+      name: 'Seja dono do futuro da arte digital',
+    }),
   ).toBeVisible()
 })

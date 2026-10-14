@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { QueryClient } from '@tanstack/react-query'
+import { ApiClientError } from '@/utils/errors'
 
 const queryStaleTimes = {
   catalog: 30_000,
@@ -15,13 +16,18 @@ const RETRY_BASE_DELAY_MS = 1_000
 const RETRY_MAX_DELAY_MS = 30_000
 
 function shouldRetryQuery(failureCount: number, error: unknown): boolean {
-  if (failureCount >= MAX_QUERY_RETRIES || !axios.isAxiosError(error)) {
-    return false
+  if (failureCount >= MAX_QUERY_RETRIES) return false
+  if (error instanceof ApiClientError) {
+    if (error.code === 'REQUEST_CANCELLED') return false
+    if (error.status !== undefined) {
+      return error.status >= 500 && error.status < 600
+    }
+    return error.code === 'NETWORK_ERROR'
   }
+
+  if (!axios.isAxiosError(error)) return false
   if (axios.isCancel(error) || error.code === 'ERR_CANCELED') return false
-  if (error.response) {
-    return error.response.status >= 500 && error.response.status < 600
-  }
+  if (error.response) return error.response.status >= 500 && error.response.status < 600
 
   return (
     error.request !== undefined ||

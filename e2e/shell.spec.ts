@@ -73,7 +73,7 @@ test('unavailable destinations explain the outcome and provide a return path', a
 }) => {
   await page.goto('/')
   await page
-    .getByRole('link', { name: 'Conheça as áreas em desenvolvimento' })
+    .getByRole('link', { name: 'Estúdio do criador' })
     .click()
 
   await expect(
@@ -85,7 +85,9 @@ test('unavailable destinations explain the outcome and provide a return path', a
 
   await page.getByRole('link', { name: 'Voltar ao início' }).click()
   await expect(
-    page.getByRole('heading', { name: 'O marketplace está em construção.' }),
+    page.getByRole('heading', {
+      name: 'Seja dono do futuro da arte digital',
+    }),
   ).toBeVisible()
 })
 
