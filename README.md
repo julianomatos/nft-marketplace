@@ -23,8 +23,10 @@ The development server runs at the Vite URL printed in the terminal. The primary
 | `npm run preview` | Preview the build after `npm run build` |
 | `npm run typecheck` | Run the TypeScript project build without emitting output |
 | `npm run lint` | Run ESLint |
+| `npm run test:unit` | Run browser-free Playwright unit tests |
 | `npm run test:e2e` | Run Playwright smoke tests in desktop and mobile Chromium |
 | `npm run test:e2e:update` | Update Playwright visual snapshots |
+| `npm run generate:images` | Generate 480 px and 960 px WebP NFT artwork variants with Sharp |
 | `npm run lighthouse` | Build, preview and run three Lighthouse measurements per form factor |
 | `npm run lighthouse -- http://127.0.0.1:4173/` | Pass a URL to the Lighthouse runner |
 
@@ -41,6 +43,17 @@ Copy `.env.example` to a local `.env` file when you need to override defaults:
 | `VITE_API_BASE_URL` | `/api` | Base path for REST requests |
 
 The Epic 0 setup defines these values; REST handlers and the application MSW bootstrap are added in Epic 2. At this stage, only the dedicated Socket.IO browser smoke page starts an MSW worker.
+
+## Fictitious demo credentials (draft for Epic 3)
+
+These accounts are fictional and intended only for the local mock demonstration:
+
+| User | Email | Password |
+| --- | --- | --- |
+| Ana Oliveira | `ana@kurio.example.test` | `KurioDemo!A2026` |
+| Caio Martins | `caio@kurio.example.test` | `KurioDemo!B2026` |
+
+Fixture records store only a salt and a precomputed SHA-256 password hash; these plaintext values are documented here solely to make the later demo login usable. Do not reuse them outside this mock project.
 
 ## Current smoke coverage
 
