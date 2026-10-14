@@ -13,6 +13,7 @@ import { useNftDetail } from '@/hooks/use-nft-detail'
 import { useNftReviews } from '@/hooks/use-nft-reviews'
 import { useRelatedNfts } from '@/hooks/use-related-nfts'
 import type { Nft, NftEdition } from '@/types/contracts'
+import { ApiClientError } from '@/utils/errors'
 
 const networkLabels = {
   ethereum: 'Ethereum',
@@ -48,6 +49,36 @@ function NftDetailPage({ nftId }: { nftId: string }) {
   }
 
   if (nftQuery.isError && !nftQuery.data) {
+    if (
+      nftQuery.error instanceof ApiClientError &&
+      nftQuery.error.code === 'NOT_FOUND'
+    ) {
+      return (
+        <section
+          aria-labelledby="nft-not-found-title"
+          className="kurio-container flex min-h-88 flex-col items-start justify-center py-12"
+        >
+          <p className="mb-4 text-sm font-bold uppercase tracking-wide text-highlight">
+            KURIO · 404
+          </p>
+          <h1
+            className="text-3xl font-bold leading-tight text-foreground sm:text-4xl"
+            id="nft-not-found-title"
+          >
+            NFT não encontrado.
+          </h1>
+          <p className="mt-4 max-w-xl text-sm leading-7 text-muted-foreground">
+            Este NFT pode ter sido removido ou o endereço pode estar incorreto.
+          </p>
+          <Button asChild className="mt-8">
+            <Link hash="catalog" to="/">
+              Voltar ao mercado
+            </Link>
+          </Button>
+        </section>
+      )
+    }
+
     return (
       <div className="kurio-container py-12">
         <ErrorState
@@ -375,7 +406,10 @@ function NftDetailContent({ nft }: { nft: Nft }) {
                         type="radio"
                         value={edition.id}
                       />
-                      <span>{edition.label}</span>
+                      <span>
+                        {edition.label}
+                        {unavailable ? ' — Esgotada' : ''}
+                      </span>
                     </label>
                   )
                 })}
@@ -432,9 +466,11 @@ function NftDetailContent({ nft }: { nft: Nft }) {
           </div>
 
           {selectedEdition && (
-            <p className="mb-3 text-xs text-muted-foreground">
+            <p className="mb-3 text-xs text-muted-foreground" role="status">
               {soldOut
-                ? 'Esta edição está esgotada.'
+                ? nft.editions.every(({ available }) => available === 0)
+                  ? 'Todas as edições deste NFT estão esgotadas.'
+                  : 'Esta edição está esgotada.'
                 : `${selectedEdition.available} disponíveis nesta edição.`}
             </p>
           )}

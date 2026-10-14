@@ -97,7 +97,7 @@ Context: initial setup is done and dependencies are installed with npm. Verify e
 - [x] Add thumbnail gallery with zoom, edition-tier chips as an accessible radio group (`1/1`, `1/10`, `1/50`, `ABERTA`), and large detail quantity stepper constrained by selected-tier availability.
 - [x] Add Rating (desktop stars + count, mobile rating chip), tabs with a full-width rule and active underline, share row, read-only Avaliações tab, and "Mais desta coleção" carousel with accessible dots.
 - [x] Add mobile detail composition: sticky action bar with quantity, price, buy and cart controls; circular back/favorite/cart icon buttons.
-- [ ] Handle non-existent NFT (404 state) and unavailable/sold-out editions.
+- [x] Handle non-existent NFT (404 state) and unavailable/sold-out editions.
 - [ ] Favorites: authenticated persistence, optimistic toggle with rollback on failure, guest prompt to login.
 - [ ] **Tests**: direct detail access + not found; favorites mutation failure and recovery.
 

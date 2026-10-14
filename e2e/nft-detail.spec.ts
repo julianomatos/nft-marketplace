@@ -101,6 +101,87 @@ test('catalog detail action opens the matching NFT', async ({ page }) => {
   }
 })
 
+test('shows an NFT-specific 404 state for a missing resource', async ({
+  page,
+}) => {
+  const detailResponse = page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname === '/api/nfts/not-a-real-nft' &&
+      response.request().method() === 'GET',
+  )
+  await page.goto('/nft/not-a-real-nft')
+
+  expect((await detailResponse).status()).toBe(404)
+  await expect(
+    page.getByRole('heading', { name: 'NFT não encontrado.' }),
+  ).toBeVisible()
+  await expect(
+    page.getByRole('link', { name: 'Voltar ao mercado' }),
+  ).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: 'Tentar novamente' }),
+  ).toHaveCount(0)
+
+  const accessibility = await new AxeBuilder({ page }).analyze()
+  expect(accessibility.violations).toEqual([])
+
+  await page.getByRole('link', { name: 'Voltar ao mercado' }).click()
+  await expect(
+    page.getByRole('heading', { name: /Seja dono/ }),
+  ).toBeVisible()
+})
+
+test('marks unavailable editions and blocks selecting a sold-out tier', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/nft/azure-echo-1001')
+
+  await expect(
+    page.getByRole('heading', { name: 'Azure Echo' }),
+  ).toBeVisible()
+  const soldEdition = page.getByRole('radio', {
+    name: '1/10 — Esgotada',
+  })
+  await expect(soldEdition).toBeDisabled()
+  await expect(
+    page.getByRole('button', { name: 'Comprar NFT' }),
+  ).toBeEnabled()
+
+  const accessibility = await new AxeBuilder({ page }).analyze()
+  expect(accessibility.violations).toEqual([])
+})
+
+test('disables purchase when every edition is sold out', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/nft/infinite-meadow-1031')
+
+  await expect(
+    page.getByRole('heading', { name: 'Infinite Meadow' }),
+  ).toBeVisible()
+  await expect(
+    page.getByText('Todas as edições deste NFT estão esgotadas.', {
+      exact: true,
+    }),
+  )
+    .toHaveAttribute('role', 'status')
+  await expect(
+    page.getByText('Todas as edições deste NFT estão esgotadas.', {
+      exact: true,
+    }),
+  ).toBeVisible()
+  const editions = page.getByRole('radio')
+  await expect(editions).toHaveCount(4)
+  for (let index = 0; index < 4; index += 1) {
+    await expect(editions.nth(index)).toBeDisabled()
+  }
+  await expect(
+    page.getByRole('region', { name: 'Ações de compra' }).getByRole('button', {
+      name: 'Comprar NFT',
+    }),
+  ).toBeDisabled()
+})
+
 test('mobile detail keeps purchase actions above bottom navigation', async ({
   page,
 }) => {
