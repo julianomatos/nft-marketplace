@@ -72,7 +72,7 @@ Environment variables: `VITE_ENABLE_MOCKS`, `VITE_MOCK_SCENARIO`, `VITE_API_BASE
 
 ## 5. Money, Quantities & Data Formatting
 
-- ETH values travel as **decimal strings** (`"0.125"`). Never convert to `number`/`parseFloat`. All arithmetic and comparison goes through `decimal.js` helpers in `src/utils/eth.ts` (add, mul, sum, compare, format).
+- ETH values travel as **decimal strings** (`"0.125"`). Never convert to `number`/`parseFloat`. All arithmetic and comparison goes through `decimal.js` helpers in `src/utils/eth.ts` (add, mul, div, sum, compare, format).
 - Prices render with a dot as decimal separator everywhere and exactly as received from the API.
 - Quantities are integers (validate with Zod `.int().min(1)`).
 - **The API quote is the single source of truth for totals.** The UI may format values but must not compute its own authoritative subtotal/discount/fee/total.

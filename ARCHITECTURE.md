@@ -53,17 +53,17 @@ Mock state is centralized in `src/mocks/store.ts`: it persists a resettable scen
 ## 3. Domain Rules [Planned]
 
 - **ETH amounts** are decimal strings. No `number` arithmetic. Quantities are integers.
-- `src/utils/eth.ts` is the shared decimal.js boundary for ETH math (`add`, `mul`, `sum`, `compare`, `format`); it uses a local Decimal clone with 80 significant digits. `format` validates and preserves the API decimal string verbatim (dot separator, no grouping or rounding); arithmetic results use fixed notation. The range slider uses the same helpers for its ETH bounds.
+- `src/utils/eth.ts` is the shared decimal.js boundary for ETH math (`add`, `mul`, `div`, `sum`, `compare`, `format`); it uses a local Decimal clone with 80 significant digits. `format` validates and preserves the API decimal string verbatim (dot separator, no grouping or rounding); arithmetic results use fixed notation. The range slider uses the same helpers for its ETH bounds.
 - **The quote is the source of truth** for subtotal, discount, network fee and total. The UI formats; it does not compute authoritative totals.
 - **Orders** have states `pending → confirmed | rejected`. `confirmed` and `rejected` are terminal.
 - **Receipts** are immutable snapshots taken at order creation/confirmation; later catalog changes never alter them.
 - After a confirmed order, only the purchased items and quantities are removed from the cart. On any failure, cart items are preserved.
 
-## 4. REST Contracts [In progress: typed contracts defined]
+## 4. REST Contracts [Contracts and MSW handlers implemented]
 
-REST request/response types live in `src/types/contracts.ts` and are shared by Axios wrappers, hooks and (in the next task) MSW handlers. `EthAmount` is a decimal string validated by the common `ethAmountSchema` (`/^\d+(?:\.\d{1,18})?$/`); quantities use integer types and the shared positive-quantity schema at request boundaries. No ETH amount is represented as a JavaScript number.
+REST request/response types live in `src/types/contracts.ts` and are shared by Axios wrappers, hooks and MSW handlers. `EthAmount` is a decimal string validated by the common `ethAmountSchema` (`/^\d+(?:\.\d{1,18})?$/`); quantities use integer types and the shared positive-quantity schema at request boundaries. No ETH amount is represented as a JavaScript number.
 
-Shared endpoint paths, the `/api` base path, `X-Idempotency-Key`, and API error HTTP statuses live in `src/types/endpoints.ts`. Axios uses the shared base path; MSW handlers will use the same endpoint map when implemented. Browser URL `category` and `network` values are JSON arrays in the query string (for example, `category=%5B%22art%22%2C%22collectibles%22%5D`). For API requests, Axios `paramsSerializer` emits repeated parameters (`category=art&category=collectibles`); handlers read them using `URLSearchParams.getAll()`. Search defaults are `sort=recent`, `page=1`, and `limit=9`; malformed individual values fall back to their defaults / omitted optional filters. Changing any catalog filter resets `page` to 1.
+Shared endpoint paths, the `/api` base path, `X-Idempotency-Key`, and API error HTTP statuses live in `src/types/endpoints.ts`. Axios and MSW handlers use the same endpoint map. Browser URL `category` and `network` values are JSON arrays in the query string (for example, `category=%5B%22art%22%2C%22collectibles%22%5D`). For API requests, Axios `paramsSerializer` emits repeated parameters (`category=art&category=collectibles`); handlers read them using `URLSearchParams.getAll()`. Search defaults are `sort=recent`, `page=1`, and `limit=9`; malformed individual values fall back to their defaults / omitted optional filters. Changing any catalog filter resets `page` to 1.
 
 | Resource | Endpoints |
 | --- | --- |
@@ -90,7 +90,7 @@ Wallet create/update payload: `{ kind: 'primary' | 'secondary', displayName, nic
 
 `GET /api/orders/:id` returns the immutable receipt snapshot `{ orderId, version, quoteId, status, transactionHash, network, explorerUrl, provider, wallet: { nickname, address }, items: [{ nftId, name, tokenId, edition, quantity, unitPrice, subtotal }], subtotal, discount, fee, total, createdAt }`.
 
-Response shapes not explicitly specified by the challenge are made concrete as follows: `GET /api/auth/session` is a discriminated authenticated/guest result; featured NFTs return `{ hero, featured }`; favorites return records with their NFT embedded, while delete returns `{ nftId, removed: true }`; cart merge accepts guest `CartItemInput[]` and returns the cart plus `mergedItemCount`; wallet connect returns `outcome: connected | refused`. Reviews use `{ id, displayName, rating, comment, createdAt }`. Serialized network/provider identifiers are lowercase (`ethereum | polygon | solana`, `metamask | walletconnect | coinbase`); category and facet identifiers remain opaque strings. The `sort` enum is set to `recent`, `price-asc`, `price-desc`, and `popular`; this list is an implementation assumption because the challenge does not enumerate sort values. A wallet upsert using a `kind` already present returns `409` rather than replacing that wallet. The quote wrapper `{ quote }` in conflict-error `details` remains an assumption until the error handler is implemented. These are contract assumptions for consistent client/mock implementation, not additional business rules.
+Response shapes not explicitly specified by the challenge are made concrete as follows: `GET /api/auth/session` is a discriminated authenticated/guest result; featured NFTs return `{ hero, featured }`; favorites return records with their NFT embedded, while delete returns `{ nftId, removed: true }`; cart merge accepts guest `CartItemInput[]` and returns the cart plus `mergedItemCount`; wallet connect returns `outcome: connected | refused`. Reviews use `{ id, displayName, rating, comment, createdAt }`. Serialized network/provider identifiers are lowercase (`ethereum | polygon | solana`, `metamask | walletconnect | coinbase`); category and facet identifiers remain opaque strings. The `sort` enum is set to `recent`, `price-asc`, `price-desc`, and `popular`; this list is an implementation assumption because the challenge does not enumerate sort values. A wallet upsert using a `kind` already present returns `409 WALLET_KIND_CONFLICT` rather than replacing that wallet. A conflict error returns a fresh quote in `details.quote`. These are contract assumptions for consistent client/mock implementation, not additional business rules.
 
 ### 4.1 Quote
 
@@ -106,17 +106,18 @@ Axios responses are validated against this envelope and normalized to `ApiClient
 | 401 | `UNAUTHENTICATED`, `SESSION_EXPIRED`, `INVALID_CREDENTIALS` | Missing/invalid/expired session or credentials |
 | 403 | `FORBIDDEN` | No permission for the resource |
 | 404 | `NOT_FOUND` | Resource does not exist |
-| 409 | `EMAIL_TAKEN`, `AVAILABILITY_CONFLICT`, `PRICE_CHANGED`, `IDEMPOTENCY_KEY_REUSED` | Conflict (payload includes a fresh quote when relevant) |
+| 409 | `EMAIL_TAKEN`, `AVAILABILITY_CONFLICT`, `PRICE_CHANGED`, `IDEMPOTENCY_KEY_REUSED`, `WALLET_KIND_CONFLICT` | Conflict (payload includes a fresh quote when relevant) |
 | 422 | `VALIDATION_ERROR` (+ `fieldErrors`), `COUPON_INVALID`, `COUPON_EXPIRED` | Invalid input or rejected coupon |
 | 503 | `TRANSIENT_FAILURE` | Retryable service failure |
 
-## 5. Orders & Idempotency [Planned]
+## 5. Orders & Idempotency [REST mock implemented; checkout UI planned]
 
 - The client creates an `X-Idempotency-Key` (UUID) **per checkout attempt**, tied to the confirmed quote, and **persists it** (session storage) until the order is terminal or the user changes the cart/quote. Retrying after a timeout or double click **reuses** the same key.
-- The mock backend stores key + payload hash. Same key + same payload → returns the same order (no duplicate). Same key + different payload → `409 IDEMPOTENCY_KEY_REUSED`.
-- `POST /api/orders` returns the order as `pending`; confirmation/rejection arrives through `order.updated` and is also readable via `GET /api/orders/:id`.
+- The mock backend stores a per-user key + payload hash. Same user/key + same payload → returns the same order (no duplicate); same user/key + different payload → `409 IDEMPOTENCY_KEY_REUSED`. The same key may be used independently by another user.
+- `POST /api/orders` returns the immutable receipt snapshot as `pending`; `GET /api/orders/:id` reads it only for its owner. A mock-only `settleOrder(orderId, outcome)` control marks it confirmed or rejected; socket delivery is not implemented yet.
 - **Scenario "timeout after creation"**: the order is created, the response times out, the retry with the same key recovers the same order.
 - **Pre-confirmation revalidation**: if price, availability, coupon or fees changed, the server answers `409` with a fresh quote; the UI shows the change and requires a new explicit confirmation. Confirmation screen is shown only for an order actually `confirmed` by the simulation.
+- Order creation revalidates the quote against current prices, availability, coupon and expiry. A quote conflict returns a fresh quote; an expired coupon is removed from the cart and rejected with `422 COUPON_EXPIRED`. Confirming a pending order decrements inventory and removes only the purchased quantities; rejection preserves both cart and availability.
 - **Review step**: "Confirmar compra" opens a review dialog showing items, quote, wallet and network. Create the order only on the dialog's final confirmation. If the quote changes, require a new confirmation.
 - Pending orders are recovered after refresh or reconnection (order id kept in session storage + `GET /api/orders/:id`).
 - Receipt is the reloadable `/pedidos/:orderId` route, rendered as a receipt panel on a plain page. It handles `pending` (spinner and "Aguardando confirmação"), `confirmed` (full immutable receipt and simulated network explorer link opening in a new tab), and `rejected` (message and "Tentar novamente" back to checkout with items preserved). Confirmed and rejected are terminal.
@@ -174,17 +175,18 @@ The QueryClient is initialized in `src/lib/query-client.ts` and provided above t
 - **Mock/REST consistency**: the same mock state change produces both the REST result and the emitted event.
 - The binding handler must be registered at the socket origin (`ws.link(...)` origin). The Epic 0 smoke only verifies a response to a client-originated event; it does not verify server-originated updates. The mock must later emit events itself in response to REST-driven state changes. No event emitter or socket handler is implemented by the typed-contract task.
 
-## 10. Mocking Layer [Fixtures available; handlers and state planned]
+## 10. Mocking Layer [Fixtures, store and REST handlers implemented; scenarios and socket pending]
 
-- Enabled by `VITE_ENABLE_MOCKS`; available in the demo build (`public/mockServiceWorker.js`).
-- State lives in `src/mocks/` (persisted locally for refresh; **reset** restores a known scenario).
-- Scenario selection via `VITE_MOCK_SCENARIO` and/or URL parameter (document final mechanism here).
-- Scenarios (deterministic): success, empty, variable latency / out-of-order, connection failure, 4xx/5xx, expired session, unauthorized, signup conflict / validation error, invalid-expired coupon, price change / sold-out during purchase, timeout after order creation, payment confirmed, payment rejected.
+- `src/mocks/browser.ts` starts the browser worker only when `VITE_ENABLE_MOCKS=true`; the production/demo build activation still needs verification. REST handlers are registered in `src/mocks/handlers/` and use shared `API_ENDPOINTS` / `API_ERROR_STATUS`.
+- State lives in `src/mocks/store.ts`, persists through browser local storage, and falls back to module-memory storage in Node. `reset(scenario)` restores fixture records, session, clock, carts, favorites, orders and idempotency records. `setMockTime`, `advanceMockTime`, `resetMockTime` and `settleOrder` are exposed through `kurioMocks` in tests and `window.__KURIO_MOCKS__`.
+- `VITE_MOCK_SCENARIO` seeds the initial store scenario. A browser URL selector, development switcher, and full scenario behaviors remain for the next stage; only `success`, `design-cart` and `expired-session` have distinct initialized state today.
+- Planned deterministic scenarios: empty result, variable latency / out-of-order, connection failure, 4xx/5xx, unauthorized, signup conflict / validation error, invalid/expired coupon, price change / sold-out during purchase, timeout after order creation, payment confirmed, payment rejected.
 - Deterministic fixtures live in `src/mocks/fixtures/`, use `MOCK_NOW = 2026-07-29T12:00:00.000Z`, and contain two users, nine Portuguese category labels, three networks and 40 NFTs with stable IDs, timestamps and scores. They provide five pages at limit 9, price bounds 0.02–12.30 ETH, new/trending subsets, sold editions, four source artworks in 480/960 WebP variants, reviews, coupons, wallets, favorites, empty default carts, the `design-cart`, and an empty order collection. `NftRecord` adds deterministic `createdAt`, `popularity` and `trendScore` to the API contract.
 - Fixture credentials are fictitious and have precomputed salted SHA-256 hashes; plaintext is not stored in fixtures. The temporary demo credentials are documented in README for the later authentication flow. Password validation uses `SHA-256(salt + ":" + password)`.
 - Fixtures include edition tiers per NFT. The `design-cart` scenario reproduces the reference cart exactly: Emerald Ape #042 (`#0042`, `1/50`) ×2 @ 1.19, Violet Nomad #314 (`#0314`, `ABERTA`) ×6 @ 1.39, Ivory Baron #088 (`#0088`, `1/10`) ×9 @ 1.79, network fee 0.016 and total 26.846 ETH.
 - Fixture user wallets include `Principal` (Ethereum, MetaMask) and `Reserva` (`nova.kurio.eth`, Polygon), each with distinct addresses and simulated transaction hashes. Referral codes and ENS names are prefilled. `/api/favorites` backs "Lista de interesse".
 - The `THANK YOU` illustration was not included with the supplied artwork; it is omitted by approval and no placeholder is generated.
+- Node's MSW `setupServer` matches absolute Axios URLs with handler paths prefixed by `*`; handlers retain the same `/api/...` route semantics in the browser.
 
 ## 11. Routing & URL State [Planned]
 
@@ -194,7 +196,7 @@ TanStack Router uses file-based routes under `src/routes/`; the root route suppl
 
 ## 12. Testing & Audit Strategy [Planned]
 
-- Playwright (Chromium, desktop + mobile), isolated state per test, controlled clock/latency/event triggers, HTML report, traces on failure, visual baselines for Home, Detail, Cart and Payment.
+- Playwright unit project (Node) uses `setupServer` and the real Axios client for REST handler behavior; Playwright browser projects cover Chromium desktop + mobile. Each unit/E2E test resets its mock state. Controlled clock/latency/event triggers, HTML report, traces on failure, and visual baselines for Home, Detail, Cart and Payment remain in progress.
 - Lighthouse on Home and NFT Detail, mobile + desktop, 3 runs, medians reported; record LCP, CLS, TBT; versioned config; reports (HTML/JSON), tool versions and environment committed.
 
 ## 13. UX Decisions [Defined by DESIGN_SYSTEM.md]
@@ -258,3 +260,5 @@ Known so far:
 - The reference resting input border has 1.34:1 contrast against the page background. Keep it for visual fidelity, while retaining visible labels/placeholders and a strong focus state.
 - Frames are missing for Cadastro tab/screen, Avaliações tab content, mobile Perfil / Carteiras / Confirmação / Cadastro, tablet behavior, error and disabled states, and authenticated header. Compose from documented patterns and verify responsive behavior.
 - Separate source exports for the KURIO wordmark, icon and NFT artwork were not provided; the local wordmark is an SVG reconstruction, the favicon is a matching geometric K monogram, and the three NFT PNGs are crops from the desktop home reference. Replace these derived assets if the original exports become available.
+- Pending orders do not reserve inventory. At confirmation, `settleOrder` throws and leaves the order, cart and inventory unchanged if the required edition availability has fallen below the purchased quantity; this avoids confirming an oversold order. Reservation behavior is not part of the challenge contract.
+- An already-applied coupon that expires before quote/order validation is removed from the cart and rejected with `COUPON_EXPIRED`; the user must apply a current coupon again.

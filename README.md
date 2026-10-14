@@ -38,13 +38,13 @@ Copy `.env.example` to a local `.env` file when you need to override defaults:
 
 | Variable | Development default | Purpose |
 | --- | --- | --- |
-| `VITE_ENABLE_MOCKS` | `true` in `.env.development` | Enables network mocks when the mock bootstrap is wired |
+| `VITE_ENABLE_MOCKS` | `true` in `.env.development` | Enables the MSW browser worker before the app mounts |
 | `VITE_MOCK_SCENARIO` | `success` | Selects a deterministic mock scenario |
 | `VITE_API_BASE_URL` | `/api` | Base path for REST requests |
 
-The Epic 0 setup defines these values; REST handlers and the application MSW bootstrap are added in Epic 2. At this stage, only the dedicated Socket.IO browser smoke page starts an MSW worker.
+The browser bootstrap and REST handlers are available for local development. Production/demo build activation still needs a separate check; do not assume mocks are enabled in the deployed build.
 
-## Fictitious demo credentials (draft for Epic 3)
+## Fictitious demo credentials
 
 These accounts are fictional and intended only for the local mock demonstration:
 
@@ -55,6 +55,6 @@ These accounts are fictional and intended only for the local mock demonstration:
 
 Fixture records store only a salt and a precomputed SHA-256 password hash; these plaintext values are documented here solely to make the later demo login usable. Do not reuse them outside this mock project.
 
-## Current smoke coverage
+## Current test coverage
 
-`npm run test:e2e` checks that the KURIO shell renders at desktop and mobile sizes, that unavailable destinations explain their status, and that `socket.io-client` receives a mocked reply through MSW 2.x and `@mswjs/socket.io-binding` in Chromium. The marketplace flows and fictitious test credentials will be documented as they are implemented.
+`npm run test:unit` covers contracts, fixtures, the mock store and REST handlers through Axios + MSW Node. `npm run test:e2e` checks the KURIO shell at desktop and mobile sizes, unavailable destinations, and the Epic 0 Socket.IO smoke. Full marketplace browser flows and server-originated socket events remain pending.

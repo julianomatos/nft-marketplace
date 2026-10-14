@@ -37,7 +37,7 @@ Context: initial setup is done and dependencies are installed with npm. Verify e
 - [x] Configure TanStack Router (file-based): root layout, header/footer shell, 404 route, root error boundary, private-route guard helper, Zod-validated search params utility.
 - [x] Configure TanStack Query client: stale times, retry policy (no 4xx retries, max 2 for network/5xx with backoff), query key factory (`src/hooks/queryKeys.ts`), devtools in dev only.
 - [x] Configure Axios client: base URL, timeout, auth interceptor, error normalization to the API error envelope (`src/utils/errors.ts`), `AbortSignal` support.
-- [x] Add `src/utils/eth.ts` (`decimal.js` helpers: add, mul, sum, compare, format) with unit tests.
+- [x] Add `src/utils/eth.ts` (`decimal.js` helpers: add, mul, div, sum, compare, format) with unit tests.
 - [x] Set up shared UI primitives: Skeleton with shimmer (reduced-motion safe), empty/error state components, toast + `aria-live` region.
 - [x] Add `index.html` essentials: `lang`, `<title>`, meta description, favicon, viewport.
 
@@ -49,9 +49,9 @@ Context: initial setup is done and dependencies are installed with npm. Verify e
 
 - [x] Define typed contracts in `src/types/contracts.ts` and `src/types/events.ts` (error envelope, quote, order states, event envelope with `eventId`, `version`, `userId`); validate boundary values and event envelopes in contract tests.
 - [x] Create fixtures: ≥ 2 users (fictitious credentials), diverse NFTs/categories/editions (enough for filters + pagination), coupons (valid, invalid, expired), wallets, favorites, carts, orders.
-- [ ] Add fixtures and facets for the 9 categories, Ethereum/Polygon/Solana networks, "Kurio Apes", rarity, old prices and reviews; add featured, related and read-only reviews endpoints; add the `design-cart` scenario described in `ARCHITECTURE.md` §10.
+- [x] Add fixtures and facets for the 9 categories, Ethereum/Polygon/Solana networks, "Kurio Apes", rarity, old prices and reviews; add featured, related and read-only reviews endpoints; add the `design-cart` scenario described in `ARCHITECTURE.md` §10.
 - [x] Build the mock state store with local persistence and a **reset** to a known scenario; hash passwords in the mock layer.
-- [ ] Implement REST handlers: auth/session (incl. expiry), NFTs (search, combinable filters, sort, pagination, detail, not-found, unavailable edition), favorites, cart (+ merge, coupon), quote, orders (idempotency: same key/payload → same order; different payload → 409), profile (+ avatar, password), wallets (+ connect/refuse/disconnect).
+- [x] Implement REST handlers: auth/session (incl. expiry), NFTs (search, combinable filters, sort, pagination, detail, not-found, unavailable edition), favorites, cart (+ merge, coupon), quote, orders (idempotency: same key/payload → same order; different payload → 409), profile (+ avatar, password), wallets (+ connect/refuse/disconnect).
 - [ ] Implement scenario switches: success, empty, variable latency + out-of-order, connection failure, 4xx/5xx, expired session, unauthorized, signup conflict / validation error, invalid/expired coupon, price change / sold-out during purchase, timeout after order creation, payment confirmed, payment rejected.
 - [ ] Choose and document the scenario selection mechanism (env var / URL param / dev switcher) and the reset command.
 - [ ] Wire `@mswjs/socket.io-binding` to emit `nft.updated` and `order.updated` deterministically from the same mock state changes as REST.
