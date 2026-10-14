@@ -1,7 +1,12 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
+import {
+  catalogSearchSchema,
+  validateSearchWithZod,
+} from '@/utils/search-params'
 
 export const Route = createFileRoute('/')({
+  validateSearch: validateSearchWithZod(catalogSearchSchema),
   component: () => (
     <section
       id="catalog"

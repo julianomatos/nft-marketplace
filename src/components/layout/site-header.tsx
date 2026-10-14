@@ -2,10 +2,9 @@ import { Link, useRouterState } from '@tanstack/react-router'
 import { LogIn, Search, ShoppingCart, UserRound } from 'lucide-react'
 import kurioWordmark from '@/assets/kurio-wordmark.svg'
 import { Badge } from '@/components/ui/badge'
+import type { RouterSession } from '@/types/router'
 
-export type SiteHeaderSession =
-  | { status: 'guest' }
-  | { status: 'authenticated'; displayName: string }
+export type SiteHeaderSession = RouterSession
 
 type SiteHeaderProps = {
   session: SiteHeaderSession

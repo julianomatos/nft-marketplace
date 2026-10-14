@@ -3,6 +3,7 @@ import { routeTree } from './routeTree.gen'
 
 export const router = createRouter({
   routeTree,
+  context: { session: { status: 'guest' } },
   defaultPreload: 'intent',
 })
 
