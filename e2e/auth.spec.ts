@@ -102,3 +102,23 @@ test('auth dialog fits required viewports and has no axe violations', async ({
     expect(accessibility.violations).toEqual([])
   }
 })
+
+test('opens the desktop auth dialog over the route the visitor came from', async ({
+  page,
+}) => {
+  test.skip((page.viewportSize()?.width ?? 0) < 768, 'Desktop modal only')
+  await page.goto('/indisponivel')
+  await page.getByRole('link', { name: 'Entrar' }).click()
+
+  await expect(page.getByRole('dialog')).toBeVisible()
+  await expect(
+    page.locator('h1').filter({
+      hasText: 'Esta funcionalidade ainda não está disponível.',
+    }),
+  ).toBeVisible()
+  await expect(
+    page.locator('h1').filter({
+      hasText: 'O marketplace está em construção.',
+    }),
+  ).toHaveCount(0)
+})

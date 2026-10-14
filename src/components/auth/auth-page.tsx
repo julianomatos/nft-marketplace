@@ -96,82 +96,82 @@ function AuthPage({ mode }: AuthPageProps) {
 
   return (
     <dialog
-      aria-describedby={descriptionId}
-      aria-labelledby={titleId}
-      className="kurio-dialog kurio-auth-dialog"
-      onCancel={handleCancel}
-      onClick={handleBackdropClick}
-      ref={dialogRef}
-    >
-      <Button
-        aria-label="Fechar autenticação"
-        className="absolute right-4 top-3 z-10 text-highlight"
-        onClick={closeDialog}
-        size="icon-sm"
-        type="button"
-        variant="ghost"
+        aria-describedby={descriptionId}
+        aria-labelledby={titleId}
+        className="kurio-dialog kurio-auth-dialog"
+        onCancel={handleCancel}
+        onClick={handleBackdropClick}
+        ref={dialogRef}
       >
-        <X aria-hidden="true" size={18} />
-      </Button>
-
-      <nav
-        aria-label="Acesso à conta"
-        className="flex items-center justify-center gap-2 px-12 pt-7"
-      >
-        <Link
-          aria-current={!isSignup ? 'page' : undefined}
-          className={`text-lg font-bold transition-colors ${
-            !isSignup ? 'text-highlight' : 'text-foreground hover:text-highlight'
-          }`}
-          to="/login"
+        <Button
+              aria-label="Fechar autenticação"
+              className="absolute right-4 top-3 z-10 text-highlight"
+              onClick={closeDialog}
+              size="icon-sm"
+              type="button"
+              variant="ghost"
         >
-          Entrar
-        </Link>
-        <span aria-hidden="true" className="text-primary">
-          |
-        </span>
-        <Link
-          aria-current={isSignup ? 'page' : undefined}
-          className={`text-lg font-bold transition-colors ${
-            isSignup ? 'text-highlight' : 'text-foreground hover:text-highlight'
-          }`}
-          to="/signup"
+              <X aria-hidden="true" size={18} />
+        </Button>
+
+        <nav
+              aria-label="Acesso à conta"
+              className="flex items-center justify-center gap-2 px-12 pt-7"
         >
-          Criar conta
-        </Link>
-      </nav>
+              <Link
+                aria-current={!isSignup ? 'page' : undefined}
+                className={`text-lg font-bold transition-colors ${
+                  !isSignup ? 'text-highlight' : 'text-foreground hover:text-highlight'
+                }`}
+                to="/login"
+              >
+                Entrar
+              </Link>
+              <span aria-hidden="true" className="text-primary">
+                |
+              </span>
+              <Link
+                aria-current={isSignup ? 'page' : undefined}
+                className={`text-lg font-bold transition-colors ${
+                  isSignup ? 'text-highlight' : 'text-foreground hover:text-highlight'
+                }`}
+                to="/signup"
+              >
+                Criar conta
+              </Link>
+        </nav>
 
-      <div className="px-6 pb-8 pt-5 sm:px-10">
-        <h1 className="sr-only" id={titleId}>
-          {isSignup ? 'Criar conta KURIO' : 'Entrar na KURIO'}
-        </h1>
-        <p className="mb-6 text-center text-sm text-muted-foreground" id={descriptionId}>
-          {isSignup
-            ? 'Crie sua conta para acompanhar sua coleção e descobrir novos NFTs.'
-            : 'Entre para gerenciar sua carteira, coleção e perfil de criador.'}
-        </p>
+        <div className="px-6 pb-8 pt-5 sm:px-10">
+              <h1 className="sr-only" id={titleId}>
+                {isSignup ? 'Criar conta KURIO' : 'Entrar na KURIO'}
+              </h1>
+              <p className="mb-6 text-center text-sm text-muted-foreground" id={descriptionId}>
+                {isSignup
+                  ? 'Crie sua conta para acompanhar sua coleção e descobrir novos NFTs.'
+                  : 'Entre para gerenciar sua carteira, coleção e perfil de criador.'}
+              </p>
 
-        {isSignup ? (
-          <SignupFields onSuccess={returnToPreviousRoute} />
-        ) : (
-          <LoginFields onSuccess={returnToPreviousRoute} />
-        )}
-
-        <div aria-live="polite" className="mt-5 space-y-2 text-center">
-              {notice && (
-                <p className="text-xs text-destructive" role="status">
-                  {notice}
-                </p>
+              {isSignup ? (
+                <SignupFields onSuccess={returnToPreviousRoute} />
+              ) : (
+                <LoginFields onSuccess={returnToPreviousRoute} />
               )}
-          <div className="relative flex items-center justify-center">
-            <span className="h-px flex-1 bg-border" />
-            <span className="px-3 text-xs text-foreground">Ou continue com</span>
-            <span className="h-px flex-1 bg-border" />
-          </div>
-          <UnavailableButton onNotice={setNotice} provider="Google" />
-          <UnavailableButton onNotice={setNotice} provider="Facebook" />
+
+              <div aria-live="polite" className="mt-5 space-y-2 text-center">
+                {notice && (
+                  <p className="text-xs text-destructive" role="status">
+                    {notice}
+                  </p>
+                )}
+                <div className="relative flex items-center justify-center">
+                  <span className="h-px flex-1 bg-border" />
+                  <span className="px-3 text-xs text-foreground">Ou continue com</span>
+                  <span className="h-px flex-1 bg-border" />
+                </div>
+                <UnavailableButton onNotice={setNotice} provider="Google" />
+                <UnavailableButton onNotice={setNotice} provider="Facebook" />
+              </div>
         </div>
-      </div>
     </dialog>
   )
 }
