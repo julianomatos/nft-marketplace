@@ -21,7 +21,7 @@ Context: initial setup is done and dependencies are installed with npm. Verify e
 - [x] Add npm scripts: `typecheck`, `test:e2e`, `test:e2e:update`, `lighthouse` (see `AGENTS.md` §2) and `.env.development` / `.env.example` with `VITE_ENABLE_MOCKS`, `VITE_MOCK_SCENARIO`, `VITE_API_BASE_URL`.
 - [x] Run `npm audit` and `npm outdated`; note any high-severity findings or deliberate pins in `ARCHITECTURE.md` §2.
 - [x] Verify `npm run build && npm run preview` succeeds and the app boots; install Playwright browsers (`npx playwright install chromium`) and run an empty smoke spec.
-- [ ] Commit a clean baseline ("chore: dependency audit and compatibility fixes").
+- [x] Commit a clean baseline ("chore: dependency audit and compatibility fixes").
 
 **Acceptance**: clean `npm ci`, `dev`, `build`, `lint`, `typecheck` and one smoke E2E all pass; zero peer-dependency errors; MSW 2.x + binding verified.
 
@@ -29,6 +29,10 @@ Context: initial setup is done and dependencies are installed with npm. Verify e
 
 ## Epic 1: Project Infrastructure
 
+- [ ] Add `design/reference/` exports and export logo/NFT artwork to `src/assets/`.
+- [ ] Self-host Roboto Mono; replace shadcn starter tokens/font with the KURIO tokens from `DESIGN_SYSTEM.md` (dark only, `@theme` mapping); remove unused starter styles.
+- [ ] Build the shell: Header (guest/authenticated, active states, cart badge), Footer (feature band, brand strip, link columns), Breadcrumb, mobile bottom navigation, "indisponível" page.
+- [ ] Build base primitives matching the design: Button variants, Input/Select/Checkbox/Radio (with required asterisk), Quantity stepper, Badge, Tabs, Pagination, Range slider, Dialog/Drawer, Skeleton shimmer, Toast.
 - [ ] Configure Tailwind v4 theme tokens (colors, typography, spacing, radii) from Figma in CSS; self-host required fonts; add base styles and `prefers-reduced-motion` handling.
 - [ ] Configure TanStack Router (file-based): root layout, header/footer shell, 404 route, root error boundary, private-route guard helper, Zod-validated search params utility.
 - [ ] Configure TanStack Query client: stale times, retry policy (no 4xx retries, max 2 for network/5xx with backoff), query key factory (`src/hooks/queryKeys.ts`), devtools in dev only.
@@ -37,7 +41,7 @@ Context: initial setup is done and dependencies are installed with npm. Verify e
 - [ ] Set up shared UI primitives: Skeleton with shimmer (reduced-motion safe), empty/error state components, toast + `aria-live` region.
 - [ ] Add `index.html` essentials: `lang`, `<title>`, meta description, favicon, viewport.
 
-**Acceptance**: app shell renders at 390/768/1440; 404 route works; ETH helpers tested.
+**Acceptance**: shell matches `design/reference/` at 1440 and 390; no arbitrary hex values in the code. App shell renders at 390/768/1440; 404 route works; ETH helpers tested.
 
 ---
 
@@ -45,6 +49,7 @@ Context: initial setup is done and dependencies are installed with npm. Verify e
 
 - [ ] Define typed contracts in `src/types/contracts.ts` and `src/types/events.ts` (error envelope, quote, order states, event envelope with `eventId`, `version`, `userId`).
 - [ ] Create fixtures: ≥ 2 users (fictitious credentials), diverse NFTs/categories/editions (enough for filters + pagination), coupons (valid, invalid, expired), wallets, favorites, carts, orders.
+- [ ] Add fixtures and facets for the 9 categories, Ethereum/Polygon/Solana networks, "Kurio Apes", rarity, old prices and reviews; add featured, related and read-only reviews endpoints; add the `design-cart` scenario described in `ARCHITECTURE.md` §10.
 - [ ] Build the mock state store with local persistence and a **reset** to a known scenario; hash passwords in the mock layer.
 - [ ] Implement REST handlers: auth/session (incl. expiry), NFTs (search, combinable filters, sort, pagination, detail, not-found, unavailable edition), favorites, cart (+ merge, coupon), quote, orders (idempotency: same key/payload → same order; different payload → 409), profile (+ avatar, password), wallets (+ connect/refuse/disconnect).
 - [ ] Implement scenario switches: success, empty, variable latency + out-of-order, connection failure, 4xx/5xx, expired session, unauthorized, signup conflict / validation error, invalid/expired coupon, price change / sold-out during purchase, timeout after order creation, payment confirmed, payment rejected.
@@ -59,7 +64,7 @@ Context: initial setup is done and dependencies are installed with npm. Verify e
 
 ## Epic 3: Authentication & Session
 
-- [ ] Build Login and Signup screens (React Hook Form + Zod) with API error mapping (`fieldErrors`, `EMAIL_TAKEN`).
+- [ ] Build Login/Signup at `/login` and `/signup` (desktop modal over previous route, mobile full-screen) with React Hook Form + Zod and API error mapping (`fieldErrors`, `EMAIL_TAKEN`); "Esqueceu a senha?" and social buttons follow `DESIGN_SYSTEM.md` §9. The Cadastro frame is pending.
 - [ ] Session recovery after refresh via `GET /api/auth/session`; token handling in Axios interceptor.
 - [ ] Route guards for private areas; redirect to Login with `redirect` param and return to the previous flow.
 - [ ] Handle session expiry during navigation and checkout, preserving return context for resumption.
@@ -73,6 +78,7 @@ Context: initial setup is done and dependencies are installed with npm. Verify e
 ## Epic 4: Home, Catalog & Discovery
 
 - [ ] Home with featured items and catalog grid (Figma fidelity, desktop + mobile).
+- [ ] Add `feed` tabs, price-range slider with "Aplicar" (decimal strings in URL), network facet, category facet with counts, card hover/focus actions (cart, favorite, view), "NFT em destaque", promo banners and "Diário da Cunhagem" teasers (static copy); mobile search and filter drawer.
 - [ ] Search, combinable filters, sort and pagination synced to URL search params; changing a filter resets `page`; survives refresh and back/forward.
 - [ ] Query keys reflect exact params; cancel stale requests via `signal`; handle out-of-order responses.
 - [ ] Skeleton (shimmer) loading, empty state, error state with retry, background-refetch indicator.
@@ -86,6 +92,7 @@ Context: initial setup is done and dependencies are installed with npm. Verify e
 ## Epic 5: NFT Detail & Favorites
 
 - [ ] Detail view: direct access, gallery, metadata/attributes, edition selection, quantity selector with limits, buy/add-to-cart triggers.
+- [ ] Add thumbnail gallery with zoom, edition chips, read-only Avaliações tab, and "Mais desta coleção" carousel.
 - [ ] Handle non-existent NFT (404 state) and unavailable/sold-out editions.
 - [ ] Favorites: authenticated persistence, optimistic toggle with rollback on failure, guest prompt to login.
 - [ ] **Tests**: direct detail access + not found; favorites mutation failure and recovery.
@@ -104,7 +111,7 @@ Context: initial setup is done and dependencies are installed with npm. Verify e
 
 ## Epic 7: Checkout, Orders & Receipt
 
-- [ ] Checkout form: collector data (validated per Figma fields), wallet selection, network selection, simulated connect/refuse/disconnect, review step.
+- [ ] Checkout form: collector data (prefilled from profile/registered wallet; "Usar outra carteira?" reveals per-network validated address entry), provider selection with simulated connect/refuse/disconnect, and review dialog before submit.
 - [ ] Quote revalidation before confirming; on price/availability/coupon/fee change show differences and require a new explicit confirmation.
 - [ ] Idempotent order creation: per-attempt key persisted and reused on retry; block duplicate clicks; timeout recovery returns the same order; `409` on key reuse with different payload.
 - [ ] Pending / confirmed / rejected states; recovery after refresh/reconnection; show confirmation **only** for confirmed orders.
@@ -145,6 +152,7 @@ Context: initial setup is done and dependencies are installed with npm. Verify e
 - [ ] Forms: labels, `aria-describedby` errors, `aria-invalid`.
 - [ ] Verify 390 / 768 / 1440 px: no horizontal overflow, content intact at 200% zoom.
 - [ ] Visual regression baselines (Home, Detail, Cart, Payment) with stable data and controlled animations.
+- [ ] Compare visual-regression baselines against the same scenarios as `design/reference/`, including the `design-cart` scenario.
 - [ ] Coverage check against the 12 required E2E items: (1) search/filters/history, (2) detail/not found, (3) auth lifecycle, (4) favorites failure/recovery, (5) cart/coupon/persistence, (6) full purchase, (7) payment failure/repeat click/timeout, (8) profile/wallets validation, (9) price change via socket, (10) duplicate/old events and pending resume, (11) keyboard/focus/forms, (12) slow-network skeleton and retry.
 - [ ] Confirm HTML report and failure traces are produced.
 

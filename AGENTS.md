@@ -2,7 +2,7 @@
 
 Strict rules for AI and human collaborators on the **NFT Marketplace** frontend challenge. Read this file fully before touching code. When a rule here conflicts with a convenience, the rule wins. When a rule here conflicts with the challenge statement, the challenge statement wins — flag it instead of silently deviating.
 
-Companion files: `ARCHITECTURE.md` (design & contracts), `tasks.md` (backlog). Update them as decisions change; never let them drift from the code.
+Companion files: `DESIGN_SYSTEM.md` and `design/reference/` (visual source of truth), `ARCHITECTURE.md` (design & contracts), `tasks.md` (backlog). Update them as decisions change; never let them drift from the code.
 
 ## 0. Priorities & Disqualifiers
 
@@ -19,6 +19,8 @@ Scoring weights: visual fidelity & responsiveness 20, flows & UX 20, integration
 ## 1. Core Stack & Pinned Compatibility Notes
 
 - **Language**: TypeScript 6.0.x (`~6.0.2`). **Do not upgrade to TypeScript 7** — `typescript-eslint` currently supports `<6.1.0`.
+- **Font**: Roboto Mono, self-hosted (e.g. `@fontsource-variable/roboto-mono` or `@fontsource/roboto-mono`); no external font CDN.
+- **Theme**: dark only, with tokens in `src/index.css` defined by `DESIGN_SYSTEM.md`. Replace shadcn starter defaults (Geist, neutral palette, `radix-nova` radius).
 - **Build**: Vite 8 + `@vitejs/plugin-react` 6 + `@tailwindcss/vite` (Tailwind CSS v4, CSS-first config, no `tailwind.config.js`).
 - **UI**: React 19, functional components and hooks only. shadcn/ui components (Tailwind v4 + React 19 variant) customized to the Figma design tokens.
 - **Routing**: TanStack Router with the Vite plugin (`@tanstack/router-plugin`). **File-based routing** under `src/routes/` is the single chosen approach. Search params are validated with Zod.
@@ -66,11 +68,12 @@ Environment variables: `VITE_ENABLE_MOCKS`, `VITE_MOCK_SCENARIO`, `VITE_API_BASE
 3. **Async UI states**: every async surface handles loading, empty, error, success and background-refetch states. No unhandled promise rejections, no silent failures. Every error state offers a retry.
 4. **Loading**: skeletons **with shimmer** for catalog, detail and cart summary. Skeletons reserve final dimensions (no layout shift) and respect `prefers-reduced-motion`.
 5. **Errors**: use the error envelope defined in `ARCHITECTURE.md`. Map API error codes to user-facing messages in one place (`src/utils/errors.ts`). Add a root error boundary and a catch-all 404 route.
-6. **Out-of-scope actions** (editorial pages, support, activity, offers, downloads, social links): links must behave coherently (external links open safely with `rel="noopener noreferrer"`); buttons for out-of-scope features must be visibly unavailable or show a non-success notice. They must never look like they worked.
+6. **Out-of-scope actions** (editorial pages, support, activity, offers, downloads, social links): links must behave coherently (external links open safely with `rel="noopener noreferrer"`); buttons for out-of-scope features must be visibly unavailable or show a non-success notice. They must never look like they worked. Exact behavior is defined in `DESIGN_SYSTEM.md` §9.
 
 ## 5. Money, Quantities & Data Formatting
 
 - ETH values travel as **decimal strings** (`"0.125"`). Never convert to `number`/`parseFloat`. All arithmetic and comparison goes through `decimal.js` helpers in `src/utils/eth.ts` (add, mul, sum, compare, format).
+- Prices render with a dot as decimal separator everywhere and exactly as received from the API.
 - Quantities are integers (validate with Zod `.int().min(1)`).
 - **The API quote is the single source of truth for totals.** The UI may format values but must not compute its own authoritative subtotal/discount/fee/total.
 - Never store passwords in clear text, even in mocks: hash them (e.g. salted SHA-256 via `crypto.subtle`) inside the MSW layer. Use fictitious credentials only.
@@ -78,6 +81,7 @@ Environment variables: `VITE_ENABLE_MOCKS`, `VITE_MOCK_SCENARIO`, `VITE_API_BASE
 ## 6. Routing
 
 - All routes, private-route protection (`beforeLoad` guards) and search params go through TanStack Router.
+- `/login` and `/signup` are route-driven authentication screens. On desktop they render as a modal over the previous route; closing returns to that route. On mobile they render full-screen. Direct access works. `Mercado` remains active on detail, cart, checkout and favorites. Add `/favoritos` and an "indisponível nesta demonstração" route for out-of-scope links.
 - Catalog search, filters, sort and pagination live **in the URL** (validated search params). Changing any filter resets `page` to 1. State must survive refresh and back/forward navigation.
 - Private routes: Cart (authenticated cart), Checkout, Order confirmation, Profile, Wallets, Favorites. Unauthenticated access redirects to Login with a `redirect` param and returns to the previous flow after login.
 - Every planned screen must work on direct access and on refresh (including the deployed environment — SPA fallback required).
@@ -114,7 +118,7 @@ Environment variables: `VITE_ENABLE_MOCKS`, `VITE_MOCK_SCENARIO`, `VITE_API_BASE
 
 ## 10. Accessibility & UI
 
-- Match Figma typography, colors, spacing, hierarchy, image proportions and layout. Missing states follow the same visual pattern. Record any deviation in `ARCHITECTURE.md`.
+- Implement `DESIGN_SYSTEM.md`. Compare each screen against `design/reference/` at 1440 and 390/414. Never use arbitrary hex classes (`bg-[#...]`); use semantic tokens only. Record every deviation in `ARCHITECTURE.md` §14.
 - Verify at **390, 768 and 1440 px**: no unintended horizontal overflow, no content loss at 200% zoom.
 - Keyboard: full operation, visible focus, focus trap and focus return for dialogs/drawers, Escape closes.
 - Semantics: landmarks, headings order, labels, error messages associated via `aria-describedby`, `aria-invalid`. Images have meaningful `alt` (decorative ones `alt=""`). State is never conveyed by color alone. Contrast ≥ WCAG AA.
@@ -153,6 +157,9 @@ src/
   mocks/         MSW handlers, fixtures, scenarios, socket server mock, persistence/reset
   types/         contracts.ts, events.ts, shared types
   utils/         eth.ts, formatters, errors, validation helpers
+  content/       static UI copy only; never business data
 e2e/             Playwright specs, fixtures, visual baselines
 lighthouse/      Lighthouse config, scripts, reports
+design/
+  reference/     Figma exports
 ```
