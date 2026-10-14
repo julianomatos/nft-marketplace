@@ -7,11 +7,10 @@ export function parseSearchArray(value: unknown): string[] | undefined {
 
   try {
     const parsed: unknown = JSON.parse(value)
-    if (
-      Array.isArray(parsed) &&
-      parsed.every((item) => typeof item === 'string')
-    ) {
-      return parsed
+    if (Array.isArray(parsed)) {
+      return parsed.every((item) => typeof item === 'string')
+        ? parsed
+        : undefined
     }
   } catch {
     if (value.startsWith('[')) return undefined
@@ -21,5 +20,5 @@ export function parseSearchArray(value: unknown): string[] | undefined {
 }
 
 export function serializeSearchArray(values: readonly string[]): string {
-  return JSON.stringify(values)
+  return JSON.stringify([...values])
 }

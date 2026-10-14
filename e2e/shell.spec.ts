@@ -57,7 +57,7 @@ test('renders the responsive KURIO shell', async ({ page }) => {
     ).toBeVisible()
     await page.goto('/indisponivel')
     await exploreLink.click()
-    await expect(page).toHaveURL(/\/#catalog$/)
+    await expect(page).toHaveURL(/\/\?page=1#catalog$/)
     await expect(
       page.getByRole('link', { name: 'Buscar coleções' }),
     ).toBeFocused()

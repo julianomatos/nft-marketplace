@@ -6,6 +6,7 @@ import {
   API_ERROR_STATUS,
   IDEMPOTENCY_KEY_HEADER,
 } from '@/types/endpoints'
+import { serializeNftApiParams } from '@/utils/search-params'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || API_BASE_PATH
 const API_TIMEOUT_MS = 15_000
@@ -14,6 +15,9 @@ const SESSION_TOKEN_STORAGE_KEY = 'kurio.session.token'
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   timeout: API_TIMEOUT_MS,
+  paramsSerializer: {
+    serialize: serializeNftApiParams,
+  },
   headers: {
     Accept: 'application/json',
   },

@@ -7,7 +7,7 @@ import {
   mul,
   rangePercentage,
   sum,
-} from '../src/utils/eth'
+} from '../../src/utils/eth'
 
 test('calculates ETH values without binary floating-point loss', () => {
   expect(add('0.1', '0.2')).toBe('0.3')

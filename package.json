@@ -9,8 +9,9 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
-    "test:e2e": "playwright test",
+    "test:e2e": "playwright test --project=chromium-desktop --project=chromium-mobile",
     "test:e2e:update": "playwright test --update-snapshots",
+    "test:unit": "playwright test --config=playwright.unit.config.ts --project=unit",
     "lighthouse": "node ./lighthouse/audit.mjs"
   },
   "engines": {

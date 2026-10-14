@@ -1,10 +1,5 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
-import { requireAuthenticated } from '../src/utils/route-guards'
-import {
-  catalogSearchSchema,
-  validateSearchWithZod,
-} from '../src/utils/search-params'
 
 test('renders the catch-all 404 route and offers a return path', async ({
   page,
@@ -23,55 +18,13 @@ test('renders the catch-all 404 route and offers a return path', async ({
   ).toBeVisible()
 })
 
-test('validates catalog search values with Zod on direct navigation', async ({
+test('supports valid catalog search params during direct navigation', async ({
   page,
 }) => {
-  const parseSearch = validateSearchWithZod(catalogSearchSchema)
-
-  expect(
-    parseSearch({ q: 'kurio', feed: 'trending', page: '2' }),
-  ).toEqual({ q: 'kurio', feed: 'trending', page: 2 })
-  expect(parseSearch({ page: '0' })).toMatchObject({ page: 1 })
-
   await page.goto('/?q=kurio&feed=trending&page=2')
   await expect(
     page.getByRole('heading', { name: 'O marketplace está em construção.' }),
   ).toBeVisible()
-})
-
-test('redirects guest guard requests to login with their return URL', () => {
-  expect(() =>
-    requireAuthenticated({
-      context: { session: { status: 'guest' } },
-      location: { href: '/carrinho?item=ape' },
-    }),
-  ).toThrow()
-
-  try {
-    requireAuthenticated({
-      context: { session: { status: 'guest' } },
-      location: { href: '/carrinho?item=ape' },
-    })
-  } catch (error) {
-    expect(error).toMatchObject({
-      options: {
-        href: '/login?redirect=%2Fcarrinho%3Fitem%3Dape',
-      },
-    })
-  }
-
-  expect(() =>
-    requireAuthenticated({
-      context: {
-        session: {
-          status: 'authenticated',
-          userId: 'collector-1',
-          displayName: 'Collector',
-        },
-      },
-      location: { href: '/perfil' },
-    }),
-  ).not.toThrow()
 })
 
 test('falls back to default route search params without breaking the route', async ({

@@ -6,7 +6,7 @@ import {
 import {
   parseSearchArray,
   serializeSearchArray,
-} from '../types/search-params'
+} from '../types/search-array-serialization'
 
 const catalogSearchSchema = nftSearchParamsSchema.pick({
   q: true,
@@ -43,6 +43,27 @@ function updateNftSearchParams(
   })
 }
 
+function serializeNftApiParams(params: Record<string, unknown>): string {
+  const serialized = new URLSearchParams()
+
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === null) continue
+
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        if (item !== undefined && item !== null) {
+          serialized.append(key, String(item))
+        }
+      }
+      continue
+    }
+
+    serialized.append(key, String(value))
+  }
+
+  return serialized.toString()
+}
+
 function validateSearchWithZod<TSchema extends z.ZodType>(
   schema: TSchema,
 ): (search: Record<string, unknown>) => z.output<TSchema> {
@@ -53,6 +74,7 @@ export {
   catalogSearchSchema,
   parseSearchArray,
   serializeSearchArray,
+  serializeNftApiParams,
   updateNftSearchParams,
   validateSearchWithZod,
   type CatalogSearchParams,

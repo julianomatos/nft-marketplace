@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { parseSearchArray } from './search-params'
+import { parseSearchArray } from './search-array-serialization'
 
 export const ethAmountSchema = z
   .string()
@@ -217,6 +217,9 @@ export type NftAttribute = {
 export type NftImage = {
   url: string
   alt: string
+  width: number
+  height: number
+  thumbnailUrl: string
 }
 
 export type NftSummary = {

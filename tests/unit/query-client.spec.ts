@@ -6,8 +6,8 @@ import {
   queryRetryDelay,
   queryStaleTimes,
   shouldRetryQuery,
-} from '../src/lib/query-client'
-import { queryKeys } from '../src/hooks/queryKeys'
+} from '../../src/lib/query-client'
+import { queryKeys } from '../../src/hooks/queryKeys'
 
 test('configures query retry, delay, stale time, and mutation defaults', () => {
   const serverError = Object.assign(

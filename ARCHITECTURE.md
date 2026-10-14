@@ -61,7 +61,7 @@ The initial dependency audit found 8 high and 19 moderate advisories in the Ligh
 
 REST request/response types live in `src/types/contracts.ts` and are shared by Axios wrappers, hooks and (in the next task) MSW handlers. `EthAmount` is a decimal string validated by the common `ethAmountSchema` (`/^\d+(?:\.\d{1,18})?$/`); quantities use integer types and the shared positive-quantity schema at request boundaries. No ETH amount is represented as a JavaScript number.
 
-Shared endpoint paths, the `/api` base path, `X-Idempotency-Key`, and API error HTTP statuses live in `src/types/endpoints.ts`. Axios uses the shared base path; MSW handlers will use the same endpoint map when implemented. `category` and `network` arrays in catalog search are JSON arrays in the query string (for example, `category=%5B%22art%22%2C%22collectibles%22%5D`); the search utility accepts TanStack Router's already-parsed arrays and this serialized representation. Search defaults are `sort=recent`, `page=1`, and `limit=9`; malformed individual values fall back to their defaults / omitted optional filters. Changing any catalog filter resets `page` to 1.
+Shared endpoint paths, the `/api` base path, `X-Idempotency-Key`, and API error HTTP statuses live in `src/types/endpoints.ts`. Axios uses the shared base path; MSW handlers will use the same endpoint map when implemented. Browser URL `category` and `network` values are JSON arrays in the query string (for example, `category=%5B%22art%22%2C%22collectibles%22%5D`). For API requests, Axios `paramsSerializer` emits repeated parameters (`category=art&category=collectibles`); handlers read them using `URLSearchParams.getAll()`. Search defaults are `sort=recent`, `page=1`, and `limit=9`; malformed individual values fall back to their defaults / omitted optional filters. Changing any catalog filter resets `page` to 1.
 
 | Resource | Endpoints |
 | --- | --- |
@@ -74,7 +74,7 @@ Shared endpoint paths, the `/api` base path, `X-Idempotency-Key`, and API error 
 | Profile | `GET /api/profile`, `PUT /api/profile` (data/avatar), `PUT /api/profile/password` |
 | Wallets | `GET /api/wallets`, `POST /api/wallets`, `PUT /api/wallets/:id`, `POST /api/wallets/:id/connect`, `POST /api/wallets/:id/disconnect` (simulated connect/refuse/disconnect) |
 
-`GET /api/nfts` returns `{ items, page, limit, total, totalPages, facets: { categories: [{ id, label, count }], networks: [{ id, label, count }], priceRange: { min, max } } }`. Facet counts reflect all other active filters, excluding that facet's own selection; fixtures keep the counts consistent. Supported `sort` values are `recent`, `price-asc`, `price-desc`, and `popular`.
+`GET /api/nfts` returns `{ items, page, limit, total, totalPages, facets: { categories: [{ id, label, count }], networks: [{ id, label, count }], priceRange: { min, max } } }`. NFT images include `url`, `alt`, source `width` / `height`, and `thumbnailUrl` for the 480 px variant. Facet counts reflect all other active filters, excluding that facet's own selection; fixtures keep the counts consistent. Supported `sort` values are `recent`, `price-asc`, `price-desc`, and `popular`.
 
 The corresponding TypeScript names are `AuthResponse` / `AuthSessionResponse`, `NftListResponse` / `NftFacets` / `NftEdition`, `FavoritesResponse`, `CartResponse` / `MergeCartRequest` / `MergeCartResponse`, `QuoteResponse`, `CreateOrderRequest` / `OrderReceiptSnapshot`, `ProfileResponse`, `WalletsResponse`, and `ApiErrorEnvelope`. Form/request Zod schemas define `SignupRequest`, `LoginRequest`, `CartItemInput`, `MergeCartRequest`, `ApplyCouponRequest`, `CreateOrderRequest`, `ProfileUpdateRequest`, `PasswordUpdateRequest`, and `WalletUpsertRequest`; these schemas validate untrusted input rather than duplicating response types. Wallet addresses are checked against the documented network formats at profile/order form boundaries.
 
@@ -92,7 +92,7 @@ Response shapes not explicitly specified by the challenge are made concrete as f
 
 ### 4.1 Quote
 
-`POST /api/cart/quote` returns `{ quoteId, items[{ nftId, edition, quantity, unitPrice, available }], subtotal, discount, networkFee, total, coupon{ code, status }, expiresAt, version }`. It validates coupon, availability, discounts, fees and total. `POST /api/orders` carries the `quoteId`; the server revalidates it.
+`POST /api/cart/quote` returns `{ quoteId, items[{ nftId, editionId, edition, quantity, unitPrice, lineTotal, available }], subtotal, discount, networkFee, total, coupon{ code, status }, expiresAt, version }`. It validates coupon, availability, discounts, fees and total. `POST /api/orders` carries the `quoteId`; the server revalidates it.
 
 ### 4.2 Error envelope
 
@@ -158,6 +158,7 @@ The QueryClient is initialized in `src/lib/query-client.ts` and provided above t
 
 - **Transport**: `socket.io-client` connected to the MSW Socket.IO binding. Handshake carries the session token; events for private resources include `userId`. Client creation must happen only after `worker.start()`.
 - **Common envelope**: validated by `socketEventSchema` in `src/types/events.ts`: `{ eventId, type, resource: { kind, id }, version, timestamp, userId?, data }`. `version` is a positive integer increasing monotonically **per resource**. Received event payloads are untrusted and parsed before use.
+- The receipt's `version` tracks the version of its `order.updated` event. Apply an order event to a cached receipt only when the event version is greater than the cached receipt version.
 
 | Event | `data` | Client behavior |
 | --- | --- | --- |

@@ -19,16 +19,16 @@ import {
   type OrderReceiptSnapshot,
   type QuoteResponse,
   type WalletUpsertRequest,
-} from '../src/types/contracts'
-import { API_ERROR_STATUS } from '../src/types/endpoints'
+} from '../../src/types/contracts'
+import { API_ERROR_STATUS } from '../../src/types/endpoints'
 import {
   socketEventSchema,
   type SocketEvent,
-} from '../src/types/events'
+} from '../../src/types/events'
 import {
   serializeSearchArray,
   updateNftSearchParams,
-} from '../src/utils/search-params'
+} from '../../src/utils/search-params'
 
 const validCartItem: CartItemInput = {
   nftId: 'emerald-ape-042',
