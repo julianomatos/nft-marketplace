@@ -365,6 +365,22 @@ test('navigates through the authenticated profile layout and its routes', async 
   await expect(page.getByRole('heading', { name: 'Lista de interesse' })).toBeVisible()
 })
 
+test('renders the favorites list for authenticated users and prompts guests to login', async ({
+  page,
+}) => {
+  await page.goto('/favoritos')
+  await expect(page).toHaveURL(/\/login\?redirect=%2Ffavoritos/)
+
+  await page.getByLabel('E-mail', { exact: true }).fill('ana@kurio.example.test')
+  await page.getByLabel('Senha', { exact: true }).fill('KurioDemo!A2026')
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click()
+
+  await page.goto('/favoritos')
+  await expect(page.getByRole('heading', { name: 'Lista de interesse' })).toBeVisible()
+  await expect(page.getByText('Emerald Ape #042', { exact: true })).toBeVisible()
+
+})
+
 test('updates profile data and password with validation feedback', async ({
   page,
 }) => {

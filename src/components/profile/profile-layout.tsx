@@ -6,13 +6,17 @@ import { useEffect, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
+import { EmptyState } from '@/components/ui/empty-state'
+import { ErrorState } from '@/components/ui/error-state'
 import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
 import { queryKeys } from '@/hooks/queryKeys'
 import { useSession } from '@/hooks/use-session'
 import { API_ENDPOINTS } from '@/types/endpoints'
 import {
   passwordUpdateRequestSchema,
   profileUpdateRequestSchema,
+  type FavoritesResponse,
   type PasswordUpdateRequest,
   type Profile,
   type ProfileUpdateRequest,
@@ -20,6 +24,7 @@ import {
 import { apiClient } from '@/services/api-client'
 import { queryStaleTimes } from '@/lib/query-client'
 import { ApiClientError } from '@/utils/errors'
+import { NftCard } from '@/components/home/nft-card'
 
 const profileNavItems = [
   { label: 'Dados do perfil', to: '/perfil', icon: UserRound },
@@ -473,13 +478,118 @@ function WalletsPage() {
 }
 
 function FavoritesPage() {
+  const sessionQuery = useSession()
+  const userId = sessionQuery.data?.authenticated ? sessionQuery.data.user.id : undefined
+
+  const favoritesQuery = useQuery({
+    queryKey: userId ? queryKeys.user(userId).favorites : ['user', 'favorites', 'guest'],
+    enabled: Boolean(userId),
+    queryFn: async ({ signal }) => {
+      const response = await apiClient.get<FavoritesResponse>(API_ENDPOINTS.favorites.list, {
+        signal,
+      })
+      return response.data
+    },
+    staleTime: queryStaleTimes.account,
+  })
+
+  if (sessionQuery.isPending) {
+    return (
+      <ProfileLayout
+        description="Acompanhe seus NFTs favoritos e retorne rapidamente para os itens que você mais deseja acompanhar."
+        title="Lista de interesse"
+      >
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <div className="space-y-3" key={index}>
+              <Skeleton className="aspect-square w-full" />
+              <Skeleton className="h-4 w-2/3" />
+              <Skeleton className="h-4 w-1/3" />
+            </div>
+          ))}
+        </div>
+      </ProfileLayout>
+    )
+  }
+
+  if (!userId) {
+    return (
+      <ProfileLayout
+        description="Acompanhe seus NFTs favoritos e retorne rapidamente para os itens que você mais deseja acompanhar."
+        title="Lista de interesse"
+      >
+        <div className="space-y-4 rounded-sm border border-dashed border-border bg-background p-6 text-center">
+          <p className="text-sm leading-6 text-muted-foreground">
+            Faça login para salvar e acompanhar seus NFTs favoritos em um só lugar.
+          </p>
+          <Button asChild>
+            <Link to="/login" search={{ redirect: '/favoritos' }}>
+              Entrar na conta
+            </Link>
+          </Button>
+        </div>
+      </ProfileLayout>
+    )
+  }
+
+  if (favoritesQuery.isPending) {
+    return (
+      <ProfileLayout
+        description="Acompanhe seus NFTs favoritos e retorne rapidamente para os itens que você mais deseja acompanhar."
+        title="Lista de interesse"
+      >
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <div className="space-y-3" key={index}>
+              <Skeleton className="aspect-square w-full" />
+              <Skeleton className="h-4 w-2/3" />
+              <Skeleton className="h-4 w-1/3" />
+            </div>
+          ))}
+        </div>
+      </ProfileLayout>
+    )
+  }
+
+  if (favoritesQuery.isError) {
+    return (
+      <ProfileLayout
+        description="Acompanhe seus NFTs favoritos e retorne rapidamente para os itens que você mais deseja acompanhar."
+        title="Lista de interesse"
+      >
+        <ErrorState
+          description="Não foi possível carregar sua lista de interesse. Verifique sua conexão e tente novamente."
+          onRetry={() => void favoritesQuery.refetch()}
+          retrying={favoritesQuery.isFetching}
+          title="Falha ao carregar favoritos"
+        />
+      </ProfileLayout>
+    )
+  }
+
+  if (favoritesQuery.data.items.length === 0) {
+    return (
+      <ProfileLayout
+        description="Acompanhe seus NFTs favoritos e retorne rapidamente para os itens que você mais deseja acompanhar."
+        title="Lista de interesse"
+      >
+        <EmptyState
+          description="Explore o catálogo e marque seus NFTs favoritos para continuar aqui."
+          title="Nenhum item foi salvo ainda"
+        />
+      </ProfileLayout>
+    )
+  }
+
   return (
     <ProfileLayout
       description="Acompanhe seus NFTs favoritos e retorne rapidamente para os itens que você mais deseja acompanhar."
       title="Lista de interesse"
     >
-      <div className="rounded-sm border border-dashed border-border bg-background p-6 text-center text-sm text-muted-foreground">
-        Nenhum item foi salvo ainda. Explore o catálogo e marque seus favoritos para continuar aqui.
+      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+        {favoritesQuery.data.items.map(({ nft }) => (
+          <NftCard key={nft.id} nft={nft} />
+        ))}
       </div>
     </ProfileLayout>
   )
