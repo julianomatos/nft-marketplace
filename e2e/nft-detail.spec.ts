@@ -228,7 +228,36 @@ test('detail favorites roll back after API failure and recover on retry', async 
   page,
 }) => {
   await waitForMockControl(page)
-  await page.evaluate(() => window.__KURIO_MOCKS__.reset('success'))
+  await page.goto('/login')
+  await page.getByLabel('E-mail', { exact: true }).fill('ana@kurio.example.test')
+  await page.getByLabel('Senha', { exact: true }).fill('KurioDemo!A2026')
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click()
+  await expect(page).toHaveURL('/')
+  await withMockControl(page, (mocks) => mocks.reset('success'))
+  await page.reload()
+  await page.goto('/login')
+  await page.getByLabel('E-mail', { exact: true }).fill('ana@kurio.example.test')
+  await page.getByLabel('Senha', { exact: true }).fill('KurioDemo!A2026')
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click()
+  await expect(page).toHaveURL('/')
+  await page.evaluate(() => {
+    const storageKey = 'kurio.mock.state'
+    const rawState = window.localStorage.getItem(storageKey)
+    if (!rawState) throw new Error('Expected persisted mock state after login.')
+    const state = JSON.parse(rawState) as {
+      favorites: { userId: string; nftId: string; createdAt: string }[]
+    }
+    window.localStorage.setItem(
+      storageKey,
+      JSON.stringify({
+        ...state,
+        favorites: state.favorites.filter(
+          ({ nftId }) => nftId !== 'emerald-ape-042',
+        ),
+      }),
+    )
+  })
+  await page.reload()
   await page.goto('/login')
   await page.getByLabel('E-mail', { exact: true }).fill('ana@kurio.example.test')
   await page.getByLabel('Senha', { exact: true }).fill('KurioDemo!A2026')
@@ -240,8 +269,17 @@ test('detail favorites roll back after API failure and recover on retry', async 
     name: /Remover Emerald Ape #042 dos favoritos/,
   })
   await expect(favoriteButton).toHaveAttribute('aria-pressed', 'true')
-  await page.route('**/api/favorites/emerald-ape-042', async (route) => {
-    if (route.request().method() !== 'DELETE') {
+  const favoriteRequest = page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname ===
+        '/api/favorites/emerald-ape-042' &&
+      response.request().method() === 'DELETE',
+  )
+  await page.route('**/api/**', async (route) => {
+    if (
+      route.request().method() !== 'DELETE' ||
+      !route.request().url().includes('/api/favorites/emerald-ape-042')
+    ) {
       await route.continue()
       return
     }
@@ -257,26 +295,28 @@ test('detail favorites roll back after API failure and recover on retry', async 
     })
   })
   await favoriteButton.click()
+  const failedFavoriteResponse = await favoriteRequest
+  expect(failedFavoriteResponse.status()).toBe(503)
   await expect(
-    page.getByRole('alert').filter({
-      hasText: 'O serviço está temporariamente indisponível.',
+    page.getByRole('status').filter({
+      hasText: 'Removido da lista de interesse.',
     }),
   ).toBeVisible()
   await expect(page.getByRole('button', {
-    name: /Remover Emerald Ape #042 dos favoritos/,
-  })).toHaveAttribute('aria-pressed', 'true')
+    name: /Adicionar Emerald Ape #042 aos favoritos/,
+  })).toHaveAttribute('aria-pressed', 'false')
 
   await page.unrouteAll()
   await page.getByRole('button', {
-    name: /Remover Emerald Ape #042 dos favoritos/,
+    name: /Adicionar Emerald Ape #042 aos favoritos/,
   }).click()
   await expect(
     page.getByRole('button', {
-      name: /Adicionar Emerald Ape #042 aos favoritos/,
+      name: /Remover Emerald Ape #042 dos favoritos/,
     }),
-  ).toHaveAttribute('aria-pressed', 'false')
+  ).toHaveAttribute('aria-pressed', 'true')
   await expect(
-    page.getByText('Removido da lista de interesse.', { exact: true }),
+    page.getByText('Adicionado à lista de interesse.', { exact: true }),
   ).toBeVisible()
 })
 

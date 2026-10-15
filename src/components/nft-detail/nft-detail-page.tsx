@@ -546,17 +546,6 @@ function NftDetailContent({ nft }: { nft: Nft }) {
               <ShoppingCart aria-hidden="true" />
             </Button>
           </div>
-          {feedback && (
-            <p
-              aria-live={feedback.kind === 'error' ? 'assertive' : 'polite'}
-              className={`mt-3 text-sm ${
-                feedback.kind === 'error' ? 'text-destructive' : 'text-highlight'
-              }`}
-              role={feedback.kind === 'error' ? 'alert' : 'status'}
-            >
-              {feedback.message}
-            </p>
-          )}
         </section>
       </div>
 
@@ -599,18 +588,18 @@ function NftDetailContent({ nft }: { nft: Nft }) {
             <ShoppingCart aria-hidden="true" size={20} />
           </Button>
         </div>
-        {feedback && (
-          <p
-            aria-live={feedback.kind === 'error' ? 'assertive' : 'polite'}
-            className={`mt-2 text-xs ${
-              feedback.kind === 'error' ? 'text-destructive' : 'text-highlight'
-            }`}
-            role={feedback.kind === 'error' ? 'alert' : 'status'}
-          >
-            {feedback.message}
-          </p>
-        )}
       </div>
+      {feedback && (
+        <p
+          aria-live={feedback.kind === 'error' ? 'assertive' : 'polite'}
+          className={`kurio-container mt-2 text-sm ${
+            feedback.kind === 'error' ? 'text-destructive' : 'text-highlight'
+          }`}
+          role={feedback.kind === 'error' ? 'alert' : 'status'}
+        >
+          {feedback.message}
+        </p>
+      )}
 
       <section className="mt-14" aria-label="Detalhes e avaliações">
         <div

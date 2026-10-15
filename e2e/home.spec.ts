@@ -300,13 +300,13 @@ test('card actions require auth and use REST for favorite and cart', async ({
     hasText: 'NFT adicionado ao carrinho.',
   })).toBeVisible()
 
-  await page.getByRole('button', {
-    name: 'Ver Emerald Ape #042',
-    exact: true,
+  await page.getByRole('link', {
+    name: 'Ver Emerald Ape #042 — página de detalhes',
   }).click()
-  await expect(page.getByRole('status').filter({
-    hasText: 'A página de detalhes deste NFT estará disponível em breve.',
-  })).toBeVisible()
+  await expect(page).toHaveURL('/nft/emerald-ape-042')
+  await expect(
+    page.getByRole('heading', { name: 'Emerald Ape #042' }),
+  ).toBeVisible()
 })
 
 test('guest favorite action returns to login instead of mutating private state', async ({

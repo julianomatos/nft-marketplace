@@ -235,7 +235,7 @@ function CheckoutPage() {
         JSON.stringify(formDraft),
       )
     }
-  }, [reviewOpen])
+  }, [reviewOpen, step])
 
   useEffect(() => {
     if (!step || !reviewOpen) return

@@ -6,8 +6,12 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/')
   await withMockControl(page, (mocks, browserWindow) => {
     mocks.reset('design-cart')
-    browserWindow.sessionStorage.setItem('kurio.session.token', 'mock-token-collector-ana')
+    browserWindow.sessionStorage.setItem(
+      'kurio.session.token',
+      'mock-token-collector-ana',
+    )
   })
+  await page.reload()
 })
 
 test('renders the checkout form, validates collector data and confirms the order through the API', async ({
@@ -16,10 +20,12 @@ test('renders the checkout form, validates collector data and confirms the order
   await page.goto('/pagamento')
 
   await expect(page.getByRole('heading', { name: 'Finalizar compra' })).toBeVisible()
-  await expect(page.getByLabel('Nome completo', { exact: true })).toHaveValue(
+  await expect(page.getByLabel('Nome completo')).toHaveValue(
     'Ana Oliveira',
   )
-  await expect(page.getByLabel('E-mail', { exact: true })).toHaveValue(
+  await expect(
+    page.getByRole('textbox', { name: 'E-mail', exact: true }),
+  ).toHaveValue(
     'ana@kurio.example.test',
   )
 

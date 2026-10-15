@@ -1,25 +1,11 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 import { withMockControl, waitForMockControl } from './mock-helpers'
-import type { MockControlForTests, MockSocketForTests } from './mock-helpers'
+import type { MockControlForTests } from './mock-helpers'
 
 export type TestMockControl = MockControlForTests & {
   advanceMockTime: (milliseconds: number) => void
   requestProfile: () => Promise<{ data: { displayName: string; email: string } }>
-  connectSocketClient: () => Promise<
-    import('./mock-helpers').MockSocketForTests & {
-      connected: boolean
-      once: (event: string, listener: (...args: unknown[]) => void) => void
-    }
-  >
-  setState: (state: {
-    scenario?: string
-    session?: {
-      userId: string
-      token: string
-      expiresAt: string
-    }
-  }) => void
 }
 
 declare global {
@@ -346,6 +332,7 @@ test('session expiry from an Axios-protected request saves checkout state and re
   await withMockControl(page, (mocks) => {
     mocks.reset('success')
   })
+  await page.reload()
   await page.goto('/login?redirect=%2Fpagamento%3Fstep%3Dreview')
   await page.getByLabel('E-mail', { exact: true }).fill('ana@kurio.example.test')
   await page.getByLabel('Senha', { exact: true }).fill('KurioDemo!A2026')
@@ -355,9 +342,7 @@ test('session expiry from an Axios-protected request saves checkout state and re
       url.pathname === '/pagamento' &&
       url.searchParams.get('step') === 'review',
   )
-  await page.evaluate(() => {
-    window.history.replaceState({}, '', '/pagamento?step=review')
-  })
+  await page.goto('/pagamento?step=review')
   await page.evaluate(() => {
     const draft = JSON.stringify({
       displayName: 'Ana Oliveira',
