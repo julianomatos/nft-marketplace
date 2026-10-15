@@ -150,14 +150,14 @@ Context: initial setup is done and dependencies are installed with npm. Verify e
 - [x] Add avatar block with image placeholder and Alterar/Remover actions; profile fields and password flow surface API validation errors.
 - [x] Wallets view: register and edit primary/secondary wallets; validation and error handling; include "Igual à carteira principal" and the empty secondary state.
 - [x] Favorites view at `/favoritos` ("Lista de interesse") inside the profile layout, reusing the card grid.
-- [ ] Confirmed changes persist after refresh; profile, wallets and favorites have responsive mobile compositions (no dedicated frames).
+- [x] Confirmed changes persist after refresh; profile, wallets and favorites have responsive mobile compositions (no dedicated frames).
 - [x] **Tests**: profile/avatar/password/wallet edits with validation errors.
 
 ---
 
 ## Epic 10: Accessibility, Visual Regression & Test Completion
 
-- [ ] Keyboard navigation, visible focus, focus trap/return in dialogs and drawers; `@axe-core/playwright` checks on key pages.
+- [x] Keyboard navigation, visible focus, focus trap/return in dialogs and drawers; `@axe-core/playwright` checks on key pages.
 - [ ] Forms: labels, `aria-describedby` errors, `aria-invalid`.
 - [ ] Verify 390 / 768 / 1440 px: no horizontal overflow, content intact at 200% zoom.
 - [ ] Visual regression baselines (Home, Detail, Cart, Payment) with stable data and controlled animations.

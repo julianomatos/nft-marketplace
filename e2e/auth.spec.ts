@@ -106,6 +106,25 @@ test('auth dialog fits required viewports and has no axe violations', async ({
   }
 })
 
+test('keeps focus inside the auth dialog and closes it on escape', async ({
+  page,
+}) => {
+  await page.goto('/login')
+
+  const emailInput = page.getByLabel('E-mail', { exact: true })
+  await expect(emailInput).toBeVisible()
+  await emailInput.focus()
+
+  await page.keyboard.press('Tab')
+  await expect(page.getByLabel('Senha', { exact: true })).toBeFocused()
+
+  await page.keyboard.press('Shift+Tab')
+  await expect(emailInput).toBeFocused()
+
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+})
+
 test('opens the desktop auth dialog over the route the visitor came from', async ({
   page,
 }) => {
@@ -399,6 +418,29 @@ test('updates wallet settings with validation and saves the primary wallet', asy
 
   await expect(page.getByText('Carteira salva com sucesso.')).toBeVisible()
   await expect(page.getByText('0x4444444444444444444444444444444444444444', { exact: true })).toBeVisible()
+})
+
+test('shows wallet validation errors and preserves profile changes after refresh', async ({
+  page,
+}) => {
+  await page.goto('/login')
+  await page.getByLabel('E-mail', { exact: true }).fill('ana@kurio.example.test')
+  await page.getByLabel('Senha', { exact: true }).fill('KurioDemo!A2026')
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click()
+
+  await page.goto('/perfil')
+  await page.getByLabel('Nome completo').fill('Ana Oliveira Atualizada')
+  await page.getByRole('button', { name: 'Salvar dados' }).click()
+  await expect(page.getByText('Perfil atualizado com sucesso.')).toBeVisible()
+
+  await page.reload()
+  await expect(page.getByText('Ana Oliveira Atualizada', { exact: true })).toBeVisible()
+
+  await page.goto('/carteiras')
+  await page.getByRole('button', { name: 'Editar' }).first().click()
+  await page.getByLabel('Endereço', { exact: true }).fill('0x1234')
+  await page.getByRole('button', { name: 'Salvar carteira', exact: true }).click()
+  await expect(page.getByRole('alert').first()).toContainText('Invalid ethereum wallet address')
 })
 
 test('updates profile data and password with validation feedback', async ({

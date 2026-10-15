@@ -3,6 +3,7 @@ import {
   useId,
   useRef,
   useState,
+  type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent,
   type SyntheticEvent,
 } from 'react'
@@ -68,6 +69,7 @@ function AuthPage({
   const navigate = useNavigate()
   const router = useRouter()
   const dialogRef = useRef<HTMLDialogElement>(null)
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null)
   const titleId = useId()
   const descriptionId = useId()
   const [notice, setNotice] = useState<string | null>(null)
@@ -77,10 +79,17 @@ function AuthPage({
     const dialog = dialogRef.current
     if (!dialog) return
 
+    previouslyFocusedRef.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null
+
     if (!dialog.open) dialog.showModal()
+    getFocusableElements(dialog)[0]?.focus()
 
     return () => {
       if (dialog.open) dialog.close()
+      previouslyFocusedRef.current?.focus()
     }
   }, [])
 
@@ -117,6 +126,28 @@ function AuthPage({
     if (event.target === event.currentTarget) closeDialog()
   }
 
+  function handleKeyDown(event: ReactKeyboardEvent<HTMLDialogElement>) {
+    if (event.key !== 'Tab') return
+
+    const dialog = event.currentTarget
+    const focusable = getFocusableElements(dialog)
+    const first = focusable[0]
+    const last = focusable.at(-1)
+
+    if (!first || !last) {
+      event.preventDefault()
+      return
+    }
+
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault()
+      last.focus()
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault()
+      first.focus()
+    }
+  }
+
   return (
     <dialog
         aria-describedby={descriptionId}
@@ -124,6 +155,7 @@ function AuthPage({
         className="kurio-dialog kurio-auth-dialog"
         onCancel={handleCancel}
         onClick={handleBackdropClick}
+        onKeyDown={handleKeyDown}
         ref={dialogRef}
       >
         <Button
@@ -417,6 +449,14 @@ function UnavailableLink({ onNotice }: UnavailableLinkProps) {
       Esqueceu a senha?
     </button>
   )
+}
+
+function getFocusableElements(dialog: HTMLDialogElement): HTMLElement[] {
+  return Array.from(
+    dialog.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    ),
+  ).filter((element) => element.getAttribute('aria-hidden') !== 'true')
 }
 
 export { AuthPage }
