@@ -82,7 +82,7 @@ function SiteHeader({ session, cartCount }: SiteHeaderProps) {
                 : 'Carrinho'
             }
             className="relative flex size-9 items-center justify-center text-foreground transition-colors hover:text-highlight focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-            to="/indisponivel"
+            to="/carrinho"
           >
             <ShoppingCart aria-hidden="true" size={18} />
             {visibleCartCount !== undefined && visibleCartCount > 0 && (

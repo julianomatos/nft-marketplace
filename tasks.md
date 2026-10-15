@@ -104,9 +104,8 @@ Context: initial setup is done and dependencies are installed with npm. Verify e
 ---
 
 ## Epic 6: Cart
-
-- [ ] Cart view: quantity editing (optimistic, availability-aware), item removal, API-driven summary (subtotal, discount, network fee, total).
-- [ ] Show the selected edition tier on every cart line; add compact cart stepper and responsive mobile cart cards.
+- [x] Cart view: quantity editing (optimistic, availability-aware), item removal, API-driven summary (subtotal, discount, network fee, total).
+- [x] Show the selected edition tier on every cart line; add compact cart stepper and responsive mobile cart cards.
 - [ ] Add summary panel (title rule, quote rows and action) and mobile coupon/summary sheet using only the API quote for totals.
 - [ ] Coupon apply/remove with invalid/expired handling.
 - [ ] Persistence after refresh; guest cart preserved and merged via `POST /api/cart/merge` on login.

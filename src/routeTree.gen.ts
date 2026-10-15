@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SplatRouteImport } from './routes/$'
+import { Route as CarrinhoRouteImport } from './routes/carrinho'
 import { Route as IndisponivelRouteImport } from './routes/indisponivel'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as SignupRouteImport } from './routes/signup'
@@ -24,6 +25,11 @@ const IndexRoute = IndexRouteImport.update({
 const SplatRoute = SplatRouteImport.update({
   id: '/$',
   path: '/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CarrinhoRoute = CarrinhoRouteImport.update({
+  id: '/carrinho',
+  path: '/carrinho',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndisponivelRoute = IndisponivelRouteImport.update({
@@ -50,6 +56,7 @@ const NftIdRoute = NftIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/carrinho': typeof CarrinhoRoute
   '/indisponivel': typeof IndisponivelRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
@@ -58,6 +65,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/carrinho': typeof CarrinhoRoute
   '/indisponivel': typeof IndisponivelRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
@@ -67,6 +75,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/carrinho': typeof CarrinhoRoute
   '/indisponivel': typeof IndisponivelRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
@@ -74,13 +83,28 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/$' | '/indisponivel' | '/login' | '/signup' | '/nft/$id'
+  fullPaths:
+    | '/'
+    | '/$'
+    | '/carrinho'
+    | '/indisponivel'
+    | '/login'
+    | '/signup'
+    | '/nft/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/$' | '/indisponivel' | '/login' | '/signup' | '/nft/$id'
+  to:
+    | '/'
+    | '/$'
+    | '/carrinho'
+    | '/indisponivel'
+    | '/login'
+    | '/signup'
+    | '/nft/$id'
   id:
     | '__root__'
     | '/'
     | '/$'
+    | '/carrinho'
     | '/indisponivel'
     | '/login'
     | '/signup'
@@ -90,6 +114,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SplatRoute: typeof SplatRoute
+  CarrinhoRoute: typeof CarrinhoRoute
   IndisponivelRoute: typeof IndisponivelRoute
   LoginRoute: typeof LoginRoute
   SignupRoute: typeof SignupRoute
@@ -110,6 +135,13 @@ declare module '@tanstack/react-router' {
       path: '/$'
       fullPath: '/$'
       preLoaderRoute: typeof SplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/carrinho': {
+      id: '/carrinho'
+      path: '/carrinho'
+      fullPath: '/carrinho'
+      preLoaderRoute: typeof CarrinhoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/indisponivel': {
@@ -146,6 +178,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SplatRoute: SplatRoute,
+  CarrinhoRoute: CarrinhoRoute,
   IndisponivelRoute: IndisponivelRoute,
   LoginRoute: LoginRoute,
   SignupRoute: SignupRoute,

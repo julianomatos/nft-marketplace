@@ -27,7 +27,7 @@ const destinations = [
     icon: ShoppingCart,
     activePaths: ['/carrinho', '/checkout', '/pedidos'],
     column: 'col-start-4',
-    to: '/indisponivel' as const,
+    to: '/carrinho' as const,
   },
   {
     label: 'Perfil',
