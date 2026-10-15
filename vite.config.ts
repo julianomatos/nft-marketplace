@@ -5,6 +5,8 @@ import path from 'path'
 import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
+const deferredChunkPattern = /(?:^|\/)(?:socket-|control-|settle-or|mock-control|socket-io)/i
+
 export default defineConfig({
   plugins: [
     TanStackRouterVite({ target: 'react', autoCodeSplitting: true }),
@@ -14,6 +16,13 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(import.meta.dirname, './src'),
+    },
+  },
+  build: {
+    modulePreload: {
+      polyfill: false,
+      resolveDependencies: (_filename, deps) =>
+        deps.filter((dep) => !deferredChunkPattern.test(dep)),
     },
   },
 })

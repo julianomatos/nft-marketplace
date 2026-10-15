@@ -9,7 +9,7 @@ import {
   readMockState,
 } from '../store'
 import type { MockScenario } from '../scenario-contract'
-import { publishNftUpdated } from '../socket'
+import { publishNftUpdated } from '../socket-events'
 import {
   buildErrorResponse,
   getCartForUser,

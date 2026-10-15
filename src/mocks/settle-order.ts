@@ -1,6 +1,6 @@
 import { readMockState, settleOrder } from './store'
 import type { OrderRecord } from './types'
-import { publishNftUpdated, publishOrderUpdated } from './socket'
+import { publishNftUpdated, publishOrderUpdated } from './socket-events'
 
 export function settleMockOrder(
   orderId: string,

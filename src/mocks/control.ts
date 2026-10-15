@@ -10,6 +10,7 @@ import {
   setMockTimeoutResponseDelay,
 } from './store'
 import { settleMockOrder } from './settle-order'
+import { whenSocketMockReady } from './socket-ready'
 import type { Socket } from 'socket.io-client'
 import { API_ENDPOINTS } from '../types/endpoints'
 import { apiClient } from '../services/api-client'
@@ -21,6 +22,7 @@ async function requestProfile() {
 }
 
 async function connectSocketClient(tokenOverride?: string | null): Promise<Socket> {
+  await whenSocketMockReady()
   const { io } = await import('socket.io-client')
   const socket = io(window.location.origin, {
     autoConnect: false,

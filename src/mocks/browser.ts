@@ -1,10 +1,12 @@
 import { setupWorker } from 'msw/browser'
 import { handlers } from './handlers'
 import { mockScenarioSchema } from './scenario-contract'
-import { createMockSocketHandler } from './socket'
 import { resetMockState } from './store'
 
 export let worker: ReturnType<typeof setupWorker> | null = null
+
+let startPromise: Promise<void> | null = null
+let socketAttachPromise: Promise<void> | null = null
 
 function handleUnhandledRequest(request: Request, print: {
   error: () => void
@@ -22,23 +24,47 @@ function handleUnhandledRequest(request: Request, print: {
   print.warning()
 }
 
-export async function startMocking() {
-  if (import.meta.env.VITE_ENABLE_MOCKS !== 'true') {
-    return
-  }
-
+async function startMockingOnce() {
   const scenarioParam = new URLSearchParams(window.location.search).get('mockScenario')
   if (scenarioParam !== null) {
     const parsedScenario = mockScenarioSchema.safeParse(scenarioParam)
     resetMockState(parsedScenario.success ? parsedScenario.data : undefined)
   }
 
-  const socketHandler = createMockSocketHandler(window.location.origin)
-  worker = setupWorker(...handlers, socketHandler)
+  worker = setupWorker(...handlers)
   await worker.start({
     onUnhandledRequest: handleUnhandledRequest,
     serviceWorker: {
       url: '/mockServiceWorker.js',
     },
   })
+}
+
+export function startMocking() {
+  if (import.meta.env.VITE_ENABLE_MOCKS !== 'true') {
+    return Promise.resolve()
+  }
+
+  if (!startPromise) {
+    startPromise = startMockingOnce()
+  }
+
+  return startPromise
+}
+
+export function attachSocketMock() {
+  if (socketAttachPromise) {
+    return socketAttachPromise
+  }
+
+  socketAttachPromise = (async () => {
+    await startMocking()
+    if (!worker) {
+      throw new Error('Mock worker is not started')
+    }
+    const { createMockSocketHandler } = await import('./socket')
+    worker.use(createMockSocketHandler(window.location.origin))
+  })()
+
+  return socketAttachPromise
 }

@@ -1,17 +1,11 @@
 import { toSocketIo } from '@mswjs/socket.io-binding'
 import { ws } from 'msw'
-import { socketEventSchema, type SocketEvent } from '../types/events'
-import type { NftRecord, OrderRecord } from './types'
 import { getMockNow, readMockState } from './store'
-
-type SocketPeer = {
-  userId: string | null
-  token: string | null
-  subscribed: boolean
-  emit: (event: string, payload: unknown) => void
-}
-
-const socketPeers = new Set<SocketPeer>()
+import {
+  addSocketPeer,
+  removeSocketPeer,
+  type SocketPeer,
+} from './socket-events'
 
 export function createMockSocketHandler(origin: string) {
   const socketUrl = new URL('/socket.io/', origin)
@@ -31,7 +25,7 @@ export function createMockSocketHandler(origin: string) {
         subscribed: false,
         emit: (event, payload) => client.emit(event, payload),
       }
-      socketPeers.add(peer)
+      addSocketPeer(peer)
 
       client.on('mock:subscribe', (_message, token: unknown) => {
         if (token !== undefined && token !== null && typeof token !== 'string') {
@@ -70,67 +64,7 @@ export function createMockSocketHandler(origin: string) {
       })
 
       connection.client.addEventListener('close', () => {
-        socketPeers.delete(peer)
+        removeSocketPeer(peer)
       })
     })
-}
-
-export function emitMockSocketEvent(event: SocketEvent): void {
-  const validatedEvent = socketEventSchema.parse(event)
-  const currentSession = readMockState().session
-  const sessionIsCurrent =
-    currentSession.userId !== null &&
-    currentSession.token !== null &&
-    currentSession.expiresAt !== null &&
-    new Date(currentSession.expiresAt).getTime() > new Date(getMockNow()).getTime()
-
-  for (const peer of socketPeers) {
-    if (!peer.subscribed) continue
-    if (
-      validatedEvent.type === 'order.updated' &&
-      (
-        peer.userId !== validatedEvent.userId ||
-        !sessionIsCurrent ||
-        peer.token !== currentSession.token
-      )
-    ) {
-      continue
-    }
-    peer.emit(validatedEvent.type, validatedEvent)
-  }
-}
-
-export function publishNftUpdated(nft: NftRecord): void {
-  emitMockSocketEvent({
-    eventId: `nft:${nft.id}:v${nft.version}`,
-    type: 'nft.updated',
-    resource: { kind: 'nft', id: nft.id },
-    version: nft.version,
-    timestamp: getMockNow(),
-    data: {
-      nftId: nft.id,
-      price: nft.price,
-      editions: nft.editions.map(({ id, available }) => ({ id, available })),
-    },
-  })
-}
-
-export function publishOrderUpdated(order: OrderRecord): void {
-  if (order.status !== 'confirmed' && order.status !== 'rejected') {
-    throw new Error(`Cannot publish a non-terminal order update: ${order.orderId}`)
-  }
-
-  emitMockSocketEvent({
-    eventId: `order:${order.orderId}:v${order.version}`,
-    type: 'order.updated',
-    resource: { kind: 'order', id: order.orderId },
-    version: order.version,
-    timestamp: getMockNow(),
-    userId: order.userId,
-    data: {
-      orderId: order.orderId,
-      status: order.status,
-      ...(order.transactionHash ? { transactionHash: order.transactionHash } : {}),
-    },
-  })
 }
