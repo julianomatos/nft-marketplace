@@ -106,11 +106,11 @@ Context: initial setup is done and dependencies are installed with npm. Verify e
 ## Epic 6: Cart
 - [x] Cart view: quantity editing (optimistic, availability-aware), item removal, API-driven summary (subtotal, discount, network fee, total).
 - [x] Show the selected edition tier on every cart line; add compact cart stepper and responsive mobile cart cards.
-- [ ] Add summary panel (title rule, quote rows and action) and mobile coupon/summary sheet using only the API quote for totals.
-- [ ] Coupon apply/remove with invalid/expired handling.
-- [ ] Persistence after refresh; guest cart preserved and merged via `POST /api/cart/merge` on login.
-- [ ] Skeleton for cart summary; announce price/availability changes in live region.
-- [ ] **Tests**: quantities, removal, coupon, persistence after refresh and after login merge.
+- [x] Add summary panel (title rule, quote rows and action) and mobile coupon/summary sheet using only the API quote for totals.
+- [x] Coupon apply/remove with invalid/expired handling.
+- [x] Persistence after refresh; guest cart preserved and merged via `POST /api/cart/merge` on login.
+- [x] Skeleton for cart summary; announce price/availability changes in live region.
+- [x] **Tests**: quantities, removal, coupon, persistence after refresh and after login merge.
 
 ---
 
@@ -132,8 +132,8 @@ Context: initial setup is done and dependencies are installed with npm. Verify e
 
 ## Epic 8: Real-Time Synchronization (Socket.IO)
 
-- [ ] Socket client/provider using `socket.io-client`; connect on authenticated session, disconnect and clean listeners on logout/user switch and unmount.
-- [ ] Handle `nft.updated`: patch catalog, detail and cart caches; invalidate quote; inform the user (live region).
+- [x] Socket client/provider using `socket.io-client`; connect on authenticated session, disconnect and clean listeners on logout/user switch and unmount.
+- [x] Handle `nft.updated`: patch catalog, detail and cart caches; invalidate quote; inform the user (live region).
 - [ ] Handle `order.updated`: transition pending → confirmed/rejected; terminal states never overwritten.
 - [ ] Dedup by `eventId`, ignore events with `version ≤ applied`, ignore events of another user.
 - [ ] On reconnect: reconcile active queries and pending order via REST.

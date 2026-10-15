@@ -1,5 +1,4 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useNavigate } from '@tanstack/react-router'
 import { useSession } from '@/hooks/use-session'
 import { queryKeys } from '@/hooks/queryKeys'
 import { API_ENDPOINTS } from '@/types/endpoints'
@@ -10,6 +9,7 @@ import {
   type Nft,
 } from '@/types/contracts'
 import { apiClient, getSessionToken } from '@/services/api-client'
+import { addGuestCartItem } from '@/utils/guest-cart'
 
 type AddToCartOptions = {
   editionId?: string
@@ -19,7 +19,6 @@ type AddToCartOptions = {
 function useAddToCart(nft: Nft) {
   const sessionQuery = useSession()
   const queryClient = useQueryClient()
-  const navigate = useNavigate()
   const userId = sessionQuery.data?.authenticated
     ? sessionQuery.data.user.id
     : undefined
@@ -45,18 +44,7 @@ function useAddToCart(nft: Nft) {
     },
   })
 
-  function requireAuthentication(): boolean {
-    if (userId) return true
-    if (getSessionToken() && sessionQuery.isPending) return false
-
-    const redirect = `${window.location.pathname}${window.location.search}${window.location.hash}`
-    void navigate({ to: '/login', search: { redirect } })
-    return false
-  }
-
   async function addToCart(options: AddToCartOptions = {}): Promise<boolean> {
-    if (!requireAuthentication()) return false
-
     const edition = options.editionId
       ? nft.editions.find(({ id }) => id === options.editionId)
       : nft.editions.find(({ available }) => available > 0)
@@ -74,6 +62,17 @@ function useAddToCart(nft: Nft) {
     const quantity = options.quantity ?? 1
     if (quantity > edition.available) {
       throw new Error('A quantidade excede a disponibilidade desta edição.')
+    }
+
+    if (getSessionToken() && sessionQuery.isPending) return false
+
+    if (!userId) {
+      addGuestCartItem({
+        nftId: nft.id,
+        editionId: edition.id,
+        quantity,
+      })
+      return true
     }
 
     await addToCartMutation.mutateAsync({

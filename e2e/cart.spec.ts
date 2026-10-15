@@ -9,7 +9,40 @@ test.beforeEach(async ({ page }) => {
   })
 })
 
-test('loads the cart, updates quantity, and uses the API quote summary', async ({
+test('keeps guest cart items until login and merges them into the authenticated cart', async ({
+  page,
+}) => {
+  await page.evaluate(() => {
+    window.localStorage.setItem(
+      'kurio.guest-cart',
+      JSON.stringify([
+        {
+          nftId: 'emerald-ape-042',
+          editionId: 'emerald-ape-042-1-50',
+          quantity: 1,
+        },
+      ]),
+    )
+    window.sessionStorage.removeItem('kurio.session.token')
+  })
+
+  await page.goto('/login')
+  await page.getByLabel('E-mail', { exact: true }).fill('ana@kurio.example.test')
+  await page.getByLabel('Senha', { exact: true }).fill('KurioDemo!A2026')
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click()
+
+  await expect.poll(() =>
+    page.evaluate(() => window.localStorage.getItem('kurio.guest-cart')),
+  ).toBeNull()
+
+  await page.goto('/carrinho')
+  await expect(page.getByRole('heading', { name: 'Meu carrinho' })).toBeVisible()
+  await expect(
+    page.locator('article').filter({ hasText: 'Emerald Ape #042' }).first(),
+  ).toContainText('Edição 1/50')
+})
+
+test('loads the cart, applies a coupon, updates quantity, and uses the API quote summary', async ({
   page,
 }) => {
   await page.goto('/carrinho')
@@ -28,9 +61,17 @@ test('loads the cart, updates quantity, and uses the API quote summary', async (
   await quantityGroup.getByRole('button', { name: 'Aumentar quantidade' }).click()
   await expect(quantityGroup.locator('output')).toHaveText('3')
 
-  const summary = page.getByRole('complementary', { name: 'Resumo do carrinho' })
-  await expect(summary).toContainText('Resumo')
-  await expect(summary).toContainText('Total')
+  const mobileSummaryButton = page.getByRole('button', { name: 'Ver resumo e cupom' })
+  if (await mobileSummaryButton.isVisible().catch(() => false)) {
+    await mobileSummaryButton.click()
+  }
+
+  const couponInput = page.locator('input[placeholder="KURIO10"]:visible').first()
+  await couponInput.fill('KURIO10')
+  await page.getByRole('button', { name: 'Aplicar cupom' }).first().click()
+  await expect(page.locator('button[aria-label="Remover cupom"]:visible')).toBeVisible()
+  await expect(page.locator(':visible').filter({ hasText: /^Desconto$/ }).first()).toBeVisible()
+  await expect(page.locator(':visible').filter({ hasText: /^Total$/ }).first()).toBeVisible()
 
   const accessibility = await new AxeBuilder({ page }).analyze()
   expect(accessibility.violations).toEqual([])

@@ -3,9 +3,11 @@ import { useSession } from '@/hooks/use-session'
 import { queryKeys } from '@/hooks/queryKeys'
 import { API_ENDPOINTS } from '@/types/endpoints'
 import type {
+  ApplyCouponResponse,
   CartResponse,
   QuoteResponse,
   RemoveCartItemResponse,
+  RemoveCouponResponse,
 } from '@/types/contracts'
 import { apiClient } from '@/services/api-client'
 import { mul } from '@/utils/eth'
@@ -132,6 +134,100 @@ function useCart() {
     },
   })
 
+  const applyCouponMutation = useMutation<
+    ApplyCouponResponse,
+    Error,
+    { code: string },
+    { previousCart: CartResponse | undefined; previousQuote: QuoteResponse | undefined }
+  >({
+    mutationFn: async ({ code }) => {
+      const response = await apiClient.put<ApplyCouponResponse>(
+        API_ENDPOINTS.cart.coupon,
+        { code },
+      )
+      return response.data
+    },
+    onMutate: async ({ code }) => {
+      await Promise.all([
+        queryClient.cancelQueries({ queryKey: cartKey }),
+        queryClient.cancelQueries({ queryKey: cartQuoteKey }),
+      ])
+
+      const previousCart = queryClient.getQueryData<CartResponse>(cartKey)
+      const previousQuote = queryClient.getQueryData<QuoteResponse>(cartQuoteKey)
+      const normalizedCode = code.trim().toUpperCase()
+
+      if (previousCart) {
+        queryClient.setQueryData<CartResponse>(cartKey, {
+          ...previousCart,
+          coupon: { code: normalizedCode, status: 'valid' },
+        })
+      }
+
+      return { previousCart, previousQuote }
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previousCart) {
+        queryClient.setQueryData(cartKey, context.previousCart)
+      }
+      if (context?.previousQuote) {
+        queryClient.setQueryData(cartQuoteKey, context.previousQuote)
+      }
+    },
+    onSettled: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: cartKey }),
+        queryClient.invalidateQueries({ queryKey: cartQuoteKey }),
+      ])
+    },
+  })
+
+  const removeCouponMutation = useMutation<
+    RemoveCouponResponse,
+    Error,
+    void,
+    { previousCart: CartResponse | undefined; previousQuote: QuoteResponse | undefined }
+  >({
+    mutationFn: async () => {
+      const response = await apiClient.delete<RemoveCouponResponse>(
+        API_ENDPOINTS.cart.coupon,
+      )
+      return response.data
+    },
+    onMutate: async () => {
+      await Promise.all([
+        queryClient.cancelQueries({ queryKey: cartKey }),
+        queryClient.cancelQueries({ queryKey: cartQuoteKey }),
+      ])
+
+      const previousCart = queryClient.getQueryData<CartResponse>(cartKey)
+      const previousQuote = queryClient.getQueryData<QuoteResponse>(cartQuoteKey)
+
+      if (previousCart) {
+        queryClient.setQueryData<CartResponse>(cartKey, {
+          ...previousCart,
+          coupon: null,
+        })
+      }
+
+      return { previousCart, previousQuote }
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previousCart) {
+        queryClient.setQueryData(cartKey, context.previousCart)
+      }
+      if (context?.previousQuote) {
+        queryClient.setQueryData(cartQuoteKey, context.previousQuote)
+      }
+    },
+    onSettled: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: cartKey }),
+        queryClient.invalidateQueries({ queryKey: cartQuoteKey }),
+      ])
+    },
+  })
+
   return {
     cartQuery,
     cartQuoteQuery,
@@ -142,7 +238,14 @@ function useCart() {
     updateQuantity: (id: string, quantity: number) =>
       updateQuantityMutation.mutateAsync({ id, quantity }),
     removeItem: (id: string) => removeItemMutation.mutateAsync(id),
-    isUpdating: updateQuantityMutation.isPending || removeItemMutation.isPending,
+    applyCoupon: (code: string) => applyCouponMutation.mutateAsync({ code }),
+    removeCoupon: () => removeCouponMutation.mutateAsync(),
+    isUpdating:
+      updateQuantityMutation.isPending ||
+      removeItemMutation.isPending ||
+      applyCouponMutation.isPending ||
+      removeCouponMutation.isPending,
+    isCouponUpdating: applyCouponMutation.isPending || removeCouponMutation.isPending,
     refetch: () => Promise.all([cartQuery.refetch(), cartQuoteQuery.refetch()]),
   }
 }

@@ -9,11 +9,13 @@ import {
 } from '@/services/api-client'
 import { clearPrivateSessionStorage } from '@/utils/auth-return-context'
 import { disconnectSessionSockets } from '@/services/socket-registry'
+import { clearGuestCartItems } from '@/utils/guest-cart'
 
 function clearClientSession(): void {
   queryClient.clear()
   setSessionToken(null)
   clearPrivateSessionStorage()
+  clearGuestCartItems()
   disconnectSessionSockets()
   queryClient.setQueryData(queryKeys.auth.session, {
     authenticated: false,

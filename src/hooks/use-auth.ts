@@ -12,10 +12,22 @@ import { apiClient, setSessionToken } from '@/services/api-client'
 import { authResponseSchema } from '@/types/contracts'
 import { clearPrivateSessionStorage } from '@/utils/auth-return-context'
 import { disconnectSessionSockets } from '@/services/socket-registry'
+import {
+  clearGuestCartItems,
+  readGuestCartItems,
+} from '@/utils/guest-cart'
 
-function persistAuthenticatedSession(
+async function mergeGuestCartOnLogin(): Promise<void> {
+  const guestItems = readGuestCartItems()
+  if (guestItems.length === 0) return
+
+  await apiClient.post(API_ENDPOINTS.cart.merge, { items: guestItems })
+  clearGuestCartItems()
+}
+
+async function persistAuthenticatedSession(
   response: LoginResponse | SignupResponse,
-): void {
+): Promise<void> {
   const previousSession = queryClient.getQueryData<{
     authenticated: boolean
     user?: { id: string }
@@ -35,6 +47,12 @@ function persistAuthenticatedSession(
     user: response.user,
     expiresAt: response.expiresAt,
   })
+
+  try {
+    await mergeGuestCartOnLogin()
+  } catch {
+    // Keep the user signed in and retain the guest cart for a later retry.
+  }
 }
 
 function useLogin() {
