@@ -146,7 +146,7 @@ function HomeIntro({ background = false, featuredNfts }: HomeIntroProps) {
                   height={image.height}
                   fetchPriority={index === 0 ? 'high' : 'auto'}
                   loading={index === 0 ? 'eager' : 'lazy'}
-                  sizes="(min-width: 768px) 450px, 48vw"
+                  sizes="(min-width: 768px) 468px, 48vw"
                   src={image.url}
                   srcSet={image.responsiveSrcSet}
                   width={image.width}
@@ -231,7 +231,7 @@ function HomeIntro({ background = false, featuredNfts }: HomeIntroProps) {
             height={heroImage.height}
             fetchPriority="high"
             loading="eager"
-            sizes="(min-width: 768px) 450px, 48vw"
+            sizes="(min-width: 768px) 468px, 48vw"
             src={heroImage.url}
             srcSet={heroImage.responsiveSrcSet}
             width={heroImage.width}

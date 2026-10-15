@@ -1,0 +1,126 @@
+{
+  "targetUrls": [
+    "http://127.0.0.1:4173/"
+  ],
+  "lighthouseVersion": "13.5.0",
+  "results": [
+    {
+      "page": "/",
+      "formFactor": "mobile",
+      "run": 1,
+      "scores": {
+        "performance": null,
+        "accessibility": null,
+        "best-practices": null,
+        "seo": null
+      },
+      "metrics": {
+        "largest-contentful-paint": null,
+        "cumulative-layout-shift": null,
+        "total-blocking-time": null
+      }
+    },
+    {
+      "page": "/",
+      "formFactor": "mobile",
+      "run": 2,
+      "scores": {
+        "performance": null,
+        "accessibility": null,
+        "best-practices": null,
+        "seo": null
+      },
+      "metrics": {
+        "largest-contentful-paint": null,
+        "cumulative-layout-shift": null,
+        "total-blocking-time": null
+      }
+    },
+    {
+      "page": "/",
+      "formFactor": "mobile",
+      "run": 3,
+      "scores": {
+        "performance": null,
+        "accessibility": null,
+        "best-practices": null,
+        "seo": null
+      },
+      "metrics": {
+        "largest-contentful-paint": null,
+        "cumulative-layout-shift": null,
+        "total-blocking-time": null
+      }
+    },
+    {
+      "page": "/",
+      "formFactor": "desktop",
+      "run": 1,
+      "scores": {
+        "performance": null,
+        "accessibility": null,
+        "best-practices": null,
+        "seo": null
+      },
+      "metrics": {
+        "largest-contentful-paint": null,
+        "cumulative-layout-shift": null,
+        "total-blocking-time": null
+      }
+    },
+    {
+      "page": "/",
+      "formFactor": "desktop",
+      "run": 2,
+      "scores": {
+        "performance": null,
+        "accessibility": null,
+        "best-practices": null,
+        "seo": null
+      },
+      "metrics": {
+        "largest-contentful-paint": null,
+        "cumulative-layout-shift": null,
+        "total-blocking-time": null
+      }
+    },
+    {
+      "page": "/",
+      "formFactor": "desktop",
+      "run": 3,
+      "scores": {
+        "performance": null,
+        "accessibility": null,
+        "best-practices": null,
+        "seo": null
+      },
+      "metrics": {
+        "largest-contentful-paint": null,
+        "cumulative-layout-shift": null,
+        "total-blocking-time": null
+      }
+    }
+  ],
+  "medians": {
+    "/": {
+      "mobile": {
+        "performance": null,
+        "accessibility": null,
+        "best-practices": null,
+        "seo": null,
+        "largest-contentful-paint": null,
+        "cumulative-layout-shift": null,
+        "total-blocking-time": null
+      },
+      "desktop": {
+        "performance": null,
+        "accessibility": null,
+        "best-practices": null,
+        "seo": null,
+        "largest-contentful-paint": null,
+        "cumulative-layout-shift": null,
+        "total-blocking-time": null
+      }
+    }
+  }
+}

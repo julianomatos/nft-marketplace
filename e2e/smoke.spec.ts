@@ -22,7 +22,10 @@ test('the application starts in Chromium', async ({ page }) => {
   ).toBeVisible()
   await expect(
     page.getByRole('img', { name: 'Arte de Emerald Ape #042' }).first(),
-  ).toHaveJSProperty('naturalWidth', 320)
+  ).toHaveJSProperty(
+    'naturalWidth',
+    test.info().project.name === 'chromium-mobile' ? 197 : 467,
+  )
 })
 
 test('MSW Socket.IO binding delivers a mocked event to socket.io-client', async ({

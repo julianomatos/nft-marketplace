@@ -12,7 +12,6 @@ import {
   readMockState,
 } from '../store'
 import type { OrderRecord } from '../types'
-import { settleMockOrder } from '../settle-order'
 import { applyOrderScenarioMutation } from './scenarios'
 import {
   buildErrorResponse,
@@ -34,7 +33,26 @@ async function hashPayload(payload: unknown): Promise<string> {
     .join('')
 }
 
-function toReceipt(order: OrderRecord): OrderReceiptSnapshot {
+type LightweightOrderReceipt = Pick<
+  OrderReceiptSnapshot,
+  | 'orderId'
+  | 'version'
+  | 'quoteId'
+  | 'status'
+  | 'transactionHash'
+  | 'network'
+  | 'explorerUrl'
+  | 'provider'
+  | 'wallet'
+  | 'items'
+  | 'subtotal'
+  | 'discount'
+  | 'fee'
+  | 'total'
+  | 'createdAt'
+>
+
+function toReceipt(order: OrderRecord): LightweightOrderReceipt {
   return {
     orderId: order.orderId,
     version: order.version,
@@ -210,6 +228,7 @@ export const orderHandlers = [
       state.scenario === 'payment-rejected'
     ) {
       const outcome = state.scenario === 'payment-confirmed' ? 'confirmed' : 'rejected'
+      const { settleMockOrder } = await import('../settle-order')
       return HttpResponse.json(toReceipt(settleMockOrder(orderId, outcome)))
     }
 
