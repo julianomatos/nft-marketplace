@@ -6,9 +6,11 @@ import { useEffect, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { EmptyState } from '@/components/ui/empty-state'
 import { ErrorState } from '@/components/ui/error-state'
 import { Input } from '@/components/ui/input'
+import { Select } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { queryKeys } from '@/hooks/queryKeys'
 import { useSession } from '@/hooks/use-session'
@@ -16,10 +18,15 @@ import { API_ENDPOINTS } from '@/types/endpoints'
 import {
   passwordUpdateRequestSchema,
   profileUpdateRequestSchema,
+  walletUpsertRequestSchema,
   type FavoritesResponse,
   type PasswordUpdateRequest,
   type Profile,
   type ProfileUpdateRequest,
+  type Wallet,
+  type WalletKind,
+  type WalletUpsertRequest,
+  type WalletsResponse,
 } from '@/types/contracts'
 import { apiClient } from '@/services/api-client'
 import { queryStaleTimes } from '@/lib/query-client'
@@ -116,7 +123,8 @@ function applyApiFieldErrors(
 function ProfileOverviewPage() {
   const sessionQuery = useSession()
   const queryClient = useQueryClient()
-  const userId = sessionQuery.data?.authenticated ? sessionQuery.data.user.id : undefined
+  const currentUser = sessionQuery.data?.authenticated ? sessionQuery.data.user : undefined
+  const userId = currentUser?.id
   const profileKey = userId ? queryKeys.user(userId).profile : ['profile', 'guest']
 
   const profileQuery = useQuery({
@@ -448,30 +456,442 @@ function PasswordForm() {
 }
 
 function WalletsPage() {
+  const sessionQuery = useSession()
+  const queryClient = useQueryClient()
+  const currentUser = sessionQuery.data?.authenticated ? sessionQuery.data.user : undefined
+  const userId = currentUser?.id
+  const walletsKey = userId ? queryKeys.user(userId).wallets : ['user', 'wallets', 'guest']
+
+  const walletsQuery = useQuery({
+    queryKey: walletsKey,
+    enabled: Boolean(userId),
+    queryFn: async ({ signal }) => {
+      const response = await apiClient.get<WalletsResponse>(API_ENDPOINTS.wallets.list, {
+        signal,
+      })
+      return response.data
+    },
+    staleTime: queryStaleTimes.account,
+  })
+
+  const [walletNotice, setWalletNotice] = useState<string | null>(null)
+  const [editingKind, setEditingKind] = useState<WalletKind | null>(null)
+  const [sameAsPrimary, setSameAsPrimary] = useState(false)
+
+  const primaryWallet = walletsQuery.data?.items.find((wallet) => wallet.kind === 'primary')
+  const secondaryWallet = walletsQuery.data?.items.find((wallet) => wallet.kind === 'secondary')
+
+  const walletForm = useForm<WalletUpsertRequest>({
+    resolver: zodResolver(walletUpsertRequestSchema),
+    defaultValues: {
+      kind: 'primary',
+      displayName: currentUser?.displayName ?? '',
+      nickname: 'Principal',
+      network: 'ethereum',
+      profileName: currentUser?.username ?? '',
+      address: '',
+      altAddressOrEns: '',
+      walletType: 'metamask',
+      referralCode: currentUser?.referralCode ?? '',
+      email: currentUser?.email ?? '',
+      ensName: currentUser?.ensName ?? '',
+    },
+  })
+
+  const openWalletForm = (kind: WalletKind) => {
+    const source = kind === 'primary' ? primaryWallet : secondaryWallet
+    const nextValues: WalletUpsertRequest = source
+      ? {
+          kind,
+          displayName: source.displayName,
+          nickname: source.nickname,
+          network: source.network,
+          profileName: source.profileName,
+          address: source.address,
+          altAddressOrEns: source.altAddressOrEns ?? '',
+          walletType: source.walletType,
+          referralCode: source.referralCode,
+          email: source.email,
+          ensName: source.ensName,
+        }
+      : {
+          kind,
+          displayName: currentUser?.displayName ?? '',
+          nickname: kind === 'primary' ? 'Principal' : 'Reserva',
+          network: primaryWallet?.network ?? 'ethereum',
+          profileName: currentUser?.username ?? '',
+          address: '',
+          altAddressOrEns: '',
+          walletType: primaryWallet?.walletType ?? 'metamask',
+          referralCode: currentUser?.referralCode ?? '',
+          email: currentUser?.email ?? '',
+          ensName: currentUser?.ensName ?? '',
+        }
+
+    walletForm.reset(nextValues)
+    setSameAsPrimary(Boolean(kind === 'secondary' && primaryWallet && source?.address === primaryWallet.address))
+    setEditingKind(kind)
+  }
+
+  const closeWalletForm = () => {
+    setEditingKind(null)
+    setSameAsPrimary(false)
+    setWalletNotice(null)
+  }
+
+  const snapshotPrimaryValues = (current: WalletUpsertRequest): WalletUpsertRequest => {
+    if (!primaryWallet) return current
+
+    return {
+      ...current,
+      displayName: primaryWallet.displayName,
+      network: primaryWallet.network,
+      profileName: primaryWallet.profileName,
+      address: primaryWallet.address,
+      altAddressOrEns: primaryWallet.altAddressOrEns ?? primaryWallet.ensName,
+      walletType: primaryWallet.walletType,
+      referralCode: primaryWallet.referralCode,
+      email: primaryWallet.email,
+      ensName: primaryWallet.ensName,
+    }
+  }
+
+  const saveWalletMutation = useMutation({
+    mutationFn: async (payload: WalletUpsertRequest) => {
+      const requestPayload =
+        sameAsPrimary && editingKind === 'secondary' && primaryWallet
+          ? snapshotPrimaryValues(payload)
+          : payload
+
+      if (editingKind && editingKind === 'primary' && primaryWallet) {
+        const response = await apiClient.put<{ wallet: Wallet }>(
+          API_ENDPOINTS.wallets.detail(primaryWallet.id),
+          requestPayload,
+        )
+        return response.data.wallet
+      }
+
+      if (editingKind && editingKind === 'secondary' && secondaryWallet) {
+        const response = await apiClient.put<{ wallet: Wallet }>(
+          API_ENDPOINTS.wallets.detail(secondaryWallet.id),
+          requestPayload,
+        )
+        return response.data.wallet
+      }
+
+      const response = await apiClient.post<{ wallet: Wallet }>(
+        API_ENDPOINTS.wallets.list,
+        requestPayload,
+      )
+      return response.data.wallet
+    },
+    onSuccess: () => {
+      setWalletNotice('Carteira salva com sucesso.')
+      setEditingKind(null)
+      setSameAsPrimary(false)
+      void queryClient.invalidateQueries({ queryKey: walletsKey })
+    },
+    onError: (error) => {
+      setWalletNotice(
+        applyApiFieldErrors(
+          error,
+          [
+            'kind',
+            'displayName',
+            'nickname',
+            'network',
+            'profileName',
+            'address',
+            'altAddressOrEns',
+            'walletType',
+            'referralCode',
+            'email',
+            'ensName',
+          ],
+          (field, message) => {
+            walletForm.setError(field as keyof WalletUpsertRequest, {
+              type: 'server',
+              message,
+            })
+          },
+        ) ?? 'Não foi possível salvar a carteira.',
+      )
+    },
+  })
+
+  const formatWalletType = (walletType: Wallet['walletType']) => {
+    switch (walletType) {
+      case 'metamask':
+        return 'MetaMask'
+      case 'walletconnect':
+        return 'WalletConnect'
+      case 'coinbase':
+        return 'Coinbase Wallet'
+      default:
+        return walletType
+    }
+  }
+
+  const walletCards = [
+    {
+      kind: 'primary' as const,
+      wallet: primaryWallet,
+      title: 'Principal',
+      emptyDescription: 'Cadastre sua carteira principal para compras e recebimentos.',
+    },
+    {
+      kind: 'secondary' as const,
+      wallet: secondaryWallet,
+      title: 'Secundária',
+      emptyDescription: 'A carteira secundária fica disponível para reservas e transferências.',
+    },
+  ]
+
+  if (sessionQuery.isPending) {
+    return (
+      <ProfileLayout
+        description="Gerencie suas carteiras principais e secundárias para compras, recebimentos e confirmação de transações."
+        title="Carteiras"
+      >
+        <div className="space-y-4">
+          <Skeleton className="h-28 w-full" />
+          <Skeleton className="h-28 w-full" />
+        </div>
+      </ProfileLayout>
+    )
+  }
+
+  if (!userId) {
+    return (
+      <ProfileLayout
+        description="Gerencie suas carteiras principais e secundárias para compras, recebimentos e confirmação de transações."
+        title="Carteiras"
+      >
+        <div className="space-y-4 rounded-sm border border-dashed border-border bg-background p-6 text-center">
+          <p className="text-sm leading-6 text-muted-foreground">
+            Faça login para cadastrar e manter suas carteiras em segurança.
+          </p>
+          <Button asChild>
+            <Link to="/login" search={{ redirect: '/carteiras' }}>
+              Entrar na conta
+            </Link>
+          </Button>
+        </div>
+      </ProfileLayout>
+    )
+  }
+
+  if (walletsQuery.isPending) {
+    return (
+      <ProfileLayout
+        description="Gerencie suas carteiras principais e secundárias para compras, recebimentos e confirmação de transações."
+        title="Carteiras"
+      >
+        <div className="space-y-4">
+          <Skeleton className="h-28 w-full" />
+          <Skeleton className="h-28 w-full" />
+        </div>
+      </ProfileLayout>
+    )
+  }
+
+  if (walletsQuery.isError) {
+    return (
+      <ProfileLayout
+        description="Gerencie suas carteiras principais e secundárias para compras, recebimentos e confirmação de transações."
+        title="Carteiras"
+      >
+        <ErrorState
+          description="Não foi possível carregar suas carteiras. Verifique sua conexão e tente novamente."
+          onRetry={() => void walletsQuery.refetch()}
+          retrying={walletsQuery.isFetching}
+          title="Falha ao carregar carteiras"
+        />
+      </ProfileLayout>
+    )
+  }
+
   return (
     <ProfileLayout
       description="Gerencie suas carteiras principais e secundárias para compras, recebimentos e confirmação de transações."
       title="Carteiras"
     >
-      <div className="space-y-4">
-        <div className="rounded-sm border border-border bg-surface-raised p-4">
-          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-highlight">
-            Principal
+      <div className="space-y-5">
+        {walletNotice && (
+          <p className="text-xs text-destructive" role="alert">
+            {walletNotice}
           </p>
-          <div className="mt-3 flex items-center justify-between gap-3">
-            <div>
-              <p className="font-bold text-foreground">MetaMask</p>
-              <p className="text-sm text-muted-foreground">0x1111...1111</p>
+        )}
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          {walletCards.map(({ kind, title, wallet, emptyDescription }) => (
+            <div className="rounded-sm border border-border bg-surface-raised p-4" key={kind}>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-highlight">
+                  {title}
+                </p>
+                {wallet && (
+                  <span className="rounded-full bg-success/10 px-2 py-1 text-[10px] font-medium text-success uppercase tracking-[0.12em]">
+                    {wallet.connectionStatus === 'connected' ? 'Conectada' : 'Desconectada'}
+                  </span>
+                )}
+              </div>
+
+              {wallet ? (
+                <div className="mt-3 space-y-2">
+                  <p className="font-bold text-foreground">{wallet.displayName}</p>
+                  <p className="text-sm text-muted-foreground">{wallet.nickname}</p>
+                  <p className="text-sm text-muted-foreground">{wallet.address}</p>
+                  <p className="text-xs uppercase tracking-[0.12em] text-highlight">
+                    {formatWalletType(wallet.walletType)}
+                  </p>
+                </div>
+              ) : (
+                <p className="mt-3 text-sm text-muted-foreground">{emptyDescription}</p>
+              )}
+
+              <div className="mt-4 flex justify-end">
+                <Button
+                  onClick={() => openWalletForm(kind)}
+                  type="button"
+                  variant={wallet ? 'outline' : 'default'}
+                >
+                  {wallet ? 'Editar' : `Cadastrar ${title.toLowerCase()}`}
+                </Button>
+              </div>
             </div>
-            <span className="rounded-full bg-success/10 px-2 py-1 text-xs font-medium text-success">
-              Conectada
-            </span>
-          </div>
+          ))}
         </div>
 
-        <div className="rounded-sm border border-dashed border-border bg-background p-4 text-sm text-muted-foreground">
-          A adição, edição e validação de carteiras entram na próxima tarefa do Epic 9.
-        </div>
+        {editingKind && (
+          <form
+            className="space-y-5 rounded-sm border border-border bg-surface-raised p-4"
+            noValidate
+            onSubmit={walletForm.handleSubmit((payload) => {
+              setWalletNotice(null)
+              saveWalletMutation.mutate(payload)
+            })}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-highlight">
+                  {editingKind === 'primary' ? 'Carteira principal' : 'Carteira secundária'}
+                </p>
+                <h2 className="mt-2 text-xl font-bold text-foreground">
+                  {primaryWallet && editingKind === 'secondary' ? 'Editar segunda carteira' : 'Cadastrar carteira'}
+                </h2>
+              </div>
+              <Button onClick={closeWalletForm} type="button" variant="ghost">
+                Fechar
+              </Button>
+            </div>
+
+            {editingKind === 'secondary' && primaryWallet && (
+              <Checkbox
+                checked={sameAsPrimary}
+                containerClassName="mt-2"
+                label="Igual à carteira principal"
+                onChange={(event) => {
+                  const nextState = event.target.checked
+                  setSameAsPrimary(nextState)
+
+                  if (nextState) {
+                    walletForm.setValue('displayName', primaryWallet.displayName)
+                    walletForm.setValue('network', primaryWallet.network)
+                    walletForm.setValue('profileName', primaryWallet.profileName)
+                    walletForm.setValue('address', primaryWallet.address)
+                    walletForm.setValue('altAddressOrEns', primaryWallet.altAddressOrEns ?? primaryWallet.ensName)
+                    walletForm.setValue('walletType', primaryWallet.walletType)
+                    walletForm.setValue('referralCode', primaryWallet.referralCode)
+                    walletForm.setValue('email', primaryWallet.email)
+                    walletForm.setValue('ensName', primaryWallet.ensName)
+                  }
+                }}
+              />
+            )}
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <Input
+                autoComplete="name"
+                error={walletForm.formState.errors.displayName?.message}
+                label="Nome da carteira"
+                {...walletForm.register('displayName')}
+              />
+              <Input
+                autoComplete="off"
+                error={walletForm.formState.errors.nickname?.message}
+                label="Apelido"
+                {...walletForm.register('nickname')}
+              />
+              <Select
+                error={walletForm.formState.errors.network?.message}
+                label="Rede"
+                {...walletForm.register('network')}
+              >
+                <option value="ethereum">Ethereum</option>
+                <option value="polygon">Polygon</option>
+                <option value="solana">Solana</option>
+              </Select>
+              <Input
+                autoComplete="off"
+                error={walletForm.formState.errors.profileName?.message}
+                label="Perfil"
+                {...walletForm.register('profileName')}
+              />
+              <Input
+                autoComplete="off"
+                className="md:col-span-2"
+                error={walletForm.formState.errors.address?.message}
+                label="Endereço"
+                {...walletForm.register('address')}
+              />
+              <Input
+                autoComplete="off"
+                className="md:col-span-2"
+                error={walletForm.formState.errors.altAddressOrEns?.message}
+                label="ENS ou endereço alternativo"
+                {...walletForm.register('altAddressOrEns')}
+              />
+              <Select
+                error={walletForm.formState.errors.walletType?.message}
+                label="Provedor"
+                {...walletForm.register('walletType')}
+              >
+                <option value="metamask">MetaMask</option>
+                <option value="walletconnect">WalletConnect</option>
+                <option value="coinbase">Coinbase Wallet</option>
+              </Select>
+              <Input
+                autoComplete="off"
+                error={walletForm.formState.errors.referralCode?.message}
+                label="Código de indicação"
+                {...walletForm.register('referralCode')}
+              />
+              <Input
+                autoComplete="email"
+                error={walletForm.formState.errors.email?.message}
+                label="E-mail"
+                type="email"
+                {...walletForm.register('email')}
+              />
+              <Input
+                autoComplete="off"
+                error={walletForm.formState.errors.ensName?.message}
+                label="ENS"
+                {...walletForm.register('ensName')}
+              />
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <Button onClick={closeWalletForm} type="button" variant="outline">
+                Cancelar
+              </Button>
+              <Button loading={saveWalletMutation.isPending} type="submit">
+                Salvar carteira
+              </Button>
+            </div>
+          </form>
+        )}
       </div>
     </ProfileLayout>
   )
@@ -479,7 +899,8 @@ function WalletsPage() {
 
 function FavoritesPage() {
   const sessionQuery = useSession()
-  const userId = sessionQuery.data?.authenticated ? sessionQuery.data.user.id : undefined
+  const currentUser = sessionQuery.data?.authenticated ? sessionQuery.data.user : undefined
+  const userId = currentUser?.id
 
   const favoritesQuery = useQuery({
     queryKey: userId ? queryKeys.user(userId).favorites : ['user', 'favorites', 'guest'],

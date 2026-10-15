@@ -148,10 +148,10 @@ Context: initial setup is done and dependencies are installed with npm. Verify e
 - [x] Add shared profile layout with sidebar navigation; active profile item uses a 4px primary bar.
 - [x] Profile view: edit personal data, avatar upload, password change; API validation errors mapped to fields.
 - [x] Add avatar block with image placeholder and Alterar/Remover actions; profile fields and password flow surface API validation errors.
-- [ ] Wallets view: register and edit primary/secondary wallets; validation and error handling; include "Igual à carteira principal" and the empty secondary state.
+- [x] Wallets view: register and edit primary/secondary wallets; validation and error handling; include "Igual à carteira principal" and the empty secondary state.
 - [x] Favorites view at `/favoritos` ("Lista de interesse") inside the profile layout, reusing the card grid.
 - [ ] Confirmed changes persist after refresh; profile, wallets and favorites have responsive mobile compositions (no dedicated frames).
-- [ ] **Tests**: profile/avatar/password/wallet edits with validation errors.
+- [x] **Tests**: profile/avatar/password/wallet edits with validation errors.
 
 ---
 

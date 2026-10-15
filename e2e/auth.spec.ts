@@ -381,6 +381,26 @@ test('renders the favorites list for authenticated users and prompts guests to l
 
 })
 
+test('updates wallet settings with validation and saves the primary wallet', async ({
+  page,
+}) => {
+  await page.goto('/login')
+  await page.getByLabel('E-mail', { exact: true }).fill('ana@kurio.example.test')
+  await page.getByLabel('Senha', { exact: true }).fill('KurioDemo!A2026')
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click()
+
+  await page.goto('/carteiras')
+  await expect(page.getByRole('heading', { name: 'Carteiras' })).toBeVisible()
+  await expect(page.getByText('MetaMask', { exact: true })).toBeVisible()
+
+  await page.getByRole('button', { name: 'Editar' }).first().click()
+  await page.getByLabel('Endereço', { exact: true }).fill('0x4444444444444444444444444444444444444444')
+  await page.getByRole('button', { name: 'Salvar carteira', exact: true }).click()
+
+  await expect(page.getByText('Carteira salva com sucesso.')).toBeVisible()
+  await expect(page.getByText('0x4444444444444444444444444444444444444444', { exact: true })).toBeVisible()
+})
+
 test('updates profile data and password with validation feedback', async ({
   page,
 }) => {
