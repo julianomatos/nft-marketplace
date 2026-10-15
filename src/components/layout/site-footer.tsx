@@ -82,7 +82,7 @@ function SiteFooter() {
                 className="min-h-9 border-r-0 bg-surface-band text-[11px]"
                 containerClassName="min-w-0 flex-1"
                 id="newsletter-email"
-                label="Seu e-mail"
+                label="Receba novidades"
                 labelClassName="sr-only"
                 name="email"
                 placeholder="digite seu e-mail..."

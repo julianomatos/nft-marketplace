@@ -12,8 +12,10 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SplatRouteImport } from './routes/$'
 import { Route as CarrinhoRouteImport } from './routes/carrinho'
+import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as IndisponivelRouteImport } from './routes/indisponivel'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as PagamentoRouteImport } from './routes/pagamento'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as NftIdRouteImport } from './routes/nft.$id'
 
@@ -32,6 +34,11 @@ const CarrinhoRoute = CarrinhoRouteImport.update({
   path: '/carrinho',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CheckoutRoute = CheckoutRouteImport.update({
+  id: '/checkout',
+  path: '/checkout',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndisponivelRoute = IndisponivelRouteImport.update({
   id: '/indisponivel',
   path: '/indisponivel',
@@ -40,6 +47,11 @@ const IndisponivelRoute = IndisponivelRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PagamentoRoute = PagamentoRouteImport.update({
+  id: '/pagamento',
+  path: '/pagamento',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SignupRoute = SignupRouteImport.update({
@@ -57,8 +69,10 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
   '/carrinho': typeof CarrinhoRoute
+  '/checkout': typeof CheckoutRoute
   '/indisponivel': typeof IndisponivelRoute
   '/login': typeof LoginRoute
+  '/pagamento': typeof PagamentoRoute
   '/signup': typeof SignupRoute
   '/nft/$id': typeof NftIdRoute
 }
@@ -66,8 +80,10 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
   '/carrinho': typeof CarrinhoRoute
+  '/checkout': typeof CheckoutRoute
   '/indisponivel': typeof IndisponivelRoute
   '/login': typeof LoginRoute
+  '/pagamento': typeof PagamentoRoute
   '/signup': typeof SignupRoute
   '/nft/$id': typeof NftIdRoute
 }
@@ -76,8 +92,10 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
   '/carrinho': typeof CarrinhoRoute
+  '/checkout': typeof CheckoutRoute
   '/indisponivel': typeof IndisponivelRoute
   '/login': typeof LoginRoute
+  '/pagamento': typeof PagamentoRoute
   '/signup': typeof SignupRoute
   '/nft/$id': typeof NftIdRoute
 }
@@ -87,8 +105,10 @@ export interface FileRouteTypes {
     | '/'
     | '/$'
     | '/carrinho'
+    | '/checkout'
     | '/indisponivel'
     | '/login'
+    | '/pagamento'
     | '/signup'
     | '/nft/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -96,8 +116,10 @@ export interface FileRouteTypes {
     | '/'
     | '/$'
     | '/carrinho'
+    | '/checkout'
     | '/indisponivel'
     | '/login'
+    | '/pagamento'
     | '/signup'
     | '/nft/$id'
   id:
@@ -105,8 +127,10 @@ export interface FileRouteTypes {
     | '/'
     | '/$'
     | '/carrinho'
+    | '/checkout'
     | '/indisponivel'
     | '/login'
+    | '/pagamento'
     | '/signup'
     | '/nft/$id'
   fileRoutesById: FileRoutesById
@@ -115,8 +139,10 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SplatRoute: typeof SplatRoute
   CarrinhoRoute: typeof CarrinhoRoute
+  CheckoutRoute: typeof CheckoutRoute
   IndisponivelRoute: typeof IndisponivelRoute
   LoginRoute: typeof LoginRoute
+  PagamentoRoute: typeof PagamentoRoute
   SignupRoute: typeof SignupRoute
   NftIdRoute: typeof NftIdRoute
 }
@@ -144,6 +170,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CarrinhoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/checkout': {
+      id: '/checkout'
+      path: '/checkout'
+      fullPath: '/checkout'
+      preLoaderRoute: typeof CheckoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/indisponivel': {
       id: '/indisponivel'
       path: '/indisponivel'
@@ -156,6 +189,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pagamento': {
+      id: '/pagamento'
+      path: '/pagamento'
+      fullPath: '/pagamento'
+      preLoaderRoute: typeof PagamentoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/signup': {
@@ -179,8 +219,10 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SplatRoute: SplatRoute,
   CarrinhoRoute: CarrinhoRoute,
+  CheckoutRoute: CheckoutRoute,
   IndisponivelRoute: IndisponivelRoute,
   LoginRoute: LoginRoute,
+  PagamentoRoute: PagamentoRoute,
   SignupRoute: SignupRoute,
   NftIdRoute: NftIdRoute,
 }

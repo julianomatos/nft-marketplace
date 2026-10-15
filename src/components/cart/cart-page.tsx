@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Link } from '@tanstack/react-router'
+import { Link, useNavigate } from '@tanstack/react-router'
 import { TicketPercent, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Drawer } from '@/components/ui/drawer'
@@ -26,6 +26,7 @@ type SummaryPanelProps = {
   couponError: string | null
   onApplyCoupon: (event: FormEvent<HTMLFormElement>) => void
   onRemoveCoupon: () => void
+  onContinueToCheckout: () => void
   isCouponUpdating: boolean
   isUpdating: boolean
   isLoading?: boolean
@@ -42,6 +43,7 @@ function SummaryPanel({
   couponError,
   onApplyCoupon,
   onRemoveCoupon,
+  onContinueToCheckout,
   isCouponUpdating,
   isUpdating,
   isLoading = false,
@@ -152,6 +154,7 @@ function SummaryPanel({
       <Button
         className={isMobile ? 'w-full' : 'mt-2 w-full'}
         disabled={isUpdating || itemCount === 0 || isLoading}
+        onClick={onContinueToCheckout}
         type="button"
       >
         Continuar para pagamento
@@ -184,6 +187,7 @@ function CartPage() {
   const [couponCode, setCouponCode] = useState('')
   const [couponError, setCouponError] = useState<string | null>(null)
   const [mobileSummaryOpen, setMobileSummaryOpen] = useState(false)
+  const navigate = useNavigate()
 
   const activeCoupon = quote?.coupon ?? data?.coupon ?? null
 
@@ -399,6 +403,7 @@ function CartPage() {
             itemCount={cartItems.length}
             onApplyCoupon={handleApplyCoupon}
             onCouponCodeChange={setCouponCode}
+            onContinueToCheckout={() => void navigate({ to: '/pagamento' })}
             onRemoveCoupon={handleRemoveCoupon}
             rows={rows}
             total={quote?.total ?? '0'}
@@ -434,6 +439,10 @@ function CartPage() {
           itemCount={cartItems.length}
           onApplyCoupon={handleApplyCoupon}
           onCouponCodeChange={setCouponCode}
+          onContinueToCheckout={() => {
+            setMobileSummaryOpen(false)
+            void navigate({ to: '/pagamento' })
+          }}
           onRemoveCoupon={handleRemoveCoupon}
           rows={rows}
           total={quote?.total ?? '0'}
