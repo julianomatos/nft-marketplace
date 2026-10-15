@@ -176,3 +176,5 @@ Context: initial setup is done and dependencies are installed with npm. Verify e
 - [ ] Deploy (Vercel recommended) with SPA fallback (`vercel.json` rewrites), mocks and real-time flows working in the published build; verify direct access and refresh on every route.
 - [ ] Verify the deployed version matches the delivered code; test from a clean checkout (`npm ci && npm run build && npm run preview`).
 - [ ] Submit repository link + public URL.
+
+**Progress**: Epic 11 started. Route-level splitting is enabled by the TanStack Router Vite plugin, and the self-hosted Roboto Mono font now has `font-display: swap` plus an explicit preload. The mock layer and React Query Devtools are loaded dynamically; production's largest initial JS asset fell from 837.61 KB (291.07 KB gzip) to 346.65 KB (112.69 KB gzip). Remaining performance work includes identifying/preloading the actual LCP image, reducing/splitting remaining large chunks, and running Lighthouse. This optimization task remains open until its full acceptance criteria are verified.

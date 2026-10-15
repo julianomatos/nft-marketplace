@@ -5,6 +5,7 @@ export const router = createRouter({
   routeTree,
   context: { session: { status: 'guest' } },
   defaultPreload: 'intent',
+  defaultPendingMs: 100,
 })
 
 declare module '@tanstack/react-router' {

@@ -1,6 +1,12 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "@fontsource-variable/roboto-mono";
+@font-face {
+  font-family: "Roboto Mono";
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: swap;
+  src: url("/assets/fonts/roboto-mono-latin-wght-normal.woff2") format("woff2");
+}
 
 @theme inline {
   --font-heading: var(--font-sans);
