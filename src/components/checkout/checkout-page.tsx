@@ -13,6 +13,11 @@ import { queryKeys } from '@/hooks/queryKeys'
 import { useSession } from '@/hooks/use-session'
 import { apiClient, IDEMPOTENCY_KEY_HEADER } from '@/services/api-client'
 import {
+  CHECKOUT_DRAFT_STORAGE_KEY,
+  CHECKOUT_IDEMPOTENCY_KEY_STORAGE_KEY,
+  PENDING_ORDER_ID_STORAGE_KEY,
+} from '@/utils/auth-return-context'
+import {
   collectorDataSchema,
   type CollectorData,
   type Network,
@@ -36,6 +41,39 @@ const networks: { value: Network; label: string }[] = [
   { value: 'solana', label: 'Solana' },
 ]
 
+const readStoredCheckoutDraft = (): Partial<CollectorData> | null => {
+  if (typeof window === 'undefined') return null
+
+  const raw = window.sessionStorage.getItem(CHECKOUT_DRAFT_STORAGE_KEY)
+  if (!raw) return null
+
+  try {
+    const parsed = JSON.parse(raw) as Partial<CollectorData>
+    return parsed && typeof parsed === 'object' ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+const readStoredIdempotencyKey = (): string | null => {
+  if (typeof window === 'undefined') return null
+  return window.sessionStorage.getItem(CHECKOUT_IDEMPOTENCY_KEY_STORAGE_KEY)
+}
+
+const writeStoredIdempotencyKey = (value: string): void => {
+  if (typeof window === 'undefined') return
+  window.sessionStorage.setItem(CHECKOUT_IDEMPOTENCY_KEY_STORAGE_KEY, value)
+}
+
+const getOrCreateIdempotencyKey = (): string => {
+  const current = readStoredIdempotencyKey()
+  if (current) return current
+
+  const generated = crypto.randomUUID()
+  writeStoredIdempotencyKey(generated)
+  return generated
+}
+
 function CheckoutPage() {
   const { step } = useSearch({ from: '/pagamento' })
   const sessionQuery = useSession()
@@ -48,6 +86,7 @@ function CheckoutPage() {
   const [useOtherWallet, setUseOtherWallet] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [lastOrderId, setLastOrderId] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const profileQuery = useQuery({
     enabled: !!userId,
@@ -107,21 +146,44 @@ function CheckoutPage() {
     if (!profileQuery.data) return
 
     const wallet = primaryWallet ?? null
+    const savedDraft = readStoredCheckoutDraft() ?? {}
     const nextValues: CollectorData = {
-      displayName: profileQuery.data.displayName,
-      username: profileQuery.data.username,
-      profileName: wallet?.profileName ?? profileQuery.data.displayName,
-      email: profileQuery.data.email,
-      walletAddress: wallet?.address ?? profileQuery.data.ensName,
-      walletType: wallet?.walletType ?? 'metamask',
-      network: wallet?.network ?? 'ethereum',
-      ensName: profileQuery.data.ensName,
-      referralCode: profileQuery.data.referralCode,
-      note: '',
+      displayName: savedDraft.displayName ?? profileQuery.data.displayName,
+      username: savedDraft.username ?? profileQuery.data.username,
+      profileName: savedDraft.profileName ?? wallet?.profileName ?? profileQuery.data.displayName,
+      email: savedDraft.email ?? profileQuery.data.email,
+      walletAddress: savedDraft.walletAddress ?? wallet?.address ?? profileQuery.data.ensName,
+      walletType: savedDraft.walletType ?? wallet?.walletType ?? 'metamask',
+      network: savedDraft.network ?? wallet?.network ?? 'ethereum',
+      ensName: savedDraft.ensName ?? profileQuery.data.ensName,
+      referralCode: savedDraft.referralCode ?? profileQuery.data.referralCode,
+      note: savedDraft.note ?? '',
     }
 
     form.reset(nextValues)
   }, [form, primaryWallet, profileQuery.data])
+
+  const draftValues = useWatch({ control: form.control })
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !draftValues) return
+
+    window.sessionStorage.setItem(
+      CHECKOUT_DRAFT_STORAGE_KEY,
+      JSON.stringify({
+        displayName: draftValues.displayName,
+        username: draftValues.username,
+        profileName: draftValues.profileName,
+        email: draftValues.email,
+        walletAddress: draftValues.walletAddress,
+        walletType: draftValues.walletType,
+        network: draftValues.network,
+        ensName: draftValues.ensName,
+        referralCode: draftValues.referralCode,
+        note: draftValues.note,
+      }),
+    )
+  }, [draftValues])
 
   const activeProvider = selectedProvider ?? 'metamask'
 
@@ -145,6 +207,7 @@ function CheckoutPage() {
       return
     }
 
+    setIsSubmitting(true)
     const values = form.getValues()
     const payload = {
       quoteId: quote.quoteId,
@@ -160,15 +223,26 @@ function CheckoutPage() {
 
     try {
       setSubmitError(null)
-      const response = await apiClient.post<{ orderId: string }>(
+      const idempotencyKey = getOrCreateIdempotencyKey()
+      const response = await apiClient.post<{ orderId: string; status: string }>(
         API_ENDPOINTS.orders.create,
         payload,
         {
           headers: {
-            [IDEMPOTENCY_KEY_HEADER]: crypto.randomUUID(),
+            [IDEMPOTENCY_KEY_HEADER]: idempotencyKey,
           },
         },
       )
+
+      window.sessionStorage.setItem(
+        PENDING_ORDER_ID_STORAGE_KEY,
+        response.data.orderId,
+      )
+
+      if (response.data.status === 'confirmed' || response.data.status === 'rejected') {
+        window.sessionStorage.removeItem(PENDING_ORDER_ID_STORAGE_KEY)
+      }
+
       setLastOrderId(response.data.orderId)
       setReviewOpen(false)
     } catch (error) {
@@ -188,6 +262,8 @@ function CheckoutPage() {
       }
 
       setSubmitError(apiError.message)
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -486,11 +562,15 @@ function CheckoutPage() {
               Voltar
             </Button>
             <Button
-              disabled={cartQuery.isPending || cartQuoteQuery.isPending}
+              disabled={
+                cartQuery.isPending ||
+                cartQuoteQuery.isPending ||
+                isSubmitting
+              }
               onClick={handleSubmitOrder}
               type="button"
             >
-              Confirmar compra
+              {isSubmitting ? 'Confirmando...' : 'Confirmar compra'}
             </Button>
           </div>
         </div>

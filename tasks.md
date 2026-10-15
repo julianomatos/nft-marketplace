@@ -119,12 +119,12 @@ Context: initial setup is done and dependencies are installed with npm. Verify e
 - [x] Checkout form: collector data (prefilled from profile/registered wallet; "Usar outra carteira?" reveals per-network validated address entry), provider selection with simulated connect/refuse/disconnect, and review dialog before submit.
 - [x] Build responsive wallet/provider option cards, checkout summary panel and mobile composition (collector-data disclosure, wallet cards, provider cards, total and primary action).
 - [x] Quote revalidation before confirming; on price/availability/coupon/fee change show differences and require a new explicit confirmation.
-- [ ] Idempotent order creation: per-attempt key persisted and reused on retry; block duplicate clicks; timeout recovery returns the same order; `409` on key reuse with different payload.
-- [ ] Pending / confirmed / rejected states; recovery after refresh/reconnection; show confirmation **only** for confirmed orders.
-- [ ] Receipt route `/pedidos/:orderId` as an immutable snapshot: transaction id, items, edition tiers, fees, total and network explorer link; pending/confirmed/rejected states and mobile composition.
-- [ ] On confirmation remove only purchased items/quantities from the cart; preserve items on failure.
-- [ ] Session expiry mid-checkout resumes with preserved context.
-- [ ] **Tests**: full purchase (catalog → confirmed receipt); payment failure, repeated clicks, timeout recovered with the same order.
+- [x] Idempotent order creation: per-attempt key persisted and reused on retry; block duplicate clicks; timeout recovery returns the same order; `409` on key reuse with different payload.
+- [x] Pending / confirmed / rejected states; recovery after refresh/reconnection; show confirmation **only** for confirmed orders.
+- [x] Receipt route `/pedidos/:orderId` as an immutable snapshot: transaction id, items, edition tiers, fees, total and network explorer link; pending/confirmed/rejected states and mobile composition.
+- [x] On confirmation remove only purchased items/quantities from the cart; preserve items on failure.
+- [x] Session expiry mid-checkout resumes with preserved context.
+- [x] **Tests**: full purchase (catalog → confirmed receipt); payment failure, repeated clicks, timeout recovered with the same order.
 
 **Acceptance**: no duplicate orders under any scenario; receipt unaffected by later catalog changes.
 
@@ -134,12 +134,12 @@ Context: initial setup is done and dependencies are installed with npm. Verify e
 
 - [x] Socket client/provider using `socket.io-client`; connect on authenticated session, disconnect and clean listeners on logout/user switch and unmount.
 - [x] Handle `nft.updated`: patch catalog, detail and cart caches; invalidate quote; inform the user (live region).
-- [ ] Handle `order.updated`: transition pending → confirmed/rejected; terminal states never overwritten.
-- [ ] Dedup by `eventId`, ignore events with `version ≤ applied`, ignore events of another user.
-- [ ] On reconnect: reconcile active queries and pending order via REST.
-- [ ] Mandatory scenario: item in cart → price/availability change → UI informs and updates summary → checkout blocks stale-quote confirmation.
-- [ ] Pending order survives a connection drop; state recovered after reconnect or reload without a new purchase.
-- [ ] **Tests**: price/availability change during checkout via Socket.IO; duplicate/old events, disconnect and pending-order resume.
+- [x] Handle `order.updated`: transition pending → confirmed/rejected; terminal states never overwritten.
+- [x] Dedup by `eventId`, ignore events with `version ≤ applied`, ignore events of another user.
+- [x] On reconnect: reconcile active queries and pending order via REST.
+- [x] Mandatory scenario: item in cart → price/availability change → UI informs and updates summary → checkout blocks stale-quote confirmation.
+- [x] Pending order survives a connection drop; state recovered after reconnect or reload without a new purchase.
+- [x] **Tests**: price/availability change during checkout via Socket.IO; duplicate/old events, disconnect and pending-order resume.
 
 ---
 

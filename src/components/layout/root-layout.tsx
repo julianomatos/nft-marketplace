@@ -173,6 +173,7 @@ function RootLayout() {
 
   const processedEventIds = useRef(new Set<string>())
   const lastSeenNftVersions = useRef(new Map<string, number>())
+  const lastSeenOrderVersions = useRef(new Map<string, number>())
   const [liveAnnouncement, setLiveAnnouncement] = useState('')
   const authUserId = session.status === 'authenticated' ? session.userId : null
 
@@ -245,10 +246,26 @@ function RootLayout() {
 
     const handleOrderUpdated = (event: OrderUpdatedEvent) => {
       if (!active) return
+      if (event.userId !== authUserId) return
       if (processedEventIds.current.has(event.eventId)) return
+
+      const lastVersion = lastSeenOrderVersions.current.get(event.data.orderId) ?? 0
+      if (event.version <= lastVersion) {
+        processedEventIds.current.add(event.eventId)
+        return
+      }
+
+      lastSeenOrderVersions.current.set(event.data.orderId, event.version)
       processedEventIds.current.add(event.eventId)
+      if (event.data.status === 'confirmed' || event.data.status === 'rejected') {
+        window.sessionStorage.removeItem('kurio.pending-order-id')
+      }
+
       queryClient.invalidateQueries({
         queryKey: ['user', authUserId, 'orders'],
+      })
+      queryClient.invalidateQueries({
+        queryKey: ['user', authUserId, 'orders', event.data.orderId],
       })
     }
 
