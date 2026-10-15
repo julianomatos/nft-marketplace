@@ -219,6 +219,12 @@ function createNft(seed: NftSeed, index: number): NftRecord {
     description: `${seed.name} integra a coleção ${seed.collection}.`,
     images: [{
       url: `/assets/nfts/${seed.asset}-960.webp`,
+      responsiveSrcSet: [
+        `/assets/nfts/${seed.asset}-320.webp 320w`,
+        `/assets/nfts/${seed.asset}-480.webp 480w`,
+        `/assets/nfts/${seed.asset}-640.webp 640w`,
+        `/assets/nfts/${seed.asset}-960.webp 960w`,
+      ].join(', '),
       thumbnailUrl: `/assets/nfts/${seed.asset}-480.webp`,
       alt: `Arte de ${seed.name}`,
       width: imageMetadata.width,

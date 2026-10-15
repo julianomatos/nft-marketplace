@@ -61,7 +61,9 @@ function NftCard({ nft }: NftCardProps) {
           className="aspect-square w-full object-cover"
           height={image.height}
           loading="lazy"
+          sizes="(min-width: 1280px) 259px, (min-width: 768px) calc((100vw - 400px) / 2), 46vw"
           src={image.url}
+          srcSet={image.responsiveSrcSet}
           width={image.width}
         />
         <div className="absolute inset-x-2 bottom-2 flex justify-center gap-2 opacity-100 transition-opacity md:inset-x-3 md:bottom-3 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100">

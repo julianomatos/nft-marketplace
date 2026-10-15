@@ -137,7 +137,9 @@ function HomePage() {
                 className="size-28 shrink-0 object-cover md:size-40"
                 height={spotlightImage.height}
                 loading="lazy"
+                sizes="(min-width: 768px) 160px, 112px"
                 src={spotlightImage.url}
+                srcSet={spotlightImage.responsiveSrcSet}
                 width={spotlightImage.width}
               />
               <div>

@@ -260,6 +260,7 @@ export type NftAttribute = {
 
 export type NftImage = {
   url: string
+  responsiveSrcSet: string
   alt: string
   width: number
   height: number

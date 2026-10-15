@@ -245,7 +245,9 @@ function NftDetailContent({ nft }: { nft: Nft }) {
                   height={image.height}
                   fetchPriority="high"
                   loading="eager"
+                  sizes="(min-width: 1024px) 50vw, calc(100vw - 2rem)"
                   src={image.url}
+                  srcSet={image.responsiveSrcSet}
                   width={image.width}
                 />
                 <div className="absolute inset-x-3 top-3 flex justify-between md:hidden">
@@ -313,6 +315,7 @@ function NftDetailContent({ nft }: { nft: Nft }) {
                       className="size-full object-cover"
                       height={galleryImage.height}
                       loading="lazy"
+                      sizes="80px"
                       src={galleryImage.thumbnailUrl}
                       width={galleryImage.width}
                     />
@@ -329,7 +332,9 @@ function NftDetailContent({ nft }: { nft: Nft }) {
                   alt={image.alt}
                   className="max-h-[75vh] w-full object-contain"
                   height={image.height}
+                  sizes="(min-width: 768px) 75vw, calc(100vw - 2rem)"
                   src={image.url}
+                  srcSet={image.responsiveSrcSet}
                   width={image.width}
                 />
               </ModalSurface>

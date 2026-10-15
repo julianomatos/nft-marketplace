@@ -33,7 +33,7 @@ for (const artwork of artworkFiles) {
   const sourcePath = path.join(sourceDirectory, `${artwork}.png`)
   await access(sourcePath)
 
-  for (const size of [960, 480]) {
+  for (const size of [960, 640, 480, 320]) {
     const outputPath = path.join(outputDirectory, `${artwork}-${size}.webp`)
     const result = await sharp(sourcePath)
       .resize(size, size, { fit: 'inside', withoutEnlargement: true })
@@ -44,6 +44,7 @@ for (const artwork of artworkFiles) {
       imageMetadata[artwork] = {
         width: result.width,
         height: result.height,
+        responsiveWidths: [320, 480, 640, 960],
       }
     }
   }
