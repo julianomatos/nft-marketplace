@@ -1,68 +1,123 @@
 # NFT Marketplace
 
-Frontend challenge implementation using React, TypeScript, Vite, Tailwind CSS v4 and shadcn/ui.
+Frontend NFT marketplace demo built with React 19, TypeScript, Vite, Tailwind CSS v4, TanStack Router/Query, Axios and MSW. The REST API and Socket.IO service are deterministic browser mocks; this project does not connect to a real payment, wallet, blockchain or marketplace backend.
 
-## Requirements
+## Requirements and setup
 
-- Node.js `>=22.19` (the checked-in `.nvmrc` selects `22.19.0`)
+- Node.js `>=22.19` (`.nvmrc` selects `22.19.0`)
 - npm
-
-## Setup and commands
+- Playwright Chromium for browser tests and Lighthouse
 
 ```sh
 npm ci
+npx playwright install chromium
 npm run dev
 ```
 
-The development server runs at the Vite URL printed in the terminal. The primary project commands are:
+Open the URL printed by Vite. The development environment enables MSW by default. `public/mockServiceWorker.js` is committed and is also included in the production/demo build.
+
+## Commands
 
 | Command | Purpose |
 | --- | --- |
-| `npm run dev` | Start Vite in development mode |
-| `npm run build` | Typecheck and create the production build |
-| `npm run preview` | Preview the build after `npm run build` |
-| `npm run typecheck` | Run the TypeScript project build without emitting output |
+| `npm run dev` | Start Vite with browser mocks enabled |
+| `npm run build` | Run TypeScript build checks and create the production build |
+| `npm run preview` | Serve the build locally; run `npm run build` first |
+| `npm run typecheck` | Typecheck without emitting output |
 | `npm run lint` | Run ESLint |
-| `npm run test:unit` | Run browser-free Playwright unit tests |
-| `npm run test:e2e` | Run Playwright smoke tests in desktop and mobile Chromium |
-| `npm run test:e2e:update` | Update Playwright visual snapshots |
-| `npm run generate:images` | Generate 480 px and 960 px WebP NFT artwork variants with Sharp |
-| `npm run lighthouse` | Build, preview and run three Lighthouse measurements per form factor |
-| `npm run lighthouse -- http://127.0.0.1:4173/` | Pass a URL to the Lighthouse runner |
+| `npm run test:unit` | Run REST/contract/store tests using Playwright's Node project |
+| `npm run test:e2e` | Run Playwright desktop and mobile Chromium projects |
+| `npm run test:e2e:update` | Update visual snapshots intentionally |
+| `npm run generate:images` | Generate responsive local WebP artwork variants |
+| `npm run lighthouse` | Build/preview and run Lighthouse audits for Home and NFT Detail, mobile and desktop |
 
-Playwright's Chromium browser can be installed with `npx playwright install chromium`. The Lighthouse runner uses that browser, writes HTML/JSON reports and median scores/metrics under `lighthouse/reports/`.
+Lighthouse runs three measurements per page/device and stores HTML/JSON reports and summary medians under `lighthouse/reports/`. Install the Chromium browser with `npx playwright install chromium` if it is missing. Run `npm run lighthouse` without a URL argument so the audit uses the preview server's dynamically allocated port.
 
 ## Environment variables
 
-Copy `.env.example` to a local `.env` file when you need to override defaults:
+Copy `.env.example` to `.env` only when you need local overrides. Vite loads mode-specific environment files; `.env.development` and `.env.production` enable mocks for the local and demo builds.
 
-| Variable | Development default | Purpose |
+| Variable | Default | Purpose |
 | --- | --- | --- |
-| `VITE_ENABLE_MOCKS` | `true` in `.env.development` and `.env.production` | Enables the MSW browser worker before the app mounts, including the demo build |
-| `VITE_MOCK_SCENARIO` | `success` | Selects a deterministic mock scenario |
-| `VITE_API_BASE_URL` | `/api` | Base path for REST requests |
+| `VITE_ENABLE_MOCKS` | `true` in development and production modes | Start the MSW browser worker before mounting the app |
+| `VITE_MOCK_SCENARIO` | `success` | Initial deterministic MSW scenario, used when no scenario is already persisted |
+| `VITE_API_BASE_URL` | `/api` | Base URL used by the Axios REST client |
 
-The browser bootstrap and REST/socket handlers run in local development and the production/demo build. `public/mockServiceWorker.js` is committed and served with the app assets.
+The production mode is a mock-backed demo, not a production backend integration. Disabling mocks without providing a compatible API and Socket.IO service will leave API requests unanswered.
 
-### Deterministic mock scenarios
+## Demo accounts
 
-Available scenarios are `success`, `empty`, `design-cart`, `expired-session`, `network-error`, `server-error`, `unauthorized`, `signup-conflict`, `validation-error`, `invalid-coupon`, `expired-coupon`, `price-changed`, `sold-out`, `timeout-after-order`, `payment-confirmed`, `payment-rejected`, and `variable-latency`.
+These accounts are fictional and only valid in the local mock data:
 
-`VITE_MOCK_SCENARIO` seeds the first mock state. Add `?mockScenario=empty` (or another scenario name) to the app URL to reset and select a scenario before MSW starts. Without a URL override, a persisted scenario is retained across refresh. To reset during development, run `window.__KURIO_MOCKS__.reset('success')` in the browser console. `window.__KURIO_MOCKS__` also exposes `setMockTime`, `advanceMockTime`, `setLatency` (0–15000 ms), and `setTimeoutResponseDelay` (0–60000 ms). Playwright equivalents are in `e2e/mock-helpers.ts`.
-
-`variable-latency` intentionally completes concurrent requests out of order. The `timeout-after-order` scenario saves an order before delaying its response beyond Axios's timeout; retrying with the same idempotency key recovers that order. Price and sold-out scenarios start from the reference `design-cart`, emit `nft.updated`, and return a new quote when order creation revalidates it. Payment scenarios settle an order immediately and emit terminal `order.updated`; confirmation also emits inventory `nft.updated` events. The demo mock socket validates the token sent in `mock:subscribe`; private order events are filtered by `userId`. This binding is a test/demo transport, not a production Socket.IO server.
-
-## Fictitious demo credentials
-
-These accounts are fictional and intended only for the local mock demonstration:
-
-| User | Email | Password |
+| Name | Email | Password |
 | --- | --- | --- |
 | Ana Oliveira | `ana@kurio.example.test` | `KurioDemo!A2026` |
 | Caio Martins | `caio@kurio.example.test` | `KurioDemo!B2026` |
 
-Fixture records store only a salt and a precomputed SHA-256 password hash; these plaintext values are documented here solely to make the later demo login usable. Do not reuse them outside this mock project.
+Fixture data contains salted SHA-256 password hashes, not plaintext passwords. Do not reuse these demo credentials elsewhere.
 
-## Current test coverage
+## Mock scenarios and reset
 
-`npm run test:unit` covers contracts, fixtures, the mock store and REST handlers through Axios + MSW Node. `npm run test:e2e` checks the KURIO shell at desktop and mobile sizes, unavailable destinations, the Epic 0 Socket.IO smoke, and REST-triggered server-originated events through `socket.io-client`. Marketplace UI socket consumption remains pending with the relevant feature flows.
+Scenarios can be selected with `VITE_MOCK_SCENARIO` or a URL query parameter. For example, start the app and open `/?mockScenario=empty` to reset and load the empty-catalog scenario before MSW starts. A URL scenario overrides the environment setting. Without a URL override, existing mock state persists across reloads.
+
+During development, reset the complete mock state from the browser console:
+
+```js
+window.__KURIO_MOCKS__.reset('success')
+```
+
+The harness also exposes mock clock, latency and timeout controls:
+
+```js
+window.__KURIO_MOCKS__.setMockTime('2026-07-29T12:00:00.000Z')
+window.__KURIO_MOCKS__.advanceMockTime(60_000)
+window.__KURIO_MOCKS__.setLatency(500)
+window.__KURIO_MOCKS__.setTimeoutResponseDelay(16_000)
+```
+
+`setLatency` accepts 0–15,000 ms; `setTimeoutResponseDelay` accepts 0–60,000 ms. The Playwright helpers in `e2e/mock-helpers.ts` provide scenario reset and deterministic clock/latency control for tests.
+
+Available scenario names:
+
+| Scenario | What it demonstrates |
+| --- | --- |
+| `success` | Standard catalog and successful user flows |
+| `empty` | Empty catalog result |
+| `design-cart` | Reference cart populated for checkout |
+| `expired-session` | Expired token and authentication recovery |
+| `network-error` | Network-level request failure |
+| `server-error` | HTTP 503 service failure |
+| `unauthorized` | HTTP 401 for private API requests |
+| `signup-conflict` | Signup with an already-used email |
+| `validation-error` | Form/API validation errors |
+| `invalid-coupon` | Coupon rejected as invalid |
+| `expired-coupon` | Coupon expiry handling |
+| `price-changed` | Price changes before order validation; fresh quote is required |
+| `sold-out` | Edition becomes unavailable before order validation |
+| `timeout-after-order` | Order is created, response times out, and idempotent retry recovers it |
+| `payment-confirmed` | Order confirmation and inventory update events |
+| `payment-rejected` | Rejected payment and retry path |
+| `variable-latency` | Concurrent requests finish out of order |
+
+## Reproducing failure and recovery flows
+
+Select the scenario by appending `?mockScenario=<scenario>` to the route URL. If you are already on the app, reload after setting the scenario. Use a fresh browser context or reset the scenario between flows to avoid persisted mock state affecting the result.
+
+1. **Catalog empty/error/retry:** use `/?mockScenario=empty`, `/?mockScenario=network-error`, or `/?mockScenario=server-error`. The empty state should appear for `empty`; the error state should provide a retry for the failure cases. `variable-latency` reproduces out-of-order API responses.
+2. **Expired or unauthorized session:** select `expired-session`, sign in with a demo account, then open a protected route such as `/carrinho`. Verify the expiry redirect and private-data cleanup. `unauthorized` rejects private API requests and is useful for checking visible API errors.
+3. **Signup conflict and validation:** use `signup-conflict` to submit an already-registered email from `/signup`; use `validation-error` to exercise field/API validation feedback.
+4. **Coupon errors:** start with `/?mockScenario=invalid-coupon` or `/?mockScenario=expired-coupon`, sign in, open `/carrinho`, and apply a coupon. Check the API error and recovery message.
+5. **Price change or sold-out edition:** open `/?mockScenario=price-changed` or `/?mockScenario=sold-out`, sign in and start checkout from the reference cart. Order validation must reject the stale quote and require explicit acceptance of a fresh quote; it must not confirm a purchase using stale totals.
+6. **Timeout and idempotent recovery:** use `timeout-after-order` and complete checkout. The initial response is delayed beyond Axios's default 15-second timeout after order creation. Retry using the same idempotency key; the existing order should be recovered rather than duplicated. For shorter manual runs, set `window.__KURIO_MOCKS__.setTimeoutResponseDelay(...)` before starting checkout.
+7. **Payment result:** use `payment-confirmed` or `payment-rejected` and complete checkout. Confirmation should render the receipt and update inventory; rejection should preserve the cart and offer retry.
+8. **Real-time reconciliation:** use `price-changed`, `sold-out`, or a payment scenario while the app is connected. REST-driven mock changes publish Socket.IO events; the UI should reconcile state and announce relevant changes accessibly. `variable-latency` can be used separately to exercise request ordering.
+
+The Socket.IO implementation is a browser demo transport provided by `@mswjs/socket.io-binding`; it is not a production Socket.IO server. Private order events use the mock subscription token and are filtered by user id.
+
+## Tests and current coverage
+
+`npm run test:unit` exercises contracts, fixtures, mock store and REST handlers through Axios/MSW Node. `npm run test:e2e` runs browser flows in desktop and mobile Chromium, including catalog, authentication, favorites, cart, checkout/order, profile/wallet and real-time behavior. Browser tests reset isolated mock state and use deterministic helpers rather than fixed sleeps. Run an individual spec while developing with:
+
+```sh
+npx playwright test e2e/home.spec.ts --project=chromium-desktop
+```
