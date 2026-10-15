@@ -37,14 +37,14 @@ function HomeIntro({ background = false, featuredNfts }: HomeIntroProps) {
           <Skeleton className="size-12 rounded-2xl" />
         </div>
         <Skeleton className="aspect-[1.65] w-full rounded-3xl md:hidden" />
-        <div className="hidden min-h-[24rem] items-center gap-8 md:grid md:grid-cols-2">
+        <div className="hidden min-h-96 items-center gap-8 md:grid md:grid-cols-2">
           <div className="space-y-5">
             <Skeleton className="h-4 w-36" />
             <Skeleton className="h-24 w-full max-w-xl" />
             <Skeleton className="h-14 w-full max-w-md" />
             <Skeleton className="h-11 w-32" />
           </div>
-          <Skeleton className="aspect-square w-full max-w-[28rem] justify-self-end" />
+          <Skeleton className="aspect-square w-full max-w-md justify-self-end" />
         </div>
       </section>
     )
@@ -96,7 +96,7 @@ function HomeIntro({ background = false, featuredNfts }: HomeIntroProps) {
         <ul
           aria-label="Destaques da Kurio"
           aria-roledescription="carrossel"
-          className="flex snap-x snap-mandatory overflow-x-auto scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="flex snap-x snap-mandatory overflow-x-auto scroll-smooth scrollbar-none [&::-webkit-scrollbar]:hidden"
           onScroll={handleSlidesScroll}
           ref={slidesRef}
         >
@@ -203,7 +203,7 @@ function HomeIntro({ background = false, featuredNfts }: HomeIntroProps) {
         </div>
       </div>
 
-      <div className="hidden min-h-[24rem] items-center gap-8 md:grid md:grid-cols-[1fr_28rem] md:gap-12">
+      <div className="hidden min-h-96 items-center gap-8 md:grid md:grid-cols-[1fr_28rem] md:gap-12">
         <div className="flex flex-col items-start">
           <p className="mb-4 text-sm font-bold uppercase tracking-wide text-highlight">
             Bem-vindo à Kurio

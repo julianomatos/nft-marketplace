@@ -289,7 +289,7 @@ function HomePage() {
               <div className="flex items-start gap-10">
                 <aside
                   aria-label="Filtros do catálogo"
-                  className="hidden w-[19rem] shrink-0 lg:block"
+                  className="hidden w-76 shrink-0 lg:block"
                 >
                   <CatalogFilterPanel
                     facets={facets}
