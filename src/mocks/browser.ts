@@ -57,6 +57,7 @@ export function attachSocketMock() {
     return socketAttachPromise
   }
 
+
   socketAttachPromise = (async () => {
     await startMocking()
     if (!worker) {
