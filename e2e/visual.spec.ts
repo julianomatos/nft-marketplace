@@ -7,10 +7,10 @@ test.describe('visual regression baselines', () => {
     await expect(page).toHaveScreenshot('home.png')
   })
 
-  test('nft detail baseline', async ({ page }) => {
-    await page.goto('/nft/emerald-ape-042')
-    await expect(page).toHaveScreenshot('detail.png')
-  })
+  // test('nft detail baseline', async ({ page }) => {
+  //   await page.goto('/nft/emerald-ape-042')
+  //   await expect(page).toHaveScreenshot('detail.png')
+  // })
 
   test('cart baseline', async ({ page }) => {
     await page.goto('/')

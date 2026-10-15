@@ -83,6 +83,7 @@ function HomePage() {
 
   function updateSearch(updates: Partial<NftSearchParams>) {
     void navigate({
+      resetScroll: false,
       search: (current) =>
         updateNftSearchParams(nftSearchParamsSchema.parse(current), updates),
     })
@@ -350,7 +351,18 @@ function HomePage() {
                       <div className="mt-10 flex justify-center">
                         <Pagination
                           label="Catálogo de NFTs"
-                          onPageChange={(page) => updateSearch({ page })}
+                          onPageChange={(page) => {
+                            updateSearch({ page })
+                            const catalogElement = document.getElementById('catalog')
+                            if (catalogElement) {
+                              const prefersReducedMotion = window.matchMedia(
+                                '(prefers-reduced-motion: reduce)',
+                              ).matches
+                              catalogElement.scrollIntoView({
+                                behavior: prefersReducedMotion ? 'auto' : 'smooth',
+                              })
+                            }
+                          }}
                           page={catalogQuery.data.page}
                           totalPages={catalogQuery.data.totalPages}
                         />
