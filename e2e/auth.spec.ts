@@ -327,7 +327,10 @@ test('session expiry from an Axios-protected request saves checkout state and re
     )
   })
   await page.goto('/pagamento?step=review')
-  await expect(page.getByText('Ana Oliveira', { exact: true })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: 'Finalizar compra' }),
+  ).toBeVisible()
+  await expect(page.getByLabel('Nome completo')).toHaveValue('Ana Oliveira')
 
   await page.evaluate(async () => {
     window.__KURIO_MOCKS__.advanceMockTime(48 * 60 * 60 * 1000)
@@ -438,7 +441,9 @@ test('shows wallet validation errors and preserves profile changes after refresh
   await expect(page.getByText('Perfil atualizado com sucesso.')).toBeVisible()
 
   await page.reload()
-  await expect(page.getByText('Ana Oliveira Atualizada', { exact: true })).toBeVisible()
+  await expect(
+    page.getByText('Ana Oliveira Atualizada', { exact: true }).first(),
+  ).toBeVisible()
 
   await page.goto('/carteiras')
   await page.getByRole('button', { name: 'Editar' }).first().click()
@@ -460,7 +465,7 @@ test('updates profile data and password with validation feedback', async ({
 
   await page.getByLabel('Nome completo').fill('Ana Beatriz Oliveira')
   await page.getByLabel('Usuário').fill('ana.beatriz')
-  await page.getByLabel('E-mail').fill('ana.beatriz@kurio.example.test')
+  await page.getByLabel('E-mail', { exact: true }).fill('ana.beatriz@kurio.example.test')
   await page.getByLabel('ENS').fill('ana.beatriz.kurio.eth')
   await page.getByLabel('Apelido da carteira').fill('Pessoal')
   await page.getByRole('button', { name: 'Salvar dados' }).click()

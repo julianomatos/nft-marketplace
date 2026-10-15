@@ -99,7 +99,7 @@ function NftCard({ nft }: NftCardProps) {
           </Button>
           <Button
             asChild
-            aria-label={`Ver ${nft.name}`}
+            aria-label={`Ver ${nft.name} — página de detalhes`}
             size="icon-sm"
             variant="secondary"
           >

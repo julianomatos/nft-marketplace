@@ -1,13 +1,14 @@
 import { useQuery } from '@tanstack/react-query'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Link, useSearch } from '@tanstack/react-router'
+import { Link, useRouter, useSearch } from '@tanstack/react-router'
 import { ArrowLeft, Check, ShieldCheck, Wallet2 } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useCart } from '@/hooks/use-cart'
 import { queryKeys } from '@/hooks/queryKeys'
 import { useSession } from '@/hooks/use-session'
@@ -41,14 +42,18 @@ const networks: { value: Network; label: string }[] = [
   { value: 'solana', label: 'Solana' },
 ]
 
-const readStoredCheckoutDraft = (): Partial<CollectorData> | null => {
+type CheckoutDraft = Partial<CollectorData> & {
+  step?: string
+}
+
+const readStoredCheckoutDraft = (): CheckoutDraft | null => {
   if (typeof window === 'undefined') return null
 
   const raw = window.sessionStorage.getItem(CHECKOUT_DRAFT_STORAGE_KEY)
   if (!raw) return null
 
   try {
-    const parsed = JSON.parse(raw) as Partial<CollectorData>
+    const parsed = JSON.parse(raw) as CheckoutDraft
     return parsed && typeof parsed === 'object' ? parsed : null
   } catch {
     return null
@@ -76,17 +81,20 @@ const getOrCreateIdempotencyKey = (): string => {
 
 function CheckoutPage() {
   const { step } = useSearch({ from: '/pagamento' })
+  const router = useRouter()
   const sessionQuery = useSession()
   const userId = sessionQuery.data?.authenticated
     ? sessionQuery.data.user.id
     : undefined
 
   const { quote, cartQuery, cartQuoteQuery } = useCart()
-  const [reviewOpen, setReviewOpen] = useState(step === 'review')
+  const [reviewOpen, setReviewOpen] = useState(false)
   const [useOtherWallet, setUseOtherWallet] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [lastOrderId, setLastOrderId] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const hasInitializedForm = useRef(false)
+  const shouldRestoreReview = useRef(step === 'review')
 
   const profileQuery = useQuery({
     enabled: !!userId,
@@ -143,10 +151,11 @@ function CheckoutPage() {
   }, [walletsQuery.data])
 
   useEffect(() => {
-    if (!profileQuery.data) return
+    if (!profileQuery.data || !walletsQuery.data) return
 
     const wallet = primaryWallet ?? null
     const savedDraft = readStoredCheckoutDraft() ?? {}
+    const hasSavedFormValues = Object.keys(savedDraft).some((key) => key !== 'step')
     const nextValues: CollectorData = {
       displayName: savedDraft.displayName ?? profileQuery.data.displayName,
       username: savedDraft.username ?? profileQuery.data.username,
@@ -160,30 +169,85 @@ function CheckoutPage() {
       note: savedDraft.note ?? '',
     }
 
-    form.reset(nextValues)
-  }, [form, primaryWallet, profileQuery.data])
+    if (!hasSavedFormValues) {
+      form.reset(nextValues)
+    }
+    hasInitializedForm.current = true
+  }, [form, primaryWallet, profileQuery.data, walletsQuery.data])
 
   const draftValues = useWatch({ control: form.control })
 
   useEffect(() => {
     if (typeof window === 'undefined' || !draftValues) return
+    if (!hasInitializedForm.current) return
+
+    const nextDraft: CheckoutDraft = {
+      step: step === 'review' ? 'review' : undefined,
+      displayName: draftValues.displayName,
+      username: draftValues.username,
+      profileName: draftValues.profileName,
+      email: draftValues.email,
+      walletAddress: draftValues.walletAddress,
+      walletType: draftValues.walletType,
+      network: draftValues.network,
+      ensName: draftValues.ensName,
+      referralCode: draftValues.referralCode,
+      note: draftValues.note,
+    }
+
+    if (step === 'review' && !reviewOpen) {
+      return
+    }
 
     window.sessionStorage.setItem(
       CHECKOUT_DRAFT_STORAGE_KEY,
-      JSON.stringify({
-        displayName: draftValues.displayName,
-        username: draftValues.username,
-        profileName: draftValues.profileName,
-        email: draftValues.email,
-        walletAddress: draftValues.walletAddress,
-        walletType: draftValues.walletType,
-        network: draftValues.network,
-        ensName: draftValues.ensName,
-        referralCode: draftValues.referralCode,
-        note: draftValues.note,
-      }),
+      JSON.stringify(nextDraft),
     )
-  }, [draftValues])
+  }, [draftValues, reviewOpen, step])
+
+  useEffect(() => {
+    if (!hasInitializedForm.current || !profileQuery.data || !walletsQuery.data)
+      return
+    if (step === 'review' && shouldRestoreReview.current) {
+      setReviewOpen(true)
+      shouldRestoreReview.current = false
+    }
+  }, [profileQuery.data, step, walletsQuery.data])
+
+  useEffect(() => {
+    if (reviewOpen) {
+      window.sessionStorage.setItem(
+        CHECKOUT_DRAFT_STORAGE_KEY,
+        JSON.stringify({
+          ...(readStoredCheckoutDraft() ?? {}),
+          step: 'review',
+        }),
+      )
+      return
+    }
+
+    const savedDraft = readStoredCheckoutDraft()
+    if (savedDraft?.step === 'review') {
+      const formDraft = { ...savedDraft }
+      delete formDraft.step
+      window.sessionStorage.setItem(
+        CHECKOUT_DRAFT_STORAGE_KEY,
+        JSON.stringify(formDraft),
+      )
+    }
+  }, [reviewOpen])
+
+  useEffect(() => {
+    if (!step || !reviewOpen) return
+    const timeoutId = window.setTimeout(() => {
+      router.navigate({
+        to: '/pagamento',
+        search: {},
+        replace: true,
+      })
+    }, 0)
+    return () => window.clearTimeout(timeoutId)
+  }, [reviewOpen, router, step])
 
   const activeProvider = selectedProvider ?? 'metamask'
 
@@ -273,7 +337,11 @@ function CheckoutPage() {
     { label: 'Taxa da rede', value: quote?.networkFee ?? '0' },
   ]
 
-  const isLoading = cartQuery.isPending || cartQuoteQuery.isPending || profileQuery.isPending
+  const isLoading =
+    cartQuery.isPending ||
+    cartQuoteQuery.isPending ||
+    profileQuery.isPending ||
+    walletsQuery.isPending
 
   return (
     <div className="kurio-container py-8 pb-24 md:py-10">
@@ -313,6 +381,19 @@ function CheckoutPage() {
       ) : (
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1.75fr)_minmax(19rem,0.85fr)] lg:items-start">
           <form className="space-y-6" noValidate onSubmit={handleReview}>
+            {isLoading ? (
+              <div
+                aria-label="Carregando dados do checkout"
+                className="space-y-4"
+                role="status"
+              >
+                <Skeleton className="h-8 w-1/2" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+              </div>
+            ) : (
+              <>
             <section className="border border-border bg-card p-5">
               <div className="mb-5 flex items-center justify-between gap-3">
                 <div>
@@ -481,6 +562,8 @@ function CheckoutPage() {
                 </p>
               )}
             </section>
+              </>
+            )}
           </form>
 
           <aside className="border border-border bg-card p-5">

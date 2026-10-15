@@ -247,8 +247,8 @@ test('detail favorites roll back after API failure and recover on retry', async 
   })
   await favoriteButton.click()
   await expect(
-    page.getByText('O serviço está temporariamente indisponível.', {
-      exact: true,
+    page.getByRole('alert').filter({
+      hasText: 'O serviço está temporariamente indisponível.',
     }),
   ).toBeVisible()
   await expect(page.getByRole('button', {
@@ -363,7 +363,9 @@ test('adding a selected NFT edition uses the cart API response', async ({
       }),
     ]),
   })
-  await expect(page.getByText('Emerald Ape #042 adicionado ao carrinho.', {
-    exact: true,
-  })).toBeVisible()
+  await expect(
+    page.getByRole('status').filter({
+      hasText: 'Emerald Ape #042 adicionado ao carrinho.',
+    }).first(),
+  ).toBeVisible()
 })

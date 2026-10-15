@@ -185,7 +185,6 @@ function NftDetailContent({ nft }: { nft: Nft }) {
         })
       }
     } catch (error) {
-      console.error('Favorite toggle error:', error)
       if (
         error instanceof ApiClientError &&
         (error.status === 401 || error.code === 'SESSION_EXPIRED')

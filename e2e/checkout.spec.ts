@@ -15,8 +15,12 @@ test('renders the checkout form, validates collector data and confirms the order
   await page.goto('/pagamento')
 
   await expect(page.getByRole('heading', { name: 'Finalizar compra' })).toBeVisible()
-  await expect(page.getByLabel('Nome completo')).toHaveValue('Ana Oliveira')
-  await expect(page.getByLabel('E-mail')).toHaveValue('ana@kurio.example.test')
+  await expect(page.getByLabel('Nome completo', { exact: true })).toHaveValue(
+    'Ana Oliveira',
+  )
+  await expect(page.getByLabel('E-mail', { exact: true })).toHaveValue(
+    'ana@kurio.example.test',
+  )
 
   await page.getByRole('checkbox').check()
   await page.getByLabel('Endereço da carteira').fill('0x1234567890abcdef1234567890abcdef12345678')
