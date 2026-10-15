@@ -261,29 +261,31 @@ function HomePage() {
             </Select>
           </div>
 
-          {facets && ModalSurface && (
+          {facets && (
             <>
-              <ModalSurface
-                onOpenChange={setFilterDrawerOpen}
-                open={filterDrawerOpen}
-                title="Filtrar NFTs"
-                variant="drawer"
-              >
-                <CatalogFilterPanel
-                  facets={facets}
-                  onChange={updateSearch}
-                  onPriceDraftChange={updatePriceDraft}
-                  priceDraft={priceDraft}
-                  search={search}
-                />
-                <Button
-                  className="mt-8 w-full"
-                  onClick={() => setFilterDrawerOpen(false)}
-                  type="button"
+              {ModalSurface && (
+                <ModalSurface
+                  onOpenChange={setFilterDrawerOpen}
+                  open={filterDrawerOpen}
+                  title="Filtrar NFTs"
+                  variant="drawer"
                 >
-                  Ver resultados
-                </Button>
-              </ModalSurface>
+                  <CatalogFilterPanel
+                    facets={facets}
+                    onChange={updateSearch}
+                    onPriceDraftChange={updatePriceDraft}
+                    priceDraft={priceDraft}
+                    search={search}
+                  />
+                  <Button
+                    className="mt-8 w-full"
+                    onClick={() => setFilterDrawerOpen(false)}
+                    type="button"
+                  >
+                    Ver resultados
+                  </Button>
+                </ModalSurface>
+              )}
               <div className="flex items-start gap-10">
                 <aside
                   aria-label="Filtros do catálogo"

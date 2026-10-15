@@ -171,7 +171,7 @@ Context: initial setup is done and dependencies are installed with npm. Verify e
 
 - [ ] Optimize: route code splitting, image sizing/lazy loading, font preload/`font-display`, preload LCP image, minimize main-thread work.
 - [ ] Lighthouse config + script: Home and NFT Detail, mobile + desktop, **3 runs each, median per category**; targets Performance ≥ 90, Accessibility ≥ 95, Best Practices ≥ 95, SEO ≥ 90. Record LCP, CLS, TBT; commit HTML/JSON reports, tool versions and environment; justify any miss.
-- [ ] Finalize `ARCHITECTURE.md`: flip [Planned] → [Done], fill UX decisions, Figma deviations, limitations (including Socket.IO mock transport), session policy, cart state, cache strategy, REST/Socket reconciliation.
+- [x] Finalize `ARCHITECTURE.md`: flip [Planned] → [Done], fill UX decisions, Figma deviations, limitations (including Socket.IO mock transport), session policy, cart state, cache strategy, REST/Socket reconciliation.
 - [ ] Write `README.md`: setup, env vars, fictitious credentials, scenario selection and reset, commands (dev with mocks, build, preview, typecheck, lint, Playwright, Lighthouse), how to reproduce each failure flow.
 - [ ] Deploy (Vercel recommended) with SPA fallback (`vercel.json` rewrites), mocks and real-time flows working in the published build; verify direct access and refresh on every route.
 - [ ] Verify the deployed version matches the delivered code; test from a clean checkout (`npm ci && npm run build && npm run preview`).

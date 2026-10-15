@@ -1,8 +1,8 @@
 # ARCHITECTURE.md — NFT Marketplace Technical Design
 
-Living document. It describes the **target design** and is updated as the implementation lands. Sections marked **[Planned]** are decisions not yet implemented; flip them to **[Done]** (or record the deviation) as each epic closes. The final version must also record limitations, UX decisions and Figma deviations (see §13–§15), as required by the challenge.
+Implementation record for the NFT Marketplace. Sections are marked **[Done]** when their documented decisions are implemented; known gaps and delivery limitations are listed in §15 and tracked in `tasks.md`.
 
-## 1. Architecture Overview [Planned]
+## 1. Architecture Overview [Done]
 
 Single Page Application built with React 19 and TypeScript. **TanStack Router** handles routes, URL search params and private-route guards. **TanStack Query** owns remote state. All REST calls go through **Axios**. **MSW** provides the REST mocks and the Socket.IO mock (via `@mswjs/socket.io-binding`), so components, hooks and the Axios client contain no fake data or alternate business paths.
 
@@ -50,7 +50,7 @@ The initial dependency audit found 8 high and 19 moderate advisories in the Ligh
 
 Mock state is centralized in `src/mocks/store.ts`: it persists a resettable scenario in `localStorage`, restores fixture data from `src/mocks/fixtures`, and salts + hashes mock credentials with SHA-256 before comparing them during auth flows. Resetting or bootstrapping the state always returns the same known scenario (`success`, `empty`, `design-cart`, etc.) so tests stay deterministic.
 
-## 3. Domain Rules [Planned]
+## 3. Domain Rules [Done]
 
 - **ETH amounts** are decimal strings. No `number` arithmetic. Quantities are integers.
 - `src/utils/eth.ts` is the shared decimal.js boundary for ETH math (`add`, `mul`, `div`, `sum`, `compare`, `format`); it uses a local Decimal clone with 80 significant digits. `format` validates and preserves the API decimal string verbatim (dot separator, no grouping or rounding); arithmetic results use fixed notation. The range slider uses the same helpers for its ETH bounds.
@@ -112,11 +112,11 @@ Axios responses are validated against this envelope and normalized to `ApiClient
 | 422 | `VALIDATION_ERROR` (+ `fieldErrors`), `COUPON_INVALID`, `COUPON_EXPIRED` | Invalid input or rejected coupon |
 | 503 | `TRANSIENT_FAILURE` | Retryable service failure |
 
-## 5. Orders & Idempotency [REST mock implemented; checkout UI planned]
+## 5. Orders & Idempotency [Done]
 
 - The client creates an `X-Idempotency-Key` (UUID) **per checkout attempt**, tied to the confirmed quote, and **persists it** (session storage) until the order is terminal or the user changes the cart/quote. Retrying after a timeout or double click **reuses** the same key.
 - The mock backend stores a per-user key + payload hash. Same user/key + same payload → returns the same order (no duplicate); same user/key + different payload → `409 IDEMPOTENCY_KEY_REUSED`. The same key may be used independently by another user.
-- `POST /api/orders` returns the immutable receipt snapshot as `pending`; `GET /api/orders/:id` reads it only for its owner. A mock-only `settleOrder(orderId, outcome)` control marks it confirmed or rejected; socket delivery is not implemented yet.
+- `POST /api/orders` returns the immutable receipt snapshot as `pending`; `GET /api/orders/:id` reads it only for its owner. A mock-only `settleOrder(orderId, outcome)` control marks it confirmed or rejected and publishes the corresponding Socket.IO event.
 - **Scenario "timeout after creation"**: the order is created, the response times out, the retry with the same key recovers the same order.
 - **Pre-confirmation revalidation**: if price, availability, coupon or fees changed, the server answers `409` with a fresh quote; the UI shows the change and requires a new explicit confirmation. Confirmation screen is shown only for an order actually `confirmed` by the simulation.
 - Order creation revalidates the quote against current prices, availability, coupon and expiry. A quote conflict returns a fresh quote; an expired coupon is removed from the cart and rejected with `422 COUPON_EXPIRED`. Confirming a pending order decrements inventory and removes only the purchased quantities; rejection preserves both cart and availability.
@@ -131,21 +131,21 @@ Axios responses are validated against this envelope and normalized to `ApiClient
 - Successful login/signup validates the response, persists its token in `sessionStorage`, and seeds the session query cache so the authenticated header updates without a second request. The Axios interceptor attaches the stored token to subsequent requests.
 - The default success scenario must not produce 4xx responses in the browser console, so Lighthouse runs stay free of expected-error noise.
 - Authentication is route-driven: `/login` and `/signup` render as a modal over the previous route on desktop and full-screen on mobile. Direct access works; closing the desktop modal returns to the previous route.
-- Root `beforeLoad` protects `/carrinho`, `/pagamento` (and `/checkout`), `/pedidos`, `/perfil`, `/carteiras`, and `/favoritos`, including nested paths. It validates the current token through the session endpoint before allowing a protected navigation. A guest is redirected to `/login?redirect=<internal-path>`; successful login/signup safely returns to that path. External and auth-route redirect targets are rejected. The planned private screens not yet implemented continue to resolve to the existing 404 after authentication.
+- Root `beforeLoad` protects `/carrinho`, `/pagamento` (and `/checkout`), `/pedidos`, `/perfil`, `/carteiras`, and `/favoritos`, including nested paths. It validates the current token through the session endpoint before allowing a protected navigation. A guest is redirected to `/login?redirect=<internal-path>`; successful login/signup safely returns to that path. External and auth-route redirect targets are rejected.
 - `401 SESSION_EXPIRED` on a protected navigation clears the token and private query cache, saves the return context, redirects to Login with `redirect` and `reason=expired`, and resumes after re-authentication. Expiry from any other Axios-protected request dispatches a single app-level event handled by the root layout with the same behavior; the session-bootstrap request is excluded so an expired visitor can remain on a public page.
-- Return context is kept in `sessionStorage` under `kurio.auth.return-context`; it snapshots the route plus any existing `kurio.checkout.draft` and `kurio.checkout.idempotency-key` values. Login/signup restores those snapshots if needed, then removes only the return-context record and preserves checkout draft/idempotency data for the resumed flow. The checkout UI is not implemented yet; later checkout work must use these storage keys.
+- Return context is kept in `sessionStorage` under `kurio.auth.return-context`; it snapshots the route plus any existing `kurio.checkout.draft` and `kurio.checkout.idempotency-key` values. Login/signup restores those snapshots if needed, then removes only the return-context record and preserves checkout draft/idempotency data for the resumed flow.
 - **Logout / user switch**: logout calls the API and then clears the Query cache and persisted private data (session, cart snapshot, checkout draft, idempotency key, pending order id and return context), sets the client session to visitor, disconnects registered user sockets and removes their listeners. The account menu shows API errors while still ending the local session. When switching users, the old user's private state is cleared before the new session is cached; private query keys include the user id. A session-change event keeps the root layout in sync when the mock logout handler has already removed the token from storage.
 - Private routes (cart for authenticated users, checkout, orders, profile, wallets, favorites) are guarded in the router (`beforeLoad`).
 - The authenticated header replaces "Entrar" with an account menu containing Meu perfil, Carteiras, Favoritos and Sair.
 
-## 7. Cart State [Planned]
+## 7. Cart State [Done]
 
 - **Authenticated cart** is server state (API + Query cache), persisted by the mock layer.
 - **Guest cart** is held client-side (local storage, guest namespace) and **merged via `POST /api/cart/merge`** on login/signup, respecting per-NFT/edition availability, then cleared locally.
 - Cart quantity edits are optimistic with rollback. Coupon apply/remove goes through the API; invalid/expired codes show a field-level message.
 - Price/availability changes received while the cart is open update the summary and announce the change (live region).
 
-## 8. Caching & Query Policy [Planned]
+## 8. Caching & Query Policy [Done]
 
 The QueryClient is initialized in `src/lib/query-client.ts` and provided above the router. Its default `staleTime` is 0; `queryStaleTimes` supplies the per-resource values below. Network errors and HTTP 5xx retry at most twice with exponential backoff; 4xx, cancellation, unknown errors and mutations do not retry. React Query Devtools render only in development.
 
@@ -162,9 +162,9 @@ The QueryClient is initialized in `src/lib/query-client.ts` and provided above t
 - Optimistic updates: favorites toggle and cart quantity (`onMutate` snapshot → `onError` rollback → `onSettled` invalidate).
 - Background refetch states are surfaced in the UI without blocking content.
 
-## 9. Real-Time Integration (Socket.IO) [MSW server-originated events implemented; app consumer planned]
+## 9. Real-Time Integration (Socket.IO) [Done]
 
-- **Transport**: `socket.io-client` connected to the MSW Socket.IO binding at the socket origin. The binding does not expose Socket.IO handshake auth, so the client sends its session token in `mock:subscribe` immediately after `connect`; the mock validates it against the current session and mock clock. Clients without a token may subscribe to public NFT events but receive no private order events. Events for private resources include `userId`. Client creation must happen only after `worker.start()`; `window.__KURIO_MOCKS__.connectSocketClient()` uses a dynamic import for the test/demo harness.
+- **Transport**: the app's `socket.io-client` connects to the MSW Socket.IO binding at the socket origin. The binding does not expose Socket.IO handshake auth, so the client sends its session token in `mock:subscribe` immediately after `connect`; the mock validates it against the current session and mock clock. Clients without a token may subscribe to public NFT events but receive no private order events. Events for private resources include `userId`. Client creation waits for `worker.start()`; `window.__KURIO_MOCKS__.connectSocketClient()` uses a dynamic import for the test/demo harness.
 - **Common envelope**: validated by `socketEventSchema` in `src/types/events.ts`: `{ eventId, type, resource: { kind, id }, version, timestamp, userId?, data }`. `version` is a positive integer increasing monotonically **per resource**. Received event payloads are untrusted and parsed before use.
 - The receipt's `version` tracks the version of its `order.updated` event. Apply an order event to a cached receipt only when the event version is greater than the cached receipt version.
 
@@ -178,9 +178,9 @@ The QueryClient is initialized in `src/lib/query-client.ts` and provided above t
 - **Reconciliation**: on reconnect, `refetchQueries({ type: 'active' })` and re-fetch any pending order.
 - **Mandatory scenario**: item in cart → price/availability changes while browsing → UI announces it and updates the summary → checkout blocks confirmation with a stale quote until a fresh quote is accepted.
 - **Mock/REST consistency**: the scenario middleware persists price/availability changes before returning a fresh-quote conflict and publishes `nft.updated` from that resulting record. Order creation in payment scenarios persists the pending snapshot, settles it, then publishes `nft.updated` for each changed inventory record and a terminal `order.updated`; the returned receipt and event share the same order version. Replayed idempotent requests do not emit duplicate side effects.
-- The binding handler is registered at the socket origin (`ws.link(...)` origin), and emits through `toSocketIo(connection).client`. `mock:subscribe` validates the session token because this binding wrapper does not expose Socket.IO handshake auth, rooms or broadcasting. E2E browser tests exercise actual `socket.io-client` connections, REST requests through Axios and private-event filtering. The marketplace UI's reusable Socket.IO consumer, cache reconciliation and accessible announcements belong with their feature flows.
+- The binding handler is registered at the socket origin (`ws.link(...)` origin), and emits through `toSocketIo(connection).client`. `mock:subscribe` validates the session token because this binding wrapper does not expose Socket.IO handshake auth, rooms or broadcasting. E2E browser tests exercise actual `socket.io-client` connections, REST requests through Axios, REST/Socket.IO consistency, private-event filtering, duplicate/old-event handling, reconnect reconciliation, and accessible announcements.
 
-## 10. Mocking Layer [Fixtures, store, REST handlers and deterministic REST/Socket.IO scenarios implemented]
+## 10. Mocking Layer [Done]
 
 - `src/mocks/browser.ts` starts the browser worker only when `VITE_ENABLE_MOCKS=true`; `.env.development` and `.env.production` enable it for local development and the production/demo build. The committed `public/mockServiceWorker.js` is served by Vite in both. REST handlers are registered in `src/mocks/handlers/` and use shared `API_ENDPOINTS` / `API_ERROR_STATUS`; the socket handler is registered alongside them at `window.location.origin`.
 - State lives in `src/mocks/store.ts`, persists through browser local storage, and falls back to module-memory storage in Node. `reset(scenario)` restores fixture records, scenario-specific session/cart, clock, latency controls, favorites, orders and idempotency records. `setMockTime`, `advanceMockTime`, `resetMockTime`, `setLatency`, `setTimeoutResponseDelay`, and `settleOrder` are exposed through `kurioMocks` in tests and `window.__KURIO_MOCKS__`.
@@ -188,25 +188,27 @@ The QueryClient is initialized in `src/lib/query-client.ts` and provided above t
 - Implemented REST scenarios are `success`, `empty`, `design-cart`, `expired-session`, `network-error`, `server-error`, `unauthorized`, `signup-conflict`, `validation-error`, `invalid-coupon`, `expired-coupon`, `price-changed`, `sold-out`, `timeout-after-order`, `payment-confirmed`, `payment-rejected`, and `variable-latency`. The network-error scenario rejects the request; server-error is 503; unauthorized returns 401 for private endpoints; signup and coupon scenarios return their documented 4xx envelopes. Empty returns a valid empty catalog response. Price/sold-out scenarios mutate the first `design-cart` item once before order validation and return the normal fresh-quote conflict. Payment scenarios settle the created order immediately using `settleOrder`; no scheduler is used.
 - `variable-latency` gives odd-numbered API requests 120 ms and even-numbered requests 5 ms, plus the configurable delay. Concurrent requests therefore complete out of order reproducibly. `setLatency(ms)` adds 0–15,000 ms to scenario/API response latency. `timeout-after-order` persists the order and idempotency record before delaying its response for 16 seconds by default (longer than the Axios 15-second timeout); replaying the same key and payload recovers the stored order. `setTimeoutResponseDelay(ms)` controls this wait (0–60,000 ms) for fast deterministic unit tests.
 - Server-originated events are emitted from persisted REST-driven state changes through `src/mocks/socket.ts`. `price-changed` and `sold-out` publish the complete NFT state before returning the quote conflict; payment confirmation publishes each changed NFT and then the terminal order, while rejection publishes only the terminal order. Event IDs combine resource identity and monotonic resource version; private order events are sent only to subscribers authenticated as the owning user.
-- Deterministic fixtures live in `src/mocks/fixtures/`, use `MOCK_NOW = 2026-07-29T12:00:00.000Z`, and contain two users, nine Portuguese category labels, three networks and 40 NFTs with stable IDs, timestamps and scores. They provide five pages at limit 9, price bounds 0.02–12.30 ETH, new/trending subsets, sold editions, four source artworks in 480/960 WebP variants, reviews, coupons, wallets, favorites, empty default carts, the `design-cart`, and an empty order collection. `NftRecord` adds deterministic `createdAt`, `popularity` and `trendScore` to the API contract.
+- Deterministic fixtures live in `src/mocks/fixtures/`, use `MOCK_NOW = 2026-07-29T12:00:00.000Z`, and contain two users, nine Portuguese category labels, three networks and 40 NFTs with stable IDs, timestamps and scores. They provide five pages at limit 9, price bounds 0.02–12.30 ETH, new/trending subsets, sold editions, four source artworks in 320/480/640/960 WebP variants, reviews, coupons, wallets, favorites, empty default carts, the `design-cart`, and an empty order collection. `NftRecord` adds deterministic `createdAt`, `popularity` and `trendScore` to the API contract.
 - Fixture credentials are fictitious and have precomputed salted SHA-256 hashes; plaintext is not stored in fixtures. The temporary demo credentials are documented in README for the later authentication flow. Password validation uses `SHA-256(salt + ":" + password)`.
 - Fixtures include edition tiers per NFT. The `design-cart` scenario reproduces the reference cart exactly: Emerald Ape #042 (`#0042`, `1/50`) ×2 @ 1.19, Violet Nomad #314 (`#0314`, `ABERTA`) ×6 @ 1.39, Ivory Baron #088 (`#0088`, `1/10`) ×9 @ 1.79, network fee 0.016 and total 26.846 ETH.
 - Fixture user wallets include `Principal` (Ethereum, MetaMask) and `Reserva` (`nova.kurio.eth`, Polygon), each with distinct addresses and simulated transaction hashes. Referral codes and ENS names are prefilled. `/api/favorites` backs "Lista de interesse".
 - The `THANK YOU` illustration was not included with the supplied artwork; it is omitted by approval and no placeholder is generated.
 - Node's MSW `setupServer` matches absolute Axios URLs with handler paths prefixed by `*`; handlers retain the same `/api/...` route semantics in the browser.
 
-## 11. Routing & URL State [Planned]
+## 11. Routing & URL State [Done]
 
-TanStack Router uses file-based routes under `src/routes/`; the root route supplies the shared header/footer/mobile navigation, a root error boundary and the not-found fallback. `src/routes/$.tsx` is the explicit catch-all 404 route. The router context carries the current session, and `requireAuthenticated` redirects guests to `/login` with the original URL encoded in `redirect`; auth screens and protected route registrations are added with the authentication flows.
+TanStack Router uses file-based routes under `src/routes/`; the root route supplies the shared header/footer/mobile navigation, a root error boundary and the not-found fallback. `src/routes/$.tsx` is the explicit catch-all 404 route. The router context carries the current session, and `requireAuthenticated` redirects guests to `/login` with the original URL encoded in `redirect`; auth screens and protected route registrations are implemented.
 
-`validateSearchWithZod` applies Zod schemas to route search values. The current home/catalog entry validates `q`, `feed` and `page`; malformed values fall back to the corresponding defaults rather than breaking navigation. The shared `nftSearchParamsSchema` also validates catalog category/network arrays, sort, price bounds and pagination. Filter changes reset `page` to 1. Unknown routes render a 404; every planned screen supports direct access and refresh (SPA fallback configured on the host).
+`validateSearchWithZod` applies Zod schemas to route search values. The home/catalog entry validates `q`, `feed`, category, network, price bounds, sort and page; malformed values fall back to defaults rather than breaking navigation. Filter changes reset `page` to 1. Unknown routes render a 404; implemented screens support direct access and refresh. Remaining deployment verification and any host-specific SPA fallback configuration are tracked in `tasks.md`.
 
-## 12. Testing & Audit Strategy [Planned]
+Current route inventory: `/`, `/nft/:id`, `/carrinho`, `/pagamento`, `/pedidos/:orderId`, `/login`, `/signup`, `/perfil`, `/carteiras`, `/favoritos`, and `/indisponivel`; `/checkout` aliases the payment route. Auth screens preserve the prior route on desktop and render full-screen on mobile. Favorites are nested in the profile layout. Remaining implementation/deployment gaps are tracked in §15 and `tasks.md`.
 
-- Playwright unit project (Node) uses `setupServer` and the real Axios client for REST handler behavior; Playwright browser projects cover Chromium desktop + mobile. Unit tests reset mock state in `beforeEach`; each browser test receives an isolated browser context. `e2e/mock-helpers.ts` selects/resets scenarios, controls mock clock and latency, and connects a socket client after the worker starts. E2E coverage verifies REST-triggered NFT/order events and prevents private order events reaching an unauthenticated subscriber. HTML reporting, retained failure traces and visual baselines for Home, Detail, Cart and Payment remain in progress.
-- Lighthouse on Home and NFT Detail, mobile + desktop, 3 runs, medians reported; record LCP, CLS, TBT; versioned config; reports (HTML/JSON), tool versions and environment committed.
+## 12. Testing & Audit Strategy [Done]
 
-## 13. UX Decisions [Defined by DESIGN_SYSTEM.md]
+- Playwright unit project (Node) uses `setupServer` and the real Axios client for REST handler behavior; Playwright browser projects cover Chromium desktop + mobile. Unit tests reset mock state in `beforeEach`; each browser test receives an isolated browser context. `e2e/mock-helpers.ts` selects/resets scenarios, controls mock clock and latency, and connects a socket client after the worker starts. E2E coverage verifies REST-triggered NFT/order events and prevents private order events reaching an unauthenticated subscriber. HTML reporting, retained failure traces and visual baselines for Home, Detail, Cart and Payment are configured.
+- Lighthouse audits Home and NFT Detail on mobile + desktop with three runs and medians; LCP, CLS and TBT are recorded, and HTML/JSON reports are saved with tool version and environment under `lighthouse/reports/`. Performance targets not achieved are recorded in `tasks.md`; a report containing `CHROME_INTERSTITIAL_ERROR`/null metrics is invalid and is not evidence of passing targets.
+
+## 13. UX Decisions [Done; detailed visual tokens and measurements in DESIGN_SYSTEM.md]
 
 - Shared async UI uses `Skeleton` with reduced-motion-safe shimmer, `EmptyState` as a polite status, `ErrorState` with an assertive error message and required retry action, and `Toast` with polite success/info or assertive error announcements.
 - **Navigation:** Início is active on `/`, `/perfil`, `/carteiras` and `/favoritos`; Mercado links to the catalog anchor and is active on NFT detail, cart, checkout and receipt. The authenticated profile menu maps Dados do perfil → `/perfil`, Carteiras → `/carteiras`, Lista de interesse → `/favoritos` (inside the profile layout), and Sair → logout.
@@ -225,8 +227,10 @@ TanStack Router uses file-based routes under `src/routes/`; the root route suppl
 - Dialogs for authentication, review and receipt confirmation have a scrim, focus trap, focus return and Escape-to-close. Mobile uses bottom navigation (home, favorites, cart, profile) and its center action; desktop uses the header.
 - Carousels use scroll-snap lists and real dot buttons; they do not autoplay.
 - Below 1024px, catalog filters use a drawer; tablet (768–1023px) uses two product columns.
+- **Filtering and touch:** search, facets, sort and pagination remain URL-backed; the price range has large touch targets with a narrow visual track. Mobile filters use a drawer and wider layouts use a sidebar.
+- **Image delivery:** local WebP assets are available at 320, 480, 640 and 960 px. Images use layout-aware `sizes` and `srcset`; the Home LCP image is eagerly loaded, high priority and responsively preloaded, while below-the-fold catalog art is lazy loaded.
 
-## 14. Figma Deviations & Asset Substitutions [To be recorded during implementation]
+## 14. Figma Deviations & Asset Substitutions [Done]
 
 | Figma issue / unavailable frame | Implementation decision |
 | --- | --- |
@@ -247,20 +251,17 @@ TanStack Router uses file-based routes under `src/routes/`; the root route suppl
 | Wallet address and transaction id share a string in mobile payment/receipt | Use distinct fixture values. |
 | Date format `29 Jul, 2026` mixes styles | Keep designed format with capitalized pt-BR month abbreviation. |
 | Checkout has no review step | Final "Confirmar compra" opens review dialog; changes require reconfirmation. |
-| Login/receipt modals have no scrim; receipt frame has no page chrome | Add scrim and focus trap; render receipt as a route page. |
 | "Entrar" shown on logged-in pages; "Mercado" vs "Início" active state differs | Use account button when authenticated and active states per §13. |
 | Mobile frame is 414px; required viewport is 390px | Use fluid layout and verify both. |
 | Price-filter label uses comma decimals | Use dot decimal separator everywhere. |
 | Mobile bottom bar shows stray "'2" under the center button | Ignore as a frame artifact. |
 | Resting input border contrast is 1.34:1 | Preserve for fidelity; retain labels/placeholders and strong focus state (§15). |
 | Roboto Mono is not provided by a font CDN | Self-host the font; no external font CDN. |
-| Login and receipt dialogs omit a scrim | Add dark scrim, focus trap, focus return and Escape handling. |
-| Checkout frame has no review dialog | Add a review dialog before order creation. |
 | Favicon artwork is not provided | Use the local K monogram favicon as a substitute; original brand icon export was unavailable. |
 
-## 15. Known Limitations [To be filled during implementation]
+## 15. Known Limitations [Done]
 
-Known so far:
+Known and accepted limitations:
 - NFT detail galleries render the images returned by the API, using each image's `thumbnailUrl` for its selectable thumbnail. Current fixtures provide one image per NFT; the UI does not fabricate additional views.
 - `@mswjs/socket.io-binding@0.2.0` targets MSW 2.x, so the project stays on MSW 2.x. Mocked responses use the wrapper's `client` endpoint; its `server` endpoint represents the upstream connection. The wrapper does not implement Socket.IO rooms, custom namespaces or broadcasting; the Epic 0 browser smoke test uses WebSocket transport and does not certify HTTP long-polling or reconnect behavior.
 - The binding wrapper does not expose Socket.IO handshake authentication, so the mock uses the first `mock:subscribe` event to validate a session token. The token is mock-grade and the transport must not be treated as a production Socket.IO server; private events re-check the active token, user and expiry before emission.
@@ -271,4 +272,8 @@ Known so far:
 - Separate source exports for the KURIO wordmark, icon and NFT artwork were not provided; the local wordmark is an SVG reconstruction, the favicon is a matching geometric K monogram, and the three NFT PNGs are crops from the desktop home reference. Replace these derived assets if the original exports become available.
 - Pending orders do not reserve inventory. At confirmation, `settleOrder` throws and leaves the order, cart and inventory unchanged if the required edition availability has fallen below the purchased quantity; this avoids confirming an oversold order. Reservation behavior is not part of the challenge contract.
 - An already-applied coupon that expires before quote/order validation is removed from the cart and rejected with `COUPON_EXPIRED`; the user must apply a current coupon again.
-- The catalog card's "Adicionar ao carrinho" action adds one unit from the first edition tier with availability greater than zero; "Ver" displays a non-success notice until the NFT detail route is implemented.
+- User/profile, wallet, favorites, cart, checkout and payment data use deterministic MSW fixtures and browser persistence; there is no production backend, real wallet provider, blockchain transaction, or production Socket.IO service.
+- The MSW Socket.IO binding simulates the browser transport in this demo. Its wrapper limitations are described above; passing browser E2E against the mock does not establish compatibility with a production Socket.IO server or its authentication, room, broadcast and transport configuration.
+- Browser `sessionStorage` token storage is demo-grade and susceptible to same-origin script access; production authentication requires a server-managed secure cookie or equivalent hardened credential design.
+- Inventory reservation, coupon policy, pricing and session expiry are deterministic demo rules; real services may use different concurrency and expiry semantics.
+- The catalog card's "Adicionar ao carrinho" action adds one unit from the first edition tier with availability greater than zero. "Ver" navigates to the implemented NFT detail route.
