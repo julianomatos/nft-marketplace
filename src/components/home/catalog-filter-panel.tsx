@@ -1,5 +1,4 @@
 import type { NftFacets, NftSearchParams } from '@/types/contracts'
-import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { RangeSlider } from '@/components/ui/range-slider'
 import type { Network } from '@/types/contracts'
@@ -85,18 +84,11 @@ function CatalogFilterPanel({
           label="Preço"
           max={facets.priceRange.max}
           min={facets.priceRange.min}
+          onApply={applyPriceRange}
           onValueChange={onPriceDraftChange}
           step="0.01"
           value={priceDraft}
         />
-        <Button
-          className="mt-4 w-full"
-          onClick={applyPriceRange}
-          type="button"
-          variant="outline"
-        >
-          Aplicar
-        </Button>
       </fieldset>
 
       <fieldset>
