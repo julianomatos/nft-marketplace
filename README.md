@@ -47,7 +47,7 @@ The production mode is a mock-backed demo, not a production backend integration.
 
 ### Vercel SPA routing
 
-`vercel.json` rewrites application paths to `/` while leaving `/api/`, `/assets/`, the MSW worker and favicon paths untouched. This is needed because the application uses client-side routing; test direct navigation and refresh on nested routes after deployment.
+`vercel.json` rewrites application paths to `/` while leaving `/api/`, `/assets/`, the MSW worker, favicon and `robots.txt` paths untouched. This is needed because the application uses client-side routing; test direct navigation and refresh on nested routes after deployment. The published deployment has been smoke-tested for direct app-route access, protected-route login redirects, catalog mock API responses and NFT artwork loading.
 
 ## Demo accounts
 
