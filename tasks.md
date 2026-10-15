@@ -145,7 +145,7 @@ Context: initial setup is done and dependencies are installed with npm. Verify e
 
 ## Epic 9: Profile & Wallets
 
-- [ ] Add shared profile layout with sidebar navigation; active profile item uses a 4px primary bar.
+- [x] Add shared profile layout with sidebar navigation; active profile item uses a 4px primary bar.
 - [ ] Profile view: edit personal data, avatar upload, password change; API validation errors mapped to fields.
 - [ ] Add avatar block with image placeholder and Alterar/Remover actions; profile fields and password flow surface API validation errors.
 - [ ] Wallets view: register and edit primary/secondary wallets; validation and error handling; include "Igual à carteira principal" and the empty secondary state.

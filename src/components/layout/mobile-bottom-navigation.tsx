@@ -20,7 +20,7 @@ const destinations = [
     icon: Heart,
     activePaths: ['/favoritos'],
     column: 'col-start-2',
-    to: '/indisponivel' as const,
+    to: '/favoritos' as const,
   },
   {
     label: 'Carrinho',
@@ -34,7 +34,7 @@ const destinations = [
     icon: UserRound,
     activePaths: ['/perfil', '/carteiras'],
     column: 'col-start-5',
-    to: '/indisponivel' as const,
+    to: '/perfil' as const,
   },
 ]
 

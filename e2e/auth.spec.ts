@@ -342,6 +342,29 @@ test('session expiry from an Axios-protected request saves checkout state and re
   ).toContain('review')
 })
 
+test('navigates through the authenticated profile layout and its routes', async ({
+  page,
+}) => {
+  await page.goto('/login')
+  await page.getByLabel('E-mail', { exact: true }).fill('ana@kurio.example.test')
+  await page.getByLabel('Senha', { exact: true }).fill('KurioDemo!A2026')
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click()
+
+  await expect(page.getByText('Ana Oliveira', { exact: true })).toBeVisible()
+
+  await page.goto('/perfil')
+  await expect(page).toHaveURL(/\/perfil$/)
+  await expect(page.getByRole('heading', { name: 'Dados do perfil' })).toBeVisible()
+
+  await page.goto('/carteiras')
+  await expect(page).toHaveURL(/\/carteiras$/)
+  await expect(page.getByRole('heading', { name: 'Carteiras' })).toBeVisible()
+
+  await page.goto('/favoritos')
+  await expect(page).toHaveURL(/\/favoritos$/)
+  await expect(page.getByRole('heading', { name: 'Lista de interesse' })).toBeVisible()
+})
+
 test('logout calls the API and clears the client session, checkout data, and sockets', async ({
   page,
 }) => {

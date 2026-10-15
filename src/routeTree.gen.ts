@@ -12,10 +12,13 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SplatRouteImport } from './routes/$'
 import { Route as CarrinhoRouteImport } from './routes/carrinho'
+import { Route as CarteirasRouteImport } from './routes/carteiras'
 import { Route as CheckoutRouteImport } from './routes/checkout'
+import { Route as FavoritosRouteImport } from './routes/favoritos'
 import { Route as IndisponivelRouteImport } from './routes/indisponivel'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PagamentoRouteImport } from './routes/pagamento'
+import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as NftIdRouteImport } from './routes/nft.$id'
 import { Route as PedidosOrderIdRouteImport } from './routes/pedidos.$orderId'
@@ -35,9 +38,19 @@ const CarrinhoRoute = CarrinhoRouteImport.update({
   path: '/carrinho',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CarteirasRoute = CarteirasRouteImport.update({
+  id: '/carteiras',
+  path: '/carteiras',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CheckoutRoute = CheckoutRouteImport.update({
   id: '/checkout',
   path: '/checkout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FavoritosRoute = FavoritosRouteImport.update({
+  id: '/favoritos',
+  path: '/favoritos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndisponivelRoute = IndisponivelRouteImport.update({
@@ -53,6 +66,11 @@ const LoginRoute = LoginRouteImport.update({
 const PagamentoRoute = PagamentoRouteImport.update({
   id: '/pagamento',
   path: '/pagamento',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PerfilRoute = PerfilRouteImport.update({
+  id: '/perfil',
+  path: '/perfil',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SignupRoute = SignupRouteImport.update({
@@ -75,10 +93,13 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
   '/carrinho': typeof CarrinhoRoute
+  '/carteiras': typeof CarteirasRoute
   '/checkout': typeof CheckoutRoute
+  '/favoritos': typeof FavoritosRoute
   '/indisponivel': typeof IndisponivelRoute
   '/login': typeof LoginRoute
   '/pagamento': typeof PagamentoRoute
+  '/perfil': typeof PerfilRoute
   '/signup': typeof SignupRoute
   '/nft/$id': typeof NftIdRoute
   '/pedidos/$orderId': typeof PedidosOrderIdRoute
@@ -87,10 +108,13 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
   '/carrinho': typeof CarrinhoRoute
+  '/carteiras': typeof CarteirasRoute
   '/checkout': typeof CheckoutRoute
+  '/favoritos': typeof FavoritosRoute
   '/indisponivel': typeof IndisponivelRoute
   '/login': typeof LoginRoute
   '/pagamento': typeof PagamentoRoute
+  '/perfil': typeof PerfilRoute
   '/signup': typeof SignupRoute
   '/nft/$id': typeof NftIdRoute
   '/pedidos/$orderId': typeof PedidosOrderIdRoute
@@ -100,10 +124,13 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
   '/carrinho': typeof CarrinhoRoute
+  '/carteiras': typeof CarteirasRoute
   '/checkout': typeof CheckoutRoute
+  '/favoritos': typeof FavoritosRoute
   '/indisponivel': typeof IndisponivelRoute
   '/login': typeof LoginRoute
   '/pagamento': typeof PagamentoRoute
+  '/perfil': typeof PerfilRoute
   '/signup': typeof SignupRoute
   '/nft/$id': typeof NftIdRoute
   '/pedidos/$orderId': typeof PedidosOrderIdRoute
@@ -114,10 +141,13 @@ export interface FileRouteTypes {
     | '/'
     | '/$'
     | '/carrinho'
+    | '/carteiras'
     | '/checkout'
+    | '/favoritos'
     | '/indisponivel'
     | '/login'
     | '/pagamento'
+    | '/perfil'
     | '/signup'
     | '/nft/$id'
     | '/pedidos/$orderId'
@@ -126,10 +156,13 @@ export interface FileRouteTypes {
     | '/'
     | '/$'
     | '/carrinho'
+    | '/carteiras'
     | '/checkout'
+    | '/favoritos'
     | '/indisponivel'
     | '/login'
     | '/pagamento'
+    | '/perfil'
     | '/signup'
     | '/nft/$id'
     | '/pedidos/$orderId'
@@ -138,10 +171,13 @@ export interface FileRouteTypes {
     | '/'
     | '/$'
     | '/carrinho'
+    | '/carteiras'
     | '/checkout'
+    | '/favoritos'
     | '/indisponivel'
     | '/login'
     | '/pagamento'
+    | '/perfil'
     | '/signup'
     | '/nft/$id'
     | '/pedidos/$orderId'
@@ -151,10 +187,13 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SplatRoute: typeof SplatRoute
   CarrinhoRoute: typeof CarrinhoRoute
+  CarteirasRoute: typeof CarteirasRoute
   CheckoutRoute: typeof CheckoutRoute
+  FavoritosRoute: typeof FavoritosRoute
   IndisponivelRoute: typeof IndisponivelRoute
   LoginRoute: typeof LoginRoute
   PagamentoRoute: typeof PagamentoRoute
+  PerfilRoute: typeof PerfilRoute
   SignupRoute: typeof SignupRoute
   NftIdRoute: typeof NftIdRoute
   PedidosOrderIdRoute: typeof PedidosOrderIdRoute
@@ -183,11 +222,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CarrinhoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/carteiras': {
+      id: '/carteiras'
+      path: '/carteiras'
+      fullPath: '/carteiras'
+      preLoaderRoute: typeof CarteirasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/checkout': {
       id: '/checkout'
       path: '/checkout'
       fullPath: '/checkout'
       preLoaderRoute: typeof CheckoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/favoritos': {
+      id: '/favoritos'
+      path: '/favoritos'
+      fullPath: '/favoritos'
+      preLoaderRoute: typeof FavoritosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/indisponivel': {
@@ -209,6 +262,13 @@ declare module '@tanstack/react-router' {
       path: '/pagamento'
       fullPath: '/pagamento'
       preLoaderRoute: typeof PagamentoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/perfil': {
+      id: '/perfil'
+      path: '/perfil'
+      fullPath: '/perfil'
+      preLoaderRoute: typeof PerfilRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/signup': {
@@ -239,10 +299,13 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SplatRoute: SplatRoute,
   CarrinhoRoute: CarrinhoRoute,
+  CarteirasRoute: CarteirasRoute,
   CheckoutRoute: CheckoutRoute,
+  FavoritosRoute: FavoritosRoute,
   IndisponivelRoute: IndisponivelRoute,
   LoginRoute: LoginRoute,
   PagamentoRoute: PagamentoRoute,
+  PerfilRoute: PerfilRoute,
   SignupRoute: SignupRoute,
   NftIdRoute: NftIdRoute,
   PedidosOrderIdRoute: PedidosOrderIdRoute,

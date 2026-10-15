@@ -362,7 +362,7 @@ function RootLayout() {
             <AuthBackground pathname={backgroundPath} />
           </div>
         )}
-        <div aria-live="polite" className="sr-only" role="status">
+        <div aria-live="polite" className="sr-only">
           {liveAnnouncement}
         </div>
         <Outlet />

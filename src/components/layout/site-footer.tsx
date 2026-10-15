@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 const footerGroups = [
   {
     title: 'Meu perfil',
-    links: ['Meu perfil', 'Minha coleção', 'Atividade', 'Estúdio do criador'],
+    links: ['Perfil', 'Minha coleção', 'Atividade', 'Estúdio do criador'],
   },
   {
     title: 'Central de ajuda',
@@ -156,7 +156,7 @@ function SiteFooter() {
               ))}
             </ul>
             <h3 className="mb-2 mt-5 text-xs font-bold text-foreground">
-              Carteiras compatíveis
+              Wallets compatíveis
             </h3>
             <p className="text-[9px] font-bold uppercase tracking-wide text-subtle">
               MetaMask · WalletConnect · Coinbase

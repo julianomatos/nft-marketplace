@@ -110,11 +110,15 @@ function SiteHeader({ session, cartCount }: SiteHeaderProps) {
                 aria-label="Menu da conta"
                 className="absolute right-0 top-full z-40 mt-2 min-w-44 border border-border bg-card p-2 shadow-lg"
               >
-                {['Meu perfil', 'Carteiras', 'Favoritos'].map((label) => (
+                {[
+                  { label: 'Meu perfil', to: '/perfil' },
+                  { label: 'Carteiras', to: '/carteiras' },
+                  { label: 'Favoritos', to: '/favoritos' },
+                ].map(({ label, to }) => (
                   <Link
                     className="block px-3 py-2 text-xs text-foreground hover:bg-surface-raised hover:text-highlight focus-visible:outline-2 focus-visible:outline-ring"
                     key={label}
-                    to="/indisponivel"
+                    to={to}
                   >
                     {label}
                   </Link>
