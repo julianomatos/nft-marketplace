@@ -61,7 +61,7 @@ function NftCard({ nft }: NftCardProps) {
           className="aspect-square w-full object-cover"
           height={image.height}
           loading="lazy"
-          sizes="(min-width: 1280px) 259px, (min-width: 768px) calc((100vw - 400px) / 2), 46vw"
+          sizes="(min-width: 1280px) 259px, (min-width: 1024px) calc((100vw - 448px) / 3), (min-width: 768px) calc((100vw - 400px) / 2), calc((100vw - 48px) / 2)"
           src={image.url}
           srcSet={image.responsiveSrcSet}
           width={image.width}

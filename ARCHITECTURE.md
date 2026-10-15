@@ -76,7 +76,7 @@ Shared endpoint paths, the `/api` base path, `X-Idempotency-Key`, and API error 
 | Profile | `GET /api/profile`, `PUT /api/profile` (data/avatar), `PUT /api/profile/password` |
 | Wallets | `GET /api/wallets`, `POST /api/wallets`, `PUT /api/wallets/:id`, `POST /api/wallets/:id/connect`, `POST /api/wallets/:id/disconnect` (simulated connect/refuse/disconnect) |
 
-`GET /api/nfts` returns `{ items, page, limit, total, totalPages, facets: { categories: [{ id, label, count }], networks: [{ id, label, count }], priceRange: { min, max } } }`. NFT images include `url`, `responsiveSrcSet` (320, 480, 640 and 960 px WebP variants), `alt`, source `width` / `height`, and `thumbnailUrl` for the 480 px variant. UI image elements provide a layout-specific `sizes` value; the browser selects the closest responsive source, while `url` remains the largest default for consumers that do not use `srcSet`. Facet counts reflect all other active filters, excluding that facet's own selection; fixtures keep the counts consistent. Network facet IDs use the `ethereum | polygon | solana` identifiers. Supported `sort` values are `recent`, `price-asc`, `price-desc`, and `popular`.
+`GET /api/nfts` returns `{ items, page, limit, total, totalPages, facets: { categories: [{ id, label, count }], networks: [{ id, label, count }], priceRange: { min, max } } }`. NFT images include `url`, `responsiveSrcSet` (192, 320, 480, 640 and 960 px WebP variants), `alt`, source `width` / `height`, and `thumbnailUrl` for the 480 px variant. UI image elements provide a layout-specific `sizes` value; the browser selects the closest responsive source, while `url` remains the largest default for consumers that do not use `srcSet`. Facet counts reflect all other active filters, excluding that facet's own selection; fixtures keep the counts consistent. Network facet IDs use the `ethereum | polygon | solana` identifiers. Supported `sort` values are `recent`, `price-asc`, `price-desc`, and `popular`.
 
 The overlapping minimum/maximum price sliders use 44 px vertical hit areas and enlarged 24 px WebKit / 20 px Firefox thumbs while retaining the 2 px visual track, meeting Lighthouse's touch-target sizing criterion without changing the price interaction model.
 
@@ -228,7 +228,7 @@ Current route inventory: `/`, `/nft/:id`, `/carrinho`, `/pagamento`, `/pedidos/:
 - Carousels use scroll-snap lists and real dot buttons; they do not autoplay.
 - Below 1024px, catalog filters use a drawer; tablet (768–1023px) uses two product columns.
 - **Filtering and touch:** search, facets, sort and pagination remain URL-backed; the price range has large touch targets with a narrow visual track. Mobile filters use a drawer and wider layouts use a sidebar.
-- **Image delivery:** local WebP assets are available at 320, 480, 640 and 960 px. Images use layout-aware `sizes` and `srcset`; the Home LCP image is eagerly loaded, high priority and responsively preloaded, while below-the-fold catalog art is lazy loaded.
+- **Image delivery:** local WebP assets are available at 192, 320, 480, 640 and 960 px. Images use layout-aware `sizes` and `srcset`; the Home LCP image is eagerly loaded, high priority and responsively preloaded, while below-the-fold catalog art is lazy loaded.
 
 ## 14. Figma Deviations & Asset Substitutions [Done]
 

@@ -28,7 +28,7 @@ Open the URL printed by Vite. The development environment enables MSW by default
 | `npm run test:unit` | Run REST/contract/store tests using Playwright's Node project |
 | `npm run test:e2e` | Run Playwright desktop and mobile Chromium projects |
 | `npm run test:e2e:update` | Update visual snapshots intentionally |
-| `npm run generate:images` | Generate responsive local WebP artwork variants |
+| `npm run generate:images` | Generate local WebP artwork variants at 192, 320, 480, 640 and 960 px |
 | `npm run lighthouse` | Build/preview and run Lighthouse audits for Home and NFT Detail, mobile and desktop |
 
 Lighthouse runs three measurements per page/device and stores HTML/JSON reports and summary medians under `lighthouse/reports/`. Install the Chromium browser with `npx playwright install chromium` if it is missing. Run `npm run lighthouse` without a URL argument so the audit uses the preview server's dynamically allocated port.
