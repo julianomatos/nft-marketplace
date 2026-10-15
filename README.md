@@ -45,6 +45,10 @@ Copy `.env.example` to `.env` only when you need local overrides. Vite loads mod
 
 The production mode is a mock-backed demo, not a production backend integration. Disabling mocks without providing a compatible API and Socket.IO service will leave API requests unanswered.
 
+### Vercel SPA routing
+
+`vercel.json` rewrites application paths to `/` while leaving `/api/`, `/assets/`, the MSW worker and favicon paths untouched. This is needed because the application uses client-side routing; test direct navigation and refresh on nested routes after deployment.
+
 ## Demo accounts
 
 These accounts are fictional and only valid in the local mock data:
