@@ -153,6 +153,7 @@ export const scenarioHandlers = [
     ) {
       return forceCouponError(scenario)
     }
+
     return undefined
   }),
 ]

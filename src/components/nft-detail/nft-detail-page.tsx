@@ -185,12 +185,20 @@ function NftDetailContent({ nft }: { nft: Nft }) {
         })
       }
     } catch (error) {
+      console.error('Favorite toggle error:', error)
+      if (
+        error instanceof ApiClientError &&
+        (error.status === 401 || error.code === 'SESSION_EXPIRED')
+      ) {
+        return
+      }
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível atualizar a lista de interesse.'
       setFeedback({
         kind: 'error',
-        message:
-          error instanceof Error
-            ? error.message
-            : 'Não foi possível atualizar a lista de interesse.',
+        message: errorMessage,
       })
     }
   }
@@ -343,7 +351,7 @@ function NftDetailContent({ nft }: { nft: Nft }) {
           <p className="mt-3 border-b border-border-header pb-3 text-xl font-bold text-highlight">
             {nft.price} ETH
           </p>
-          <div className="mt-3">
+          <div className="mt-3 flex items-center justify-between">
             <div
               aria-label={`Nota média ${nft.rating.average} de 5, ${nft.rating.count} avaliações`}
               className="hidden items-center gap-1 text-rating md:flex"
@@ -369,6 +377,26 @@ function NftDetailContent({ nft }: { nft: Nft }) {
               {nft.rating.average} ({nft.rating.count})
               <span className="sr-only">avaliações</span>
             </p>
+            <Button
+              aria-label={
+                actions.isFavorite
+                  ? `Remover ${nft.name} dos favoritos`
+                  : `Adicionar ${nft.name} aos favoritos`
+              }
+              aria-pressed={actions.isFavorite}
+              className="hidden md:inline-flex"
+              disabled={actions.favoritePending}
+              onClick={() => void handleToggleFavorite()}
+              size="icon-lg"
+              type="button"
+              variant="outline"
+            >
+              <Heart
+                aria-hidden="true"
+                fill={actions.isFavorite ? 'currentColor' : 'none'}
+                size={20}
+              />
+            </Button>
           </div>
 
           <div className="space-y-4 py-4 text-sm leading-6">
@@ -566,6 +594,17 @@ function NftDetailContent({ nft }: { nft: Nft }) {
             <ShoppingCart aria-hidden="true" size={20} />
           </Button>
         </div>
+        {feedback && (
+          <p
+            aria-live={feedback.kind === 'error' ? 'assertive' : 'polite'}
+            className={`mt-2 text-xs ${
+              feedback.kind === 'error' ? 'text-destructive' : 'text-highlight'
+            }`}
+            role={feedback.kind === 'error' ? 'alert' : 'status'}
+          >
+            {feedback.message}
+          </p>
+        )}
       </div>
 
       <section className="mt-14" aria-label="Detalhes e avaliações">

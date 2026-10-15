@@ -94,26 +94,26 @@ export const favoritesHandlers = [
   http.delete(
     `${HANDLER_BASE_PATH}${API_ENDPOINTS.favorites.deletePattern}`,
     ({ params, request }) => {
-    const auth = getAuthenticatedUser(request)
-    if (!auth.user) {
-      return buildErrorResponse(
-        auth.error ?? 'UNAUTHENTICATED',
-        'Entre na sua conta para continuar.',
+      const auth = getAuthenticatedUser(request)
+      if (!auth.user) {
+        return buildErrorResponse(
+          auth.error ?? 'UNAUTHENTICATED',
+          'Entre na sua conta para continuar.',
+        )
+      }
+
+      const nftId = String(params.nftId)
+      const state = readMockState()
+      const nextFavorites = state.favorites.filter(
+        (entry) => !(entry.userId === auth.user!.id && entry.nftId === nftId),
       )
-    }
 
-    const nftId = String(params.nftId)
-    const state = readMockState()
-    const nextFavorites = state.favorites.filter(
-      (entry) => !(entry.userId === auth.user!.id && entry.nftId === nftId),
-    )
+      persistMockState({
+        ...state,
+        favorites: nextFavorites,
+      })
 
-    persistMockState({
-      ...state,
-      favorites: nextFavorites,
-    })
-
-    return HttpResponse.json({ nftId, removed: true })
+      return HttpResponse.json({ nftId, removed: true })
     },
   ),
 ]

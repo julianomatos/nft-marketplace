@@ -214,6 +214,61 @@ test('mobile detail keeps purchase actions above bottom navigation', async ({
   expect(accessibility.violations).toEqual([])
 })
 
+test('detail favorites roll back after API failure and recover on retry', async ({
+  page,
+}) => {
+  await page.evaluate(() => window.__KURIO_MOCKS__.reset('success'))
+  await page.goto('/login')
+  await page.getByLabel('E-mail', { exact: true }).fill('ana@kurio.example.test')
+  await page.getByLabel('Senha', { exact: true }).fill('KurioDemo!A2026')
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click()
+  await expect(page).toHaveURL('/')
+  await page.goto('/nft/emerald-ape-042')
+
+  const favoriteButton = page.getByRole('button', {
+    name: /Remover Emerald Ape #042 dos favoritos/,
+  })
+  await expect(favoriteButton).toHaveAttribute('aria-pressed', 'true')
+  await page.route('**/api/favorites/emerald-ape-042', async (route) => {
+    if (route.request().method() !== 'DELETE') {
+      await route.continue()
+      return
+    }
+    await route.fulfill({
+      contentType: 'application/json',
+      status: 503,
+      body: JSON.stringify({
+        error: {
+          code: 'TRANSIENT_FAILURE',
+          message: 'O serviço está temporariamente indisponível.',
+        },
+      }),
+    })
+  })
+  await favoriteButton.click()
+  await expect(
+    page.getByText('O serviço está temporariamente indisponível.', {
+      exact: true,
+    }),
+  ).toBeVisible()
+  await expect(page.getByRole('button', {
+    name: /Remover Emerald Ape #042 dos favoritos/,
+  })).toHaveAttribute('aria-pressed', 'true')
+
+  await page.unrouteAll()
+  await page.getByRole('button', {
+    name: /Remover Emerald Ape #042 dos favoritos/,
+  }).click()
+  await expect(
+    page.getByRole('button', {
+      name: /Adicionar Emerald Ape #042 aos favoritos/,
+    }),
+  ).toHaveAttribute('aria-pressed', 'false')
+  await expect(
+    page.getByText('Removido da lista de interesse.', { exact: true }),
+  ).toBeVisible()
+})
+
 test('loads reviews and related collection items through REST endpoints', async ({
   page,
 }) => {

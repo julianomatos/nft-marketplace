@@ -20,10 +20,13 @@ function useCatalogCardActions(nft: Nft) {
   const userId = sessionQuery.data?.authenticated
     ? sessionQuery.data.user.id
     : undefined
+  const hasSessionToken =
+    typeof window !== 'undefined' &&
+    window.sessionStorage.getItem('kurio.session.token') !== null
   const favoriteIdsKey = queryKeys.user(userId ?? 'guest').favoriteIds
   const favoriteIdsQuery = useQuery({
     queryKey: favoriteIdsKey,
-    enabled: userId !== undefined,
+    enabled: userId !== undefined && hasSessionToken,
     queryFn: async ({ signal }) => {
       const response = await apiClient.get<FavoritesResponse>(
         API_ENDPOINTS.favorites.list,
@@ -41,7 +44,9 @@ function useCatalogCardActions(nft: Nft) {
     { previousIds: string[] | undefined }
   >({
     mutationFn: async (isFavorite) => {
-      if (!userId) throw new Error('Entre na sua conta para continuar.')
+      if (!userId || !getSessionToken()) {
+        throw new Error('Entre na sua conta para continuar.')
+      }
 
       if (isFavorite) {
         await apiClient.post<void>(API_ENDPOINTS.favorites.create, {
@@ -86,8 +91,14 @@ function useCatalogCardActions(nft: Nft) {
   })
 
   function requireAuthentication(): boolean {
+    const token = getSessionToken()
+    if (!token) {
+      const redirect = `${window.location.pathname}${window.location.search}${window.location.hash}`
+      void navigate({ to: '/login', search: { redirect } })
+      return false
+    }
     if (userId) return true
-    if (getSessionToken() && sessionQuery.isPending) return false
+    if (sessionQuery.isPending) return false
 
     const redirect = `${window.location.pathname}${window.location.search}${window.location.hash}`
     void navigate({ to: '/login', search: { redirect } })
