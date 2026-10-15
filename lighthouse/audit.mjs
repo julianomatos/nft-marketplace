@@ -6,10 +6,13 @@ import { launch as launchChrome } from 'chrome-launcher'
 import { chromium } from '@playwright/test'
 
 const host = '127.0.0.1'
-const port = 4173
-const targetUrl = process.argv[2] ?? `http://${host}:${port}/`
+const port = Number(process.env.LIGHTHOUSE_PORT ?? 4174)
+const origin = `http://${host}:${port}`
+const targetUrls = process.argv.slice(2).length
+  ? process.argv.slice(2).map((path) => new URL(path, origin).toString())
+  : [`${origin}/`, `${origin}/nft/emerald-ape-042`]
 const outputDirectory = new URL('./reports/', import.meta.url)
-const categoryNames = ['performance', 'accessibility', 'best-practices', 'seo']
+const scoreNames = ['performance', 'accessibility', 'best-practices', 'seo']
 const metricNames = [
   'largest-contentful-paint',
   'cumulative-layout-shift',
@@ -34,91 +37,127 @@ try {
 
   const results = []
 
-  for (const formFactor of ['mobile', 'desktop']) {
-    for (let run = 1; run <= 3; run += 1) {
-      const chrome = await launchChrome({
-        chromePath: chromium.executablePath(),
-        chromeFlags: ['--headless', '--no-sandbox', '--disable-dev-shm-usage'],
-      })
-
-      try {
-        const report = await lighthouse(targetUrl, {
-          logLevel: 'error',
-          onlyCategories: categoryNames,
-          output: ['html', 'json'],
-          port: chrome.port,
-          formFactor,
+  for (const targetUrl of targetUrls) {
+    for (const formFactor of ['mobile', 'desktop']) {
+      for (let run = 1; run <= 3; run += 1) {
+        const chrome = await launchChrome({
+          chromePath: chromium.executablePath(),
+          chromeFlags: ['--headless', '--no-sandbox', '--disable-dev-shm-usage'],
         })
 
-        if (!report) {
-          throw new Error(`Lighthouse returned no report for ${formFactor}, run ${run}`)
+        try {
+          const report = await lighthouse(targetUrl, {
+            logLevel: 'error',
+            onlyCategories: scoreNames,
+            output: ['html', 'json'],
+            port: chrome.port,
+            settings: {
+              formFactor,
+              screenEmulation: {
+                mobile: formFactor === 'mobile',
+                width: formFactor === 'mobile' ? 412 : 1350,
+                height: formFactor === 'mobile' ? 823 : 940,
+                deviceScaleFactor: formFactor === 'mobile' ? 1.75 : 1,
+              },
+            },
+          })
+
+          if (!report) {
+            throw new Error(`Lighthouse returned no report for ${formFactor}, run ${run}`)
+          }
+
+          const stem = `${slugFor(targetUrl)}-${formFactor}-run-${run}`
+          const reportContents = Array.isArray(report.report)
+            ? report.report
+            : [report.report]
+          const jsonReport = reportContents.find((content) =>
+            content.trimStart().startsWith('{'),
+          )
+          const htmlReport = reportContents.find((content) =>
+            content.trimStart().startsWith('<'),
+          )
+
+          if (!jsonReport || !htmlReport) {
+            throw new Error(`Lighthouse did not produce both report formats for ${stem}`)
+          }
+
+          await writeFile(new URL(`${stem}.json`, outputDirectory), jsonReport)
+          await writeFile(new URL(`${stem}.html`, outputDirectory), htmlReport)
+          results.push({
+            page: new URL(targetUrl).pathname,
+            formFactor,
+            run,
+            scores: Object.fromEntries(
+              scoreNames.map((category) => [
+                category,
+                report.lhr.categories[category]?.score ?? null,
+              ]),
+            ),
+            metrics: Object.fromEntries(
+              metricNames.map((metric) => [
+                metric,
+                report.lhr.audits[metric]?.numericValue ?? null,
+              ]),
+            ),
+          })
+          console.log(
+            `Completed ${new URL(targetUrl).pathname} ${formFactor} Lighthouse run ${run}/3`,
+          )
+        } finally {
+          await chrome.kill()
         }
-
-        const stem = `${slugFor(targetUrl)}-${formFactor}-run-${run}`
-        const reportContents = Array.isArray(report.report)
-          ? report.report
-          : [report.report]
-        const jsonReport = reportContents.find((content) =>
-          content.trimStart().startsWith('{'),
-        )
-        const htmlReport = reportContents.find((content) =>
-          content.trimStart().startsWith('<'),
-        )
-
-        if (!jsonReport || !htmlReport) {
-          throw new Error(`Lighthouse did not produce both report formats for ${stem}`)
-        }
-
-        await writeFile(new URL(`${stem}.json`, outputDirectory), jsonReport)
-        await writeFile(new URL(`${stem}.html`, outputDirectory), htmlReport)
-        results.push({
-          formFactor,
-          run,
-          scores: Object.fromEntries(
-            categoryNames.map((category) => [
-              category,
-              report.lhr.categories[category]?.score ?? null,
-            ]),
-          ),
-          metrics: Object.fromEntries(
-            metricNames.map((metric) => [
-              metric,
-              report.lhr.audits[metric]?.numericValue ?? null,
-            ]),
-          ),
-        })
-        console.log(`Completed ${formFactor} Lighthouse run ${run}/3`)
-      } finally {
-        await chrome.kill()
       }
     }
   }
 
   const summary = Object.fromEntries(
-    ['mobile', 'desktop'].map((formFactor) => {
-      const profileResults = results.filter(
-        (result) => result.formFactor === formFactor,
-      )
+    targetUrls.map((targetUrl) => [
+      new URL(targetUrl).pathname,
+      Object.fromEntries(
+        ['mobile', 'desktop'].map((formFactor) => {
+          const profileResults = results.filter(
+            (result) =>
+              result.page === new URL(targetUrl).pathname &&
+              result.formFactor === formFactor,
+          )
 
-      return [
-        formFactor,
-        Object.fromEntries(
-          [...categoryNames, ...metricNames].map((name) => [
-            name,
-            median(
-              profileResults
-                .map((result) => result.scores[name] ?? result.metrics[name])
-                .filter((value) => typeof value === 'number' && Number.isFinite(value)),
+          return [
+            formFactor,
+            Object.fromEntries(
+              [
+                ...scoreNames.map((name) => [
+                  name,
+                  median(
+                    profileResults
+                      .map((result) => result.scores[name])
+                      .filter(
+                        (value) =>
+                          typeof value === 'number' && Number.isFinite(value),
+                      ),
+                  ),
+                ]),
+                ...metricNames.map((name) => [
+                  name,
+                  median(
+                    profileResults
+                      .map((result) => result.metrics[name])
+                      .filter(
+                        (value) =>
+                          typeof value === 'number' && Number.isFinite(value),
+                      ),
+                  ),
+                ]),
+              ],
             ),
-          ]),
-        ),
-      ]
-    }),
+          ]
+        }),
+      ),
+    ]),
   )
 
   await writeFile(
     new URL('summary.json', outputDirectory),
-    JSON.stringify({ targetUrl, results, medians: summary }, null, 2),
+    JSON.stringify({ targetUrls, results, medians: summary }, null, 2),
   )
   console.log(`Lighthouse reports and medians written to ${outputDirectory.pathname}`)
 } finally {

@@ -53,9 +53,9 @@ function HomePage() {
     key: string
     value: [string, string]
   } | null>(null)
-  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false)
-  const catalogQuery = useNftCatalog(search)
   const featuredQuery = useFeaturedNfts()
+  const catalogQuery = useNftCatalog(search)
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false)
   const spotlight = featuredQuery.data?.featured
   const spotlightImage = spotlight?.images[0]
   const facets = catalogQuery.data?.facets
@@ -118,7 +118,7 @@ function HomePage() {
           value={searchDraft}
         />
       </div>
-      <HomeIntro />
+      <HomeIntro featuredNfts={featuredQuery.data} />
       <div className="kurio-container flex flex-col pb-12 md:pb-20">
         {spotlight && spotlightImage && (
           <section

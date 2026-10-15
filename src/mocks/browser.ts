@@ -4,8 +4,7 @@ import { mockScenarioSchema } from './scenario-contract'
 import { createMockSocketHandler } from './socket'
 import { resetMockState } from './store'
 
-const socketHandler = createMockSocketHandler(window.location.origin)
-export const worker = setupWorker(...handlers, socketHandler)
+export let worker: ReturnType<typeof setupWorker> | null = null
 
 export async function startMocking() {
   if (import.meta.env.VITE_ENABLE_MOCKS !== 'true') {
@@ -18,6 +17,8 @@ export async function startMocking() {
     resetMockState(parsedScenario.success ? parsedScenario.data : undefined)
   }
 
+  const socketHandler = createMockSocketHandler(window.location.origin)
+  worker = setupWorker(...handlers, socketHandler)
   await worker.start({
     onUnhandledRequest: 'warn',
     serviceWorker: {

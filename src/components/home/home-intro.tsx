@@ -1,24 +1,31 @@
 import { useRef, useState, type UIEvent } from 'react'
 import { Link } from '@tanstack/react-router'
+import { useQueryClient } from '@tanstack/react-query'
 import { EmptyState } from '@/components/ui/empty-state'
 import { ErrorState } from '@/components/ui/error-state'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { useFeaturedNfts } from '@/hooks/use-featured-nfts'
+import { queryKeys } from '@/hooks/queryKeys'
+import type { FeaturedNftsResponse } from '@/types/contracts'
 
 type HomeIntroProps = {
   background?: boolean
+  featuredNfts?: FeaturedNftsResponse
 }
 
-function HomeIntro({ background = false }: HomeIntroProps) {
+function HomeIntro({ background = false, featuredNfts }: HomeIntroProps) {
   const featuredQuery = useFeaturedNfts()
-  const heroNfts = featuredQuery.data?.hero ?? []
+  const queryClient = useQueryClient()
+  const heroNfts = featuredNfts?.hero ?? featuredQuery.data?.hero ?? []
   const heroNft = heroNfts[0]
   const heroImage = heroNft?.images[0]
   const [activeSlide, setActiveSlide] = useState(0)
   const slidesRef = useRef<HTMLUListElement>(null)
+  const isPending = !featuredNfts && featuredQuery.isPending
+  const isError = !featuredNfts && featuredQuery.isError
 
-  if (featuredQuery.isPending) {
+  if (isPending) {
     return (
       <section
         aria-label="Carregando destaques"
@@ -43,7 +50,7 @@ function HomeIntro({ background = false }: HomeIntroProps) {
     )
   }
 
-  if (featuredQuery.isError || (heroNft !== undefined && !heroImage)) {
+  if (isError || (heroNft !== undefined && !heroImage)) {
     return (
       <section
         className="kurio-container py-8"
@@ -51,7 +58,13 @@ function HomeIntro({ background = false }: HomeIntroProps) {
       >
         <ErrorState
           description="Não foi possível carregar os NFTs em destaque."
-          onRetry={() => void featuredQuery.refetch()}
+          onRetry={() => {
+            if (featuredNfts) {
+              void queryClient.invalidateQueries({ queryKey: queryKeys.catalog.featured })
+            } else {
+              void featuredQuery.refetch()
+            }
+          }}
           retrying={featuredQuery.isFetching}
           title="Falha ao carregar os destaques"
         />
@@ -131,6 +144,7 @@ function HomeIntro({ background = false }: HomeIntroProps) {
                   alt={image.alt}
                   className="absolute right-2 top-2 h-[calc(100%-1rem)] w-[48%] rounded-2xl object-cover"
                   height={image.height}
+                  fetchPriority={index === 0 ? 'high' : 'auto'}
                   loading={index === 0 ? 'eager' : 'lazy'}
                   src={image.url}
                   width={image.width}

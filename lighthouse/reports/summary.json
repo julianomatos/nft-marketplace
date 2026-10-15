@@ -1,0 +1,125 @@
+{
+  "targetUrls": [
+    "http://127.0.0.1:4174/nft/emerald-ape-042"
+  ],
+  "results": [
+    {
+      "page": "/nft/emerald-ape-042",
+      "formFactor": "mobile",
+      "run": 1,
+      "scores": {
+        "performance": 0.8,
+        "accessibility": 1,
+        "best-practices": 1,
+        "seo": 0.92
+      },
+      "metrics": {
+        "largest-contentful-paint": 4389.023950000001,
+        "cumulative-layout-shift": 0.01091200703156016,
+        "total-blocking-time": 33.5
+      }
+    },
+    {
+      "page": "/nft/emerald-ape-042",
+      "formFactor": "mobile",
+      "run": 2,
+      "scores": {
+        "performance": 0.8,
+        "accessibility": 1,
+        "best-practices": 1,
+        "seo": 0.92
+      },
+      "metrics": {
+        "largest-contentful-paint": 4378.405050000001,
+        "cumulative-layout-shift": 0.01091200703156016,
+        "total-blocking-time": 42
+      }
+    },
+    {
+      "page": "/nft/emerald-ape-042",
+      "formFactor": "mobile",
+      "run": 3,
+      "scores": {
+        "performance": 0.79,
+        "accessibility": 1,
+        "best-practices": 1,
+        "seo": 0.92
+      },
+      "metrics": {
+        "largest-contentful-paint": 4489.274800000001,
+        "cumulative-layout-shift": 0.01091200703156016,
+        "total-blocking-time": 41.5
+      }
+    },
+    {
+      "page": "/nft/emerald-ape-042",
+      "formFactor": "desktop",
+      "run": 1,
+      "scores": {
+        "performance": 0.8,
+        "accessibility": 1,
+        "best-practices": 1,
+        "seo": 0.92
+      },
+      "metrics": {
+        "largest-contentful-paint": 4381.2369,
+        "cumulative-layout-shift": 0.01091200703156016,
+        "total-blocking-time": 29.5
+      }
+    },
+    {
+      "page": "/nft/emerald-ape-042",
+      "formFactor": "desktop",
+      "run": 2,
+      "scores": {
+        "performance": 0.79,
+        "accessibility": 1,
+        "best-practices": 1,
+        "seo": 0.92
+      },
+      "metrics": {
+        "largest-contentful-paint": 4496.53025,
+        "cumulative-layout-shift": 0.01091200703156016,
+        "total-blocking-time": 43
+      }
+    },
+    {
+      "page": "/nft/emerald-ape-042",
+      "formFactor": "desktop",
+      "run": 3,
+      "scores": {
+        "performance": 0.78,
+        "accessibility": 1,
+        "best-practices": 1,
+        "seo": 0.92
+      },
+      "metrics": {
+        "largest-contentful-paint": 4555.8268499999995,
+        "cumulative-layout-shift": 0.01091200703156016,
+        "total-blocking-time": 34
+      }
+    }
+  ],
+  "medians": {
+    "/nft/emerald-ape-042": {
+      "mobile": {
+        "performance": 0.8,
+        "accessibility": 1,
+        "best-practices": 1,
+        "seo": 0.92,
+        "largest-contentful-paint": 4389.023950000001,
+        "cumulative-layout-shift": 0.01091200703156016,
+        "total-blocking-time": 41.5
+      },
+      "desktop": {
+        "performance": 0.79,
+        "accessibility": 1,
+        "best-practices": 1,
+        "seo": 0.92,
+        "largest-contentful-paint": 4496.53025,
+        "cumulative-layout-shift": 0.01091200703156016,
+        "total-blocking-time": 34
+      }
+    }
+  }
+}

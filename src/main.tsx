@@ -2,12 +2,17 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { RouterProvider } from '@tanstack/react-router'
-import { ReactQueryDevtools as Devtools } from '@tanstack/react-query-devtools'
 import { queryClient } from './lib/query-client'
 import { router } from './router'
-import { startMocking } from './mocks/browser'
-import './mocks/control'
 import './index.css'
+
+const mocksModule =
+  import.meta.env.VITE_ENABLE_MOCKS === 'true'
+    ? Promise.all([import('./mocks/browser'), import('./mocks/control')])
+    : Promise.resolve(null)
+const devtoolsModule = import.meta.env.DEV
+  ? import('@tanstack/react-query-devtools')
+  : Promise.resolve(null)
 
 declare global {
   interface Window {
@@ -18,17 +23,18 @@ declare global {
 }
 
 async function bootstrap() {
-  if (import.meta.env.VITE_ENABLE_MOCKS === 'true') {
+  const mocks = await mocksModule
+  if (mocks) {
+    const [{ startMocking }] = mocks
     await startMocking()
   }
 
+  const devtools = await devtoolsModule
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
       <QueryClientProvider client={queryClient}>
         <RouterProvider router={router} />
-        {import.meta.env.DEV && (
-          <Devtools initialIsOpen={false} />
-        )}
+        {devtools && <devtools.ReactQueryDevtools initialIsOpen={false} />}
       </QueryClientProvider>
     </StrictMode>,
   )
