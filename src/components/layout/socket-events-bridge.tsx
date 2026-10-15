@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { queryKeys } from '@/hooks/queryKeys'
 import { queryClient } from '@/lib/query-client'
+import { whenSocketMockReady } from '@/mocks/socket-ready'
 import type { CartResponse } from '@/types/contracts'
 import type { NftUpdatedEvent, OrderUpdatedEvent } from '@/types/events'
 import { mul } from '@/utils/eth'
@@ -168,14 +169,7 @@ export function SocketEventsBridge({
     }
 
     ;(async () => {
-      if (import.meta.env.VITE_ENABLE_MOCKS === 'true') {
-        window.dispatchEvent(new Event('kurio:initialize-mock-controls'))
-        const { mockBootstrapWindow } = await import('@/mocks/globals')
-        const ready = mockBootstrapWindow().__KURIO_MOCKS_READY__
-        if (ready) await ready
-        const { whenSocketMockReady } = await import('@/mocks/socket-ready')
-        await whenSocketMockReady()
-      }
+      await whenSocketMockReady()
       if (!active) return
       const { io } = await import('socket.io-client')
       if (!active) return
