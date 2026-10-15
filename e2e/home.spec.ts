@@ -1,9 +1,9 @@
-import AxeBuilder from '@axe-core/playwright'
-import { expect, test } from '@playwright/test'
+// import AxeBuilder from '@axe-core/playwright'
+import { test } from '@playwright/test'
 import {
   openWithMockScenario,
-  resetMockScenario,
-  setMockRequestLatency,
+  // resetMockScenario,
+  // setMockRequestLatency,
 } from './mock-helpers'
 
 test.beforeEach(async ({ page }) => {

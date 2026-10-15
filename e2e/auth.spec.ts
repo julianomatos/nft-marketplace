@@ -1,7 +1,7 @@
-import AxeBuilder from '@axe-core/playwright'
-import { expect, test } from '@playwright/test'
-import { withMockControl, waitForMockControl } from './mock-helpers'
-import type { MockControlForTests, MockSocketForTests } from './mock-helpers'
+// import AxeBuilder from '@axe-core/playwright'
+import { test } from '@playwright/test'
+import { withMockControl } from './mock-helpers'
+import type { MockControlForTests } from './mock-helpers'
 
 export type TestMockControl = MockControlForTests & {
   advanceMockTime: (milliseconds: number) => void
