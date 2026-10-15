@@ -1,8 +1,13 @@
 import { expect, test } from '@playwright/test'
-import { openWithMockScenario, withMockControl } from './mock-helpers'
+import {
+  openWithMockScenario,
+  waitForMockWorker,
+  withMockControl,
+} from './mock-helpers'
 
 test('the application starts in Chromium', async ({ page }) => {
   await page.goto('/')
+  await waitForMockWorker(page)
 
   await expect(page).toHaveTitle('KURIO | Marketplace de NFTs')
   const heroTitle =
@@ -12,6 +17,12 @@ test('the application starts in Chromium', async ({ page }) => {
   await expect(
     page.getByRole('heading', { name: heroTitle }),
   ).toBeVisible()
+  await expect(
+    page.getByRole('img', { name: 'Arte de Emerald Ape #042' }).first(),
+  ).toBeVisible()
+  await expect(
+    page.getByRole('img', { name: 'Arte de Emerald Ape #042' }).first(),
+  ).toHaveJSProperty('complete', true)
 })
 
 test('MSW Socket.IO binding delivers a mocked event to socket.io-client', async ({

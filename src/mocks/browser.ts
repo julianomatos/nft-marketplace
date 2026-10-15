@@ -6,6 +6,22 @@ import { resetMockState } from './store'
 
 export let worker: ReturnType<typeof setupWorker> | null = null
 
+function handleUnhandledRequest(request: Request, print: {
+  error: () => void
+  warning: () => void
+}): void {
+  const url = new URL(request.url)
+  const isSameOrigin = url.origin === window.location.origin
+  const isApiRequest = url.pathname.startsWith('/api/')
+
+  if (isSameOrigin && isApiRequest) {
+    print.error()
+    throw new Error(`No mock handler matched API request: ${url.pathname}`)
+  }
+
+  print.warning()
+}
+
 export async function startMocking() {
   if (import.meta.env.VITE_ENABLE_MOCKS !== 'true') {
     return
@@ -20,7 +36,7 @@ export async function startMocking() {
   const socketHandler = createMockSocketHandler(window.location.origin)
   worker = setupWorker(...handlers, socketHandler)
   await worker.start({
-    onUnhandledRequest: 'warn',
+    onUnhandledRequest: handleUnhandledRequest,
     serviceWorker: {
       url: '/mockServiceWorker.js',
     },

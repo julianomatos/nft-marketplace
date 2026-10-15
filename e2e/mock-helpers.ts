@@ -43,15 +43,43 @@ export async function waitForMockControl(page: Page): Promise<void> {
       __KURIO_MOCKS_FAILED__?: unknown
       __KURIO_MOCKS_ERROR__?: string
     }
-    if (!mockWindow.__KURIO_MOCKS_READY__) {
-      throw new Error('Mock initialization did not publish its ready promise')
+    if (mockWindow.__KURIO_MOCKS_READY__) {
+      await mockWindow.__KURIO_MOCKS_READY__
     }
-    await mockWindow.__KURIO_MOCKS_READY__
     if (mockWindow.__KURIO_MOCKS_FAILED__) {
       throw new Error(
         `Mock initialization failed: ${mockWindow.__KURIO_MOCKS_ERROR__ ?? 'unknown error'}`,
       )
     }
+  })
+}
+
+export async function waitForMockWorker(page: Page): Promise<void> {
+  await page.evaluate(async () => {
+    await new Promise<void>((resolve, reject) => {
+      const timeout = window.setTimeout(
+        () => reject(new Error('Timed out waiting for the MSW worker')),
+        5_000,
+      )
+      const checkForWorker = () => {
+        const worker = navigator.serviceWorker.controller
+        if (!worker || !worker.scriptURL.endsWith('/mockServiceWorker.js')) return
+        window.clearTimeout(timeout)
+        resolve()
+      }
+
+      if (!('serviceWorker' in navigator)) {
+        window.clearTimeout(timeout)
+        reject(new Error('Service workers are not supported in this browser'))
+        return
+      }
+
+      checkForWorker()
+      navigator.serviceWorker.addEventListener(
+        'controllerchange',
+        checkForWorker,
+      )
+    })
   })
 }
 
