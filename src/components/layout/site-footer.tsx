@@ -57,7 +57,8 @@ function SiteFooter() {
         <div className="grid gap-6 bg-card p-5 sm:grid-cols-2 lg:grid-cols-4 lg:gap-0 lg:p-6">
           {features.map(({ badge, title, description }) => (
             <section
-              className="border-b border-primary/60 pb-5 sm:border-r sm:pr-5 lg:border-b-0 lg:pb-0 lg:pr-5"
+              className
+              =" border-b border-primary/60 pb-5 sm:border-r sm:ps-4 lg:border-b-0 lg:pb-0 "
               key={title}
             >
               <span

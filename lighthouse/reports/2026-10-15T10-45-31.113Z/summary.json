@@ -1,0 +1,243 @@
+{
+  "targetUrls": [
+    "http://127.0.0.1:46093/",
+    "http://127.0.0.1:46093/nft/emerald-ape-042"
+  ],
+  "lighthouseVersion": "13.5.0",
+  "results": [
+    {
+      "page": "/",
+      "formFactor": "mobile",
+      "run": 1,
+      "scores": {
+        "performance": 0.78,
+        "accessibility": 1,
+        "best-practices": 1,
+        "seo": 0.92
+      },
+      "metrics": {
+        "largest-contentful-paint": 4484.6476,
+        "cumulative-layout-shift": 0.04352069867181179,
+        "total-blocking-time": 55
+      }
+    },
+    {
+      "page": "/",
+      "formFactor": "mobile",
+      "run": 2,
+      "scores": {
+        "performance": 0.78,
+        "accessibility": 1,
+        "best-practices": 1,
+        "seo": 0.92
+      },
+      "metrics": {
+        "largest-contentful-paint": 4477.788350000001,
+        "cumulative-layout-shift": 0.04352069867181179,
+        "total-blocking-time": 53
+      }
+    },
+    {
+      "page": "/",
+      "formFactor": "mobile",
+      "run": 3,
+      "scores": {
+        "performance": 0.78,
+        "accessibility": 1,
+        "best-practices": 1,
+        "seo": 0.92
+      },
+      "metrics": {
+        "largest-contentful-paint": 4474.30475,
+        "cumulative-layout-shift": 0.04352069867181179,
+        "total-blocking-time": 49
+      }
+    },
+    {
+      "page": "/",
+      "formFactor": "desktop",
+      "run": 1,
+      "scores": {
+        "performance": 0.78,
+        "accessibility": 1,
+        "best-practices": 1,
+        "seo": 0.92
+      },
+      "metrics": {
+        "largest-contentful-paint": 4502.30695,
+        "cumulative-layout-shift": 0.04352069867181179,
+        "total-blocking-time": 62.5
+      }
+    },
+    {
+      "page": "/",
+      "formFactor": "desktop",
+      "run": 2,
+      "scores": {
+        "performance": 0.78,
+        "accessibility": 1,
+        "best-practices": 1,
+        "seo": 0.92
+      },
+      "metrics": {
+        "largest-contentful-paint": 4513.68895,
+        "cumulative-layout-shift": 0.04352069867181179,
+        "total-blocking-time": 101.00000000000023
+      }
+    },
+    {
+      "page": "/",
+      "formFactor": "desktop",
+      "run": 3,
+      "scores": {
+        "performance": 0.78,
+        "accessibility": 1,
+        "best-practices": 1,
+        "seo": 0.92
+      },
+      "metrics": {
+        "largest-contentful-paint": 4482.906849999999,
+        "cumulative-layout-shift": 0.04352069867181179,
+        "total-blocking-time": 51
+      }
+    },
+    {
+      "page": "/nft/emerald-ape-042",
+      "formFactor": "mobile",
+      "run": 1,
+      "scores": {
+        "performance": 0.79,
+        "accessibility": 1,
+        "best-practices": 1,
+        "seo": 0.92
+      },
+      "metrics": {
+        "largest-contentful-paint": 4481.9001,
+        "cumulative-layout-shift": 0.01091200703156016,
+        "total-blocking-time": 31.5
+      }
+    },
+    {
+      "page": "/nft/emerald-ape-042",
+      "formFactor": "mobile",
+      "run": 2,
+      "scores": {
+        "performance": 0.8,
+        "accessibility": 1,
+        "best-practices": 1,
+        "seo": 0.92
+      },
+      "metrics": {
+        "largest-contentful-paint": 4408.8761,
+        "cumulative-layout-shift": 0.01091200703156016,
+        "total-blocking-time": 40
+      }
+    },
+    {
+      "page": "/nft/emerald-ape-042",
+      "formFactor": "mobile",
+      "run": 3,
+      "scores": {
+        "performance": 0.79,
+        "accessibility": 1,
+        "best-practices": 1,
+        "seo": 0.92
+      },
+      "metrics": {
+        "largest-contentful-paint": 4401.4352,
+        "cumulative-layout-shift": 0.01091200703156016,
+        "total-blocking-time": 55.5
+      }
+    },
+    {
+      "page": "/nft/emerald-ape-042",
+      "formFactor": "desktop",
+      "run": 1,
+      "scores": {
+        "performance": 0.79,
+        "accessibility": 1,
+        "best-practices": 1,
+        "seo": 0.92
+      },
+      "metrics": {
+        "largest-contentful-paint": 4492.164850000001,
+        "cumulative-layout-shift": 0.01091200703156016,
+        "total-blocking-time": 39
+      }
+    },
+    {
+      "page": "/nft/emerald-ape-042",
+      "formFactor": "desktop",
+      "run": 2,
+      "scores": {
+        "performance": 0.8,
+        "accessibility": 1,
+        "best-practices": 1,
+        "seo": 0.92
+      },
+      "metrics": {
+        "largest-contentful-paint": 4392.320849999999,
+        "cumulative-layout-shift": 0.01091200703156016,
+        "total-blocking-time": 46
+      }
+    },
+    {
+      "page": "/nft/emerald-ape-042",
+      "formFactor": "desktop",
+      "run": 3,
+      "scores": {
+        "performance": 0.79,
+        "accessibility": 1,
+        "best-practices": 1,
+        "seo": 0.92
+      },
+      "metrics": {
+        "largest-contentful-paint": 4472.48985,
+        "cumulative-layout-shift": 0.01091200703156016,
+        "total-blocking-time": 27
+      }
+    }
+  ],
+  "medians": {
+    "/": {
+      "mobile": {
+        "performance": 0.78,
+        "accessibility": 1,
+        "best-practices": 1,
+        "seo": 0.92,
+        "largest-contentful-paint": 4477.788350000001,
+        "cumulative-layout-shift": 0.04352069867181179,
+        "total-blocking-time": 53
+      },
+      "desktop": {
+        "performance": 0.78,
+        "accessibility": 1,
+        "best-practices": 1,
+        "seo": 0.92,
+        "largest-contentful-paint": 4502.30695,
+        "cumulative-layout-shift": 0.04352069867181179,
+        "total-blocking-time": 62.5
+      }
+    },
+    "/nft/emerald-ape-042": {
+      "mobile": {
+        "performance": 0.79,
+        "accessibility": 1,
+        "best-practices": 1,
+        "seo": 0.92,
+        "largest-contentful-paint": 4408.8761,
+        "cumulative-layout-shift": 0.01091200703156016,
+        "total-blocking-time": 40
+      },
+      "desktop": {
+        "performance": 0.79,
+        "accessibility": 1,
+        "best-practices": 1,
+        "seo": 0.92,
+        "largest-contentful-paint": 4472.48985,
+        "cumulative-layout-shift": 0.01091200703156016,
+        "total-blocking-time": 39
+      }
+    }
+  }
+}
