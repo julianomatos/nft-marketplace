@@ -1,7 +1,25 @@
+import { zodResolver } from '@hookform/resolvers/zod'
 import { Link, useRouterState } from '@tanstack/react-router'
 import { CreditCard, Heart, UserRound } from 'lucide-react'
-import type { ReactNode } from 'react'
+import type { ChangeEvent, ReactNode } from 'react'
+import { useEffect, useState } from 'react'
+import { useForm, useWatch } from 'react-hook-form'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { queryKeys } from '@/hooks/queryKeys'
 import { useSession } from '@/hooks/use-session'
+import { API_ENDPOINTS } from '@/types/endpoints'
+import {
+  passwordUpdateRequestSchema,
+  profileUpdateRequestSchema,
+  type PasswordUpdateRequest,
+  type Profile,
+  type ProfileUpdateRequest,
+} from '@/types/contracts'
+import { apiClient } from '@/services/api-client'
+import { queryStaleTimes } from '@/lib/query-client'
+import { ApiClientError } from '@/utils/errors'
 
 const profileNavItems = [
   { label: 'Dados do perfil', to: '/perfil', icon: UserRound },
@@ -68,56 +86,359 @@ function ProfileLayout({ children, description, title }: ProfileLayoutProps) {
   )
 }
 
+function applyApiFieldErrors(
+  error: unknown,
+  fields: readonly string[],
+  setFieldError: (field: string, message: string) => void,
+): string | null {
+  if (!(error instanceof ApiClientError)) {
+    return error instanceof Error
+      ? error.message
+      : 'Ocorreu um erro inesperado. Tente novamente.'
+  }
+
+  let mapped = false
+  for (const [field, messages] of Object.entries(error.fieldErrors ?? {})) {
+    if (fields.includes(field) && messages[0]) {
+      setFieldError(field, messages[0])
+      mapped = true
+    }
+  }
+
+  return mapped ? null : error.message
+}
+
 function ProfileOverviewPage() {
   const sessionQuery = useSession()
-  const user = sessionQuery.data?.authenticated ? sessionQuery.data.user : null
+  const queryClient = useQueryClient()
+  const userId = sessionQuery.data?.authenticated ? sessionQuery.data.user.id : undefined
+  const profileKey = userId ? queryKeys.user(userId).profile : ['profile', 'guest']
+
+  const profileQuery = useQuery({
+    queryKey: profileKey,
+    enabled: Boolean(userId),
+    queryFn: async ({ signal }) => {
+      const response = await apiClient.get<Profile>(API_ENDPOINTS.profile.current, {
+        signal,
+      })
+      return response.data
+    },
+    staleTime: queryStaleTimes.account,
+  })
+
+  const profileForm = useForm<ProfileUpdateRequest>({
+    resolver: zodResolver(profileUpdateRequestSchema),
+    defaultValues: {
+      displayName: '',
+      username: '',
+      email: '',
+      ensName: '',
+      walletNickname: '',
+      avatar: undefined,
+    },
+  })
+
+  const [profileNotice, setProfileNotice] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!profileQuery.data) return
+
+    const nextValues = {
+      displayName: profileQuery.data.displayName,
+      username: profileQuery.data.username,
+      email: profileQuery.data.email,
+      ensName: profileQuery.data.ensName,
+      walletNickname: profileQuery.data.walletNickname,
+      avatar: profileQuery.data.avatar,
+    }
+
+    profileForm.reset(nextValues)
+  }, [profileForm, profileQuery.data])
+
+  const updateProfileMutation = useMutation({
+    mutationFn: async (payload: ProfileUpdateRequest) => {
+      const response = await apiClient.put<Profile>(API_ENDPOINTS.profile.current, payload)
+      return response.data
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(profileKey, data)
+      queryClient.invalidateQueries({ queryKey: profileKey })
+      setProfileNotice('Perfil atualizado com sucesso.')
+      profileForm.setValue('avatar', data.avatar)
+    },
+    onError: (error) => {
+      setProfileNotice(
+        applyApiFieldErrors(
+          error,
+          ['displayName', 'username', 'email', 'ensName', 'walletNickname'],
+          (field, message) => {
+            profileForm.setError(field as keyof ProfileUpdateRequest, {
+              type: 'server',
+              message,
+            })
+          },
+        ) ?? 'Não foi possível salvar as alterações.',
+      )
+    },
+  })
+
+  const onProfileSubmit = (payload: ProfileUpdateRequest) => {
+    setProfileNotice(null)
+    updateProfileMutation.mutate(payload)
+  }
+
+  const handleAvatarChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      const nextAvatar = typeof reader.result === 'string' ? reader.result : undefined
+      profileForm.setValue('avatar', nextAvatar)
+      const formValues = profileForm.getValues()
+      if (nextAvatar) {
+        updateProfileMutation.mutate({
+          ...formValues,
+          avatar: nextAvatar,
+        })
+      }
+    }
+    reader.readAsDataURL(file)
+    event.target.value = ''
+  }
+
+  const profileDisplayName = useWatch({
+    control: profileForm.control,
+    name: 'displayName',
+  })
+  const profileUsername = useWatch({
+    control: profileForm.control,
+    name: 'username',
+  })
+  const avatarPreview = useWatch({
+    control: profileForm.control,
+    name: 'avatar',
+  }) ?? profileQuery.data?.avatar
+  const profileSummaryName = profileDisplayName || profileQuery.data?.displayName || 'Colecionador'
+  const profileSummaryHandle = profileUsername || profileQuery.data?.username || 'kurio-user'
 
   return (
     <ProfileLayout
       description="Gerencie sua identidade digital, preferências e acesso à sua coleção."
       title="Dados do perfil"
     >
-      <div className="grid gap-5 md:grid-cols-2">
-        <div className="rounded-sm border border-border bg-surface-raised p-4">
-          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-highlight">
-            Identidade
-          </p>
-          <div className="mt-4 flex items-center gap-4">
-            <div className="flex size-14 items-center justify-center rounded-full bg-primary/10 text-lg font-bold text-primary">
-              {user?.displayName?.slice(0, 1) ?? 'K'}
+      <div className="grid gap-6 xl:grid-cols-[18rem_minmax(0,1fr)]">
+        <aside className="space-y-4">
+          <div className="rounded-sm border border-border bg-surface-raised p-4">
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-highlight">
+              Identidade
+            </p>
+            <div className="mt-4 flex items-center gap-4">
+              {avatarPreview ? (
+                <img
+                  alt="Foto do perfil"
+                  className="size-14 rounded-full border border-border object-cover"
+                  src={avatarPreview}
+                />
+              ) : (
+                <div className="flex size-14 items-center justify-center rounded-full bg-primary/10 text-lg font-bold text-primary">
+                  {profileSummaryName.slice(0, 1).toUpperCase() || 'K'}
+                </div>
+              )}
+              <div>
+                <p className="text-lg font-bold text-foreground">{profileSummaryName}</p>
+                <p className="text-sm text-muted-foreground">@{profileSummaryHandle}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-lg font-bold text-foreground">
-                {user?.displayName ?? 'Colecionador'}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                @{user?.username ?? 'kurio-user'}
-              </p>
+            <div className="mt-4 flex gap-2">
+              <label className="inline-flex cursor-pointer items-center justify-center rounded-sm border border-border bg-background px-3 py-2 text-xs font-bold text-foreground transition-colors hover:border-primary hover:text-highlight focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring">
+                <input
+                  accept="image/*"
+                  className="sr-only"
+                  onChange={handleAvatarChange}
+                  type="file"
+                />
+                Alterar
+              </label>
+              <Button
+                onClick={() => {
+                  profileForm.setValue('avatar', undefined)
+                  updateProfileMutation.mutate({
+                    ...profileForm.getValues(),
+                    avatar: undefined,
+                  })
+                }}
+                type="button"
+                variant="outline"
+              >
+                Remover
+              </Button>
             </div>
           </div>
-        </div>
 
-        <div className="rounded-sm border border-border bg-surface-raised p-4">
-          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-highlight">
-            Contato
-          </p>
-          <dl className="mt-4 space-y-3 text-sm text-foreground">
-            <div>
-              <dt className="text-muted-foreground">E-mail</dt>
-              <dd className="font-medium">{user?.email ?? 'colecionador@kurio.example.test'}</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">ENS</dt>
-              <dd className="font-medium">{user?.ensName ?? 'ana.kurio.eth'}</dd>
-            </div>
-          </dl>
-        </div>
-      </div>
+          <div className="rounded-sm border border-border bg-surface-raised p-4 text-sm text-muted-foreground">
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-highlight">
+              Referência
+            </p>
+            <p className="mt-3 font-medium text-foreground">
+              {profileQuery.data?.referralCode ?? 'KUR-2026'}
+            </p>
+            <p className="mt-2 text-xs">Código de indicação</p>
+          </div>
+        </aside>
 
-      <div className="mt-6 rounded-sm border border-dashed border-border bg-background p-4 text-sm text-muted-foreground">
-        Esta área será preenchida com edição de perfil, avatar e alteração de senha no próximo passo do Epic 9.
+        <div className="space-y-6">
+          <form
+            aria-label="Dados do perfil"
+            className="space-y-5"
+            noValidate
+            onSubmit={profileForm.handleSubmit(onProfileSubmit)}
+          >
+            <div className="grid gap-4 md:grid-cols-2">
+              <Input
+                autoComplete="name"
+                error={profileForm.formState.errors.displayName?.message}
+                label="Nome completo"
+                {...profileForm.register('displayName')}
+              />
+              <Input
+                autoComplete="username"
+                error={profileForm.formState.errors.username?.message}
+                label="Usuário"
+                {...profileForm.register('username')}
+              />
+              <Input
+                autoComplete="email"
+                error={profileForm.formState.errors.email?.message}
+                label="E-mail"
+                type="email"
+                {...profileForm.register('email')}
+              />
+              <Input
+                autoComplete="off"
+                error={profileForm.formState.errors.ensName?.message}
+                label="ENS"
+                {...profileForm.register('ensName')}
+              />
+              <Input
+                autoComplete="off"
+                className="md:col-span-2"
+                error={profileForm.formState.errors.walletNickname?.message}
+                label="Apelido da carteira"
+                {...profileForm.register('walletNickname')}
+              />
+            </div>
+
+            {profileNotice && (
+              <p className="text-xs text-destructive" role="alert">
+                {profileNotice}
+              </p>
+            )}
+
+            <div className="flex justify-end">
+              <Button loading={updateProfileMutation.isPending} type="submit">
+                Salvar dados
+              </Button>
+            </div>
+          </form>
+
+          <PasswordForm />
+        </div>
       </div>
     </ProfileLayout>
+  )
+}
+
+function PasswordForm() {
+  const [passwordNotice, setPasswordNotice] = useState<string | null>(null)
+  const passwordForm = useForm<PasswordUpdateRequest>({
+    resolver: zodResolver(passwordUpdateRequestSchema),
+    defaultValues: {
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: '',
+    },
+  })
+
+  const passwordMutation = useMutation({
+    mutationFn: async (payload: PasswordUpdateRequest) => {
+      const response = await apiClient.put<{ updated: true }>(
+        API_ENDPOINTS.profile.password,
+        payload,
+      )
+      return response.data
+    },
+    onSuccess: () => {
+      setPasswordNotice('Senha atualizada com sucesso.')
+      passwordForm.reset()
+    },
+    onError: (error) => {
+      setPasswordNotice(
+        applyApiFieldErrors(
+          error,
+          ['currentPassword', 'newPassword', 'confirmPassword'],
+          (field, message) => {
+            passwordForm.setError(field as keyof PasswordUpdateRequest, {
+              type: 'server',
+              message,
+            })
+          },
+        ) ?? 'Não foi possível atualizar a senha.',
+      )
+    },
+  })
+
+  return (
+    <form
+      className="space-y-4 rounded-sm border border-border bg-surface-raised p-4"
+      noValidate
+      onSubmit={passwordForm.handleSubmit((payload) => {
+        setPasswordNotice(null)
+        passwordMutation.mutate(payload)
+      })}
+    >
+      <div>
+        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-highlight">
+          Segurança
+        </p>
+        <h2 className="mt-2 text-xl font-bold text-foreground">Alterar senha</h2>
+      </div>
+      <div className="grid gap-4 md:grid-cols-3">
+        <Input
+          autoComplete="current-password"
+          error={passwordForm.formState.errors.currentPassword?.message}
+          label="Senha atual"
+          type="password"
+          {...passwordForm.register('currentPassword')}
+        />
+        <Input
+          autoComplete="new-password"
+          error={passwordForm.formState.errors.newPassword?.message}
+          label="Nova senha"
+          type="password"
+          {...passwordForm.register('newPassword')}
+        />
+        <Input
+          autoComplete="new-password"
+          error={passwordForm.formState.errors.confirmPassword?.message}
+          label="Confirmar nova senha"
+          type="password"
+          {...passwordForm.register('confirmPassword')}
+        />
+      </div>
+
+      {passwordNotice && (
+        <p className="text-xs text-destructive" role="alert">
+          {passwordNotice}
+        </p>
+      )}
+
+      <div className="flex justify-end">
+        <Button loading={passwordMutation.isPending} type="submit">
+          Atualizar senha
+        </Button>
+      </div>
+    </form>
   )
 }
 

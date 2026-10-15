@@ -365,6 +365,39 @@ test('navigates through the authenticated profile layout and its routes', async 
   await expect(page.getByRole('heading', { name: 'Lista de interesse' })).toBeVisible()
 })
 
+test('updates profile data and password with validation feedback', async ({
+  page,
+}) => {
+  await page.goto('/login')
+  await page.getByLabel('E-mail', { exact: true }).fill('ana@kurio.example.test')
+  await page.getByLabel('Senha', { exact: true }).fill('KurioDemo!A2026')
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click()
+
+  await page.goto('/perfil')
+  await expect(page.getByRole('heading', { name: 'Dados do perfil' })).toBeVisible()
+
+  await page.getByLabel('Nome completo').fill('Ana Beatriz Oliveira')
+  await page.getByLabel('Usuário').fill('ana.beatriz')
+  await page.getByLabel('E-mail').fill('ana.beatriz@kurio.example.test')
+  await page.getByLabel('ENS').fill('ana.beatriz.kurio.eth')
+  await page.getByLabel('Apelido da carteira').fill('Pessoal')
+  await page.getByRole('button', { name: 'Salvar dados' }).click()
+  await expect(page.getByText('Perfil atualizado com sucesso.')).toBeVisible()
+  await expect(page.getByText('Ana Beatriz Oliveira', { exact: true })).toBeVisible()
+
+  await page.locator('input[name="currentPassword"]').fill('KurioDemo!A2026')
+  await page.locator('input[name="newPassword"]').fill('KurioDemo!Nova2026')
+  await page.locator('input[name="confirmPassword"]').fill('KurioDemo!Nova2026')
+  await page.getByRole('button', { name: 'Atualizar senha' }).click()
+  await expect(page.getByText('Senha atualizada com sucesso.')).toBeVisible()
+
+  await page.locator('input[name="currentPassword"]').fill('senha-incorreta')
+  await page.locator('input[name="newPassword"]').fill('KurioDemo!Nova2027')
+  await page.locator('input[name="confirmPassword"]').fill('KurioDemo!Nova2027')
+  await page.getByRole('button', { name: 'Atualizar senha' }).click()
+  await expect(page.getByText('A senha atual informada está incorreta.')).toBeVisible()
+})
+
 test('logout calls the API and clears the client session, checkout data, and sockets', async ({
   page,
 }) => {
