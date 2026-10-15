@@ -6,7 +6,6 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { Pagination } from '@/components/ui/pagination'
 import { Select } from '@/components/ui/select'
-import { ModalSurface } from '@/components/ui/dialog'
 import { CatalogSearchForm } from '@/components/home/catalog-search-form'
 import { NftCard } from '@/components/home/nft-card'
 import { CatalogFilterPanel } from '@/components/home/catalog-filter-panel'
@@ -22,6 +21,8 @@ import {
 import { updateNftSearchParams } from '@/utils/search-params'
 import { homePromoBanners, mintJournalTeasers } from '@/content/home-copy'
 import { compare } from '@/utils/eth'
+
+type ModalSurfaceComponent = typeof import('@/components/ui/dialog').ModalSurface
 
 function CatalogSkeleton() {
   return (
@@ -43,6 +44,9 @@ function CatalogSkeleton() {
 }
 
 function HomePage() {
+  const [ModalSurface, setModalSurface] =
+    useState<ModalSurfaceComponent | null>(null)
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false)
   const search = nftSearchParamsSchema.parse(useSearch({ from: '/' }))
   const navigate = useNavigate({ from: '/' })
   const [searchDraftState, setSearchDraftState] = useState<{
@@ -55,7 +59,6 @@ function HomePage() {
   } | null>(null)
   const featuredQuery = useFeaturedNfts()
   const catalogQuery = useNftCatalog(search)
-  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false)
   const spotlight = featuredQuery.data?.featured
   const spotlightImage = spotlight?.images[0]
   const facets = catalogQuery.data?.facets
@@ -113,7 +116,12 @@ function HomePage() {
           inputId="mobile-catalog-search"
           mobile
           onChange={updateSearchDraft}
-          onOpenFilters={() => setFilterDrawerOpen(true)}
+          onOpenFilters={() => {
+            setFilterDrawerOpen(true)
+            void import('@/components/ui/dialog').then((module) => {
+              setModalSurface(() => module.ModalSurface)
+            })
+          }}
           onSubmit={() => updateSearch({ q: searchDraft.trim() || undefined })}
           value={searchDraft}
         />
@@ -253,7 +261,7 @@ function HomePage() {
             </Select>
           </div>
 
-          {facets && (
+          {facets && ModalSurface && (
             <>
               <ModalSurface
                 onOpenChange={setFilterDrawerOpen}
