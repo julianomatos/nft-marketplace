@@ -35,12 +35,16 @@ test('maps invalid login credentials to a field error', async ({ page }) => {
   await page.getByLabel('Senha', { exact: true }).fill('incorrect-password')
   await page.getByRole('button', { name: 'Entrar', exact: true }).click()
 
+  const passwordInput = page.getByLabel('Senha', { exact: true })
+  const describedBy = await passwordInput.getAttribute('aria-describedby')
+
   await expect(page.getByRole('alert').first()).toContainText(
     'E-mail ou senha incorretos.',
   )
-  await expect(page.getByLabel('Senha', { exact: true })).toHaveAttribute(
-    'aria-invalid',
-    'true',
+  expect(describedBy).toBeTruthy()
+  await expect(passwordInput).toHaveAttribute('aria-invalid', 'true')
+  await expect(page.locator(`#${describedBy}`)).toContainText(
+    'E-mail ou senha incorretos.',
   )
 })
 

@@ -158,10 +158,10 @@ Context: initial setup is done and dependencies are installed with npm. Verify e
 ## Epic 10: Accessibility, Visual Regression & Test Completion
 
 - [x] Keyboard navigation, visible focus, focus trap/return in dialogs and drawers; `@axe-core/playwright` checks on key pages.
-- [ ] Forms: labels, `aria-describedby` errors, `aria-invalid`.
-- [ ] Verify 390 / 768 / 1440 px: no horizontal overflow, content intact at 200% zoom.
-- [ ] Visual regression baselines (Home, Detail, Cart, Payment) with stable data and controlled animations.
-- [ ] Compare visual-regression baselines against the same scenarios as `design/reference/`, including the `design-cart` scenario.
+- [x] Forms: labels, `aria-describedby` errors, `aria-invalid`.
+- [x] Verify 390 / 768 / 1440 px: no horizontal overflow, content intact at 200% zoom.
+- [x] Visual regression baselines (Home, Detail, Cart, Payment) with stable data and controlled animations.
+- [x] Compare visual-regression baselines against the same scenarios as `design/reference/`, including the `design-cart` scenario.
 - [ ] Coverage check against the 12 required E2E items: (1) search/filters/history, (2) detail/not found, (3) auth lifecycle, (4) favorites failure/recovery, (5) cart/coupon/persistence, (6) full purchase, (7) payment failure/repeat click/timeout, (8) profile/wallets validation, (9) price change via socket, (10) duplicate/old events and pending resume, (11) keyboard/focus/forms, (12) slow-network skeleton and retry.
 - [ ] Confirm HTML report and failure traces are produced.
 
