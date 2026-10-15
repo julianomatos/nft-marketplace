@@ -116,9 +116,9 @@ Context: initial setup is done and dependencies are installed with npm. Verify e
 
 ## Epic 7: Checkout, Orders & Receipt
 
-- [ ] Checkout form: collector data (prefilled from profile/registered wallet; "Usar outra carteira?" reveals per-network validated address entry), provider selection with simulated connect/refuse/disconnect, and review dialog before submit.
-- [ ] Build responsive wallet/provider option cards, checkout summary panel and mobile composition (collector-data disclosure, wallet cards, provider cards, total and primary action).
-- [ ] Quote revalidation before confirming; on price/availability/coupon/fee change show differences and require a new explicit confirmation.
+- [x] Checkout form: collector data (prefilled from profile/registered wallet; "Usar outra carteira?" reveals per-network validated address entry), provider selection with simulated connect/refuse/disconnect, and review dialog before submit.
+- [x] Build responsive wallet/provider option cards, checkout summary panel and mobile composition (collector-data disclosure, wallet cards, provider cards, total and primary action).
+- [x] Quote revalidation before confirming; on price/availability/coupon/fee change show differences and require a new explicit confirmation.
 - [ ] Idempotent order creation: per-attempt key persisted and reused on retry; block duplicate clicks; timeout recovery returns the same order; `409` on key reuse with different payload.
 - [ ] Pending / confirmed / rejected states; recovery after refresh/reconnection; show confirmation **only** for confirmed orders.
 - [ ] Receipt route `/pedidos/:orderId` as an immutable snapshot: transaction id, items, edition tiers, fees, total and network explorer link; pending/confirmed/rejected states and mobile composition.

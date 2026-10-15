@@ -176,6 +176,17 @@ function CheckoutPage() {
         error instanceof ApiClientError
           ? error
           : new ApiClientError({ code: 'UNEXPECTED_ERROR' })
+
+      if (
+        apiError.code === 'PRICE_CHANGED' ||
+        apiError.code === 'AVAILABILITY_CONFLICT'
+      ) {
+        await cartQuoteQuery.refetch()
+        setSubmitError(apiError.message)
+        setReviewOpen(true)
+        return
+      }
+
       setSubmitError(apiError.message)
     }
   }
