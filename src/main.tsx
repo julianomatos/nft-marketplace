@@ -6,27 +6,35 @@ import { queryClient } from './lib/query-client'
 import { router } from './router'
 import './index.css'
 
-const mocksModule =
-  import.meta.env.VITE_ENABLE_MOCKS === 'true'
-    ? Promise.all([import('./mocks/browser'), import('./mocks/control')])
-    : Promise.resolve(null)
 const devtoolsModule = import.meta.env.DEV
   ? import('@tanstack/react-query-devtools')
   : Promise.resolve(null)
 
-declare global {
-  interface Window {
-    __KURIO_MOCKS__?: {
-      reset: (scenario?: string) => unknown
-    }
+if (import.meta.env.VITE_ENABLE_MOCKS === 'true') {
+  const ready = Promise.all([
+    import('./mocks/browser'),
+    import('./mocks/control'),
+  ]).then(([{ startMocking }]) => startMocking())
+  const testWindow = window as Window & {
+    __KURIO_MOCKS_READY__?: Promise<void>
+    __KURIO_MOCKS_FAILED__?: unknown
+    __KURIO_MOCKS_ERROR__?: string
   }
+  testWindow.__KURIO_MOCKS_READY__ = ready
+  ready.catch((error: unknown) => {
+    testWindow.__KURIO_MOCKS_FAILED__ = error
+    testWindow.__KURIO_MOCKS_ERROR__ =
+      error instanceof Error ? error.message : String(error)
+    console.error('Failed to initialize the demo mocks.', error)
+  })
 }
 
 async function bootstrap() {
-  const mocks = await mocksModule
-  if (mocks) {
-    const [{ startMocking }] = mocks
-    await startMocking()
+  if (import.meta.env.VITE_ENABLE_MOCKS === 'true') {
+    const testWindow = window as Window & {
+      __KURIO_MOCKS_READY__?: Promise<void>
+    }
+    await testWindow.__KURIO_MOCKS_READY__
   }
 
   const devtools = await devtoolsModule

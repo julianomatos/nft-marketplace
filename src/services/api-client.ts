@@ -15,6 +15,7 @@ const API_TIMEOUT_MS = 15_000
 const SESSION_TOKEN_STORAGE_KEY = 'kurio.session.token'
 const SESSION_EXPIRED_EVENT = 'kurio:session-expired'
 const SESSION_CHANGED_EVENT = 'kurio:session-changed'
+const SESSION_EXPIRY_RETURN_TARGET_KEY = 'kurio.session.expiry-return-target'
 
 function getSessionToken(): string | null {
   if (typeof window === 'undefined') return null
@@ -73,6 +74,32 @@ apiClient.interceptors.response.use(
       !isSessionLookup &&
       !isLogout
     ) {
+      if (typeof window !== 'undefined') {
+        const storedAuthReturnContext = window.sessionStorage.getItem(
+          'kurio.auth.return-context',
+        )
+        let storedRedirect = ''
+        if (storedAuthReturnContext) {
+          try {
+            const parsedContext = JSON.parse(storedAuthReturnContext) as {
+              redirect?: unknown
+            }
+            if (typeof parsedContext.redirect === 'string') {
+              storedRedirect = parsedContext.redirect
+            }
+          } catch {
+            storedRedirect = ''
+          }
+        }
+        const currentPath =
+          `${window.location.pathname}${window.location.search}${window.location.hash}`
+        window.sessionStorage.setItem(
+          SESSION_EXPIRY_RETURN_TARGET_KEY,
+          currentPath === '/login' || currentPath.startsWith('/login?')
+            ? storedRedirect
+            : currentPath,
+        )
+      }
       setSessionToken(null)
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT))
@@ -91,6 +118,7 @@ export {
   IDEMPOTENCY_KEY_HEADER,
   SESSION_EXPIRED_EVENT,
   SESSION_CHANGED_EVENT,
+  SESSION_EXPIRY_RETURN_TARGET_KEY,
   SESSION_TOKEN_STORAGE_KEY,
   getSessionToken,
   notifySessionChanged,

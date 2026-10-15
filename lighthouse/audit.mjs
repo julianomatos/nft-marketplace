@@ -1,17 +1,20 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import { spawn, spawnSync } from 'node:child_process'
+import { createServer } from 'node:net'
+import { once } from 'node:events'
 import { setTimeout as delay } from 'node:timers/promises'
 import lighthouse from 'lighthouse'
 import { launch as launchChrome } from 'chrome-launcher'
 import { chromium } from '@playwright/test'
 
 const host = '127.0.0.1'
-const port = Number(process.env.LIGHTHOUSE_PORT ?? 4174)
+const port = Number(process.env.LIGHTHOUSE_PORT ?? await getAvailablePort())
 const origin = `http://${host}:${port}`
 const targetUrls = process.argv.slice(2).length
   ? process.argv.slice(2).map((path) => new URL(path, origin).toString())
   : [`${origin}/`, `${origin}/nft/emerald-ape-042`]
-const outputDirectory = new URL('./reports/', import.meta.url)
+const runId = new Date().toISOString().replaceAll(':', '-')
+const outputDirectory = new URL(`./reports/${runId}/`, import.meta.url)
 const scoreNames = ['performance', 'accessibility', 'best-practices', 'seo']
 const metricNames = [
   'largest-contentful-paint',
@@ -30,9 +33,13 @@ const preview = spawn(
   ['run', 'preview', '--', '--host', host, '--port', String(port), '--strictPort'],
   { stdio: 'inherit' },
 )
+let previewExited = false
+preview.once('exit', () => {
+  previewExited = true
+})
 
 try {
-  await waitForPreview()
+  await waitForPreview(preview)
   await mkdir(outputDirectory, { recursive: true })
 
   const results = []
@@ -67,6 +74,8 @@ try {
           }
 
           const stem = `${slugFor(targetUrl)}-${formFactor}-run-${run}`
+          const reportDirectory = new URL(`${slugFor(targetUrl)}/`, outputDirectory)
+          await mkdir(reportDirectory, { recursive: true })
           const reportContents = Array.isArray(report.report)
             ? report.report
             : [report.report]
@@ -81,8 +90,8 @@ try {
             throw new Error(`Lighthouse did not produce both report formats for ${stem}`)
           }
 
-          await writeFile(new URL(`${stem}.json`, outputDirectory), jsonReport)
-          await writeFile(new URL(`${stem}.html`, outputDirectory), htmlReport)
+          await writeFile(new URL(`${stem}.json`, reportDirectory), jsonReport)
+          await writeFile(new URL(`${stem}.html`, reportDirectory), htmlReport)
           results.push({
             page: new URL(targetUrl).pathname,
             formFactor,
@@ -157,23 +166,49 @@ try {
 
   await writeFile(
     new URL('summary.json', outputDirectory),
-    JSON.stringify({ targetUrls, results, medians: summary }, null, 2),
+    JSON.stringify(
+      {
+        targetUrls,
+        lighthouseVersion: await getLighthouseVersion(),
+        results,
+        medians: summary,
+      },
+      null,
+      2,
+    ),
   )
   console.log(`Lighthouse reports and medians written to ${outputDirectory.pathname}`)
 } finally {
   preview.kill('SIGTERM')
+  if (!previewExited) {
+    await Promise.race([once(preview, 'exit'), delay(5_000)])
+  }
 }
 
-async function waitForPreview() {
+async function getAvailablePort() {
+  const server = createServer()
+  server.listen(0, host)
+  await once(server, 'listening')
+  const address = server.address()
+  if (!address || typeof address === 'string') {
+    throw new Error('Could not allocate a port for the Lighthouse preview')
+  }
+  await new Promise((resolve, reject) => {
+    server.close((error) => (error ? reject(error) : resolve()))
+  })
+  return address.port
+}
+
+async function waitForPreview(preview) {
   const deadline = Date.now() + 30_000
 
   while (Date.now() < deadline) {
-    if (preview.exitCode !== null) {
+    if (preview.exitCode !== null || preview.signalCode !== null) {
       throw new Error(`Vite preview exited with status ${preview.exitCode}`)
     }
 
     try {
-      const response = await fetch(`http://${host}:${port}`)
+      const response = await fetch(origin)
       if (response.ok) {
         return
       }
@@ -182,7 +217,7 @@ async function waitForPreview() {
     }
   }
 
-  throw new Error(`Vite preview did not become available at http://${host}:${port}`)
+  throw new Error(`Vite preview did not become available at ${origin}`)
 }
 
 function median(values) {
@@ -201,4 +236,11 @@ function median(values) {
 function slugFor(url) {
   const path = new URL(url).pathname.replace(/^\/+|\/+$/g, '') || 'home'
   return path.replace(/[^a-z0-9-]+/gi, '-')
+}
+
+async function getLighthouseVersion() {
+  const packageJson = await import('lighthouse/package.json', {
+    with: { type: 'json' },
+  })
+  return packageJson.default.version
 }

@@ -1,9 +1,19 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
+import {
+  waitForMockControl,
+  withMockControl,
+} from './mock-helpers'
+
+declare global {
+  interface Window {
+    __KURIO_MOCKS__: import('./auth.spec').TestMockControl
+  }
+}
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/')
-  await page.evaluate(() => window.__KURIO_MOCKS__.reset('success'))
+  await withMockControl(page, (mocks) => mocks.reset('success'))
   await page.evaluate(() =>
     window.sessionStorage.removeItem('kurio.session.token'),
   )
@@ -217,6 +227,7 @@ test('mobile detail keeps purchase actions above bottom navigation', async ({
 test('detail favorites roll back after API failure and recover on retry', async ({
   page,
 }) => {
+  await waitForMockControl(page)
   await page.evaluate(() => window.__KURIO_MOCKS__.reset('success'))
   await page.goto('/login')
   await page.getByLabel('E-mail', { exact: true }).fill('ana@kurio.example.test')

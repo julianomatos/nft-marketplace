@@ -243,6 +243,7 @@ function NftDetailContent({ nft }: { nft: Nft }) {
                   alt={image.alt}
                   className="aspect-square w-full rounded-sm object-cover"
                   height={image.height}
+                  fetchPriority="high"
                   loading="eager"
                   src={image.url}
                   width={image.width}

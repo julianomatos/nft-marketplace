@@ -1,9 +1,36 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
+import { withMockControl, waitForMockControl } from './mock-helpers'
+import type { MockControlForTests, MockSocketForTests } from './mock-helpers'
+
+export type TestMockControl = MockControlForTests & {
+  advanceMockTime: (milliseconds: number) => void
+  requestProfile: () => Promise<{ data: { displayName: string; email: string } }>
+  connectSocketClient: () => Promise<
+    import('./mock-helpers').MockSocketForTests & {
+      connected: boolean
+      once: (event: string, listener: (...args: unknown[]) => void) => void
+    }
+  >
+  setState: (state: {
+    scenario?: string
+    session?: {
+      userId: string
+      token: string
+      expiresAt: string
+    }
+  }) => void
+}
+
+declare global {
+  interface Window {
+    __KURIO_MOCKS__: TestMockControl
+  }
+}
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/')
-  await page.evaluate(() => window.__KURIO_MOCKS__.reset('success'))
+  await withMockControl(page, (mocks) => mocks.reset('success'))
   await page.evaluate(() =>
     window.sessionStorage.removeItem('kurio.session.token'),
   )
@@ -182,6 +209,7 @@ test('persists login token, restores the session after reload, and authenticates
   await page.getByRole('button', { name: 'Entrar', exact: true }).click()
 
   await expect(page.getByText('Ana Oliveira', { exact: true })).toBeVisible()
+
   const token = await page.evaluate(() =>
     window.sessionStorage.getItem('kurio.session.token'),
   )
@@ -207,6 +235,7 @@ test('clears an expired session token and offers retry feedback', async ({
     )
   })
   await page.goto('/?mockScenario=expired-session')
+  await waitForMockControl(page)
 
   await expect(page.getByRole('alert')).toContainText(
     'Sua sessão expirou. Entre novamente para continuar.',
@@ -243,9 +272,7 @@ test('guards direct access to private routes and returns there after login', asy
 test('allows authenticated direct access and does not redirect to login', async ({
   page,
 }) => {
-  await page.evaluate(() =>
-    window.__KURIO_MOCKS__.reset('success'),
-  )
+  await withMockControl(page, (mocks) => mocks.reset('success'))
   await page.goto('/perfil?tab=profile')
 
   await expect(page).toHaveURL(
@@ -315,32 +342,58 @@ test('expired session during a protected route redirects with the context and re
 test('session expiry from an Axios-protected request saves checkout state and returns after login', async ({
   page,
 }) => {
+  await page.goto('/')
+  await withMockControl(page, (mocks) => {
+    mocks.reset('success')
+  })
+  await page.goto('/login?redirect=%2Fpagamento%3Fstep%3Dreview')
+  await page.getByLabel('E-mail', { exact: true }).fill('ana@kurio.example.test')
+  await page.getByLabel('Senha', { exact: true }).fill('KurioDemo!A2026')
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click()
+  await expect(page).toHaveURL(
+    (url) =>
+      url.pathname === '/pagamento' &&
+      url.searchParams.get('step') === 'review',
+  )
   await page.evaluate(() => {
-    window.__KURIO_MOCKS__.reset('success')
+    window.history.replaceState({}, '', '/pagamento?step=review')
+  })
+  await page.evaluate(() => {
+    const draft = JSON.stringify({
+      displayName: 'Ana Oliveira',
+      email: 'ana@kurio.example.test',
+      step: 'review',
+    })
+    window.sessionStorage.setItem('kurio.checkout.draft', draft)
+    window.sessionStorage.setItem(
+      'kurio.checkout.idempotency-key',
+      'pending-order-attempt',
+    )
+  })
+  await expect(
+    page.getByRole('heading', { name: 'Finalizar compra' }),
+  ).toBeVisible()
+  await page.getByLabel('Nome completo').fill('Ana Oliveira')
+  await withMockControl(page, (mocks) => {
+    mocks.reset('expired-session')
+  })
+  await page.evaluate(() => {
     window.sessionStorage.setItem(
       'kurio.checkout.draft',
-      JSON.stringify({ step: 'review' }),
+      JSON.stringify({
+        displayName: 'Ana Oliveira',
+        email: 'ana@kurio.example.test',
+        step: 'review',
+      }),
     )
     window.sessionStorage.setItem(
       'kurio.checkout.idempotency-key',
       'pending-order-attempt',
     )
   })
-  await page.goto('/pagamento?step=review')
-  await expect(
-    page.getByRole('heading', { name: 'Finalizar compra' }),
-  ).toBeVisible()
-  await expect(page.getByLabel('Nome completo')).toHaveValue('Ana Oliveira')
-
-  await page.evaluate(async () => {
-    window.__KURIO_MOCKS__.advanceMockTime(48 * 60 * 60 * 1000)
-    try {
-      await window.__KURIO_MOCKS__.requestProfile()
-    } catch {
-      // The request is expected to reject with the expired-session API envelope.
-    }
+  await withMockControl(page, async (mocks) => {
+    await mocks.requestProfile().catch(() => undefined)
   })
-
   await expect(page).toHaveURL(/\/login\?/)
   const loginUrl = new URL(page.url())
   expect(loginUrl.searchParams.get('redirect')).toBe('/pagamento?step=review')
@@ -493,16 +546,29 @@ test('logout calls the API and clears the client session, checkout data, and soc
   await page.getByLabel('Senha', { exact: true }).fill('KurioDemo!A2026')
   await page.getByRole('button', { name: 'Entrar', exact: true }).click()
   await expect(page.getByText('Ana Oliveira', { exact: true })).toBeVisible()
+  const authenticatedToken = await page.evaluate(() =>
+    window.sessionStorage.getItem('kurio.session.token'),
+  )
+  if (!authenticatedToken) {
+    throw new Error('Expected the login flow to persist Ana’s session token')
+  }
 
-  await page.evaluate(async () => {
+  await withMockControl(page, async (_mocks, browserWindow) => {
+    const testWindow = browserWindow as Window & {
+      __KURIO_TEST_SOCKET__?: MockSocketForTests & { connected: boolean }
+    }
+    const socket = await _mocks.connectSocketClient()
+    testWindow.__KURIO_TEST_SOCKET__ = socket
+    if (!socket.connected) {
+      await new Promise<void>((resolve) => {
+        socket.once('connect', () => resolve())
+      })
+    }
+  })
+  await page.evaluate(() => {
     window.sessionStorage.setItem('kurio.checkout.draft', '{"step":"review"}')
-    window.sessionStorage.setItem(
-      'kurio.checkout.idempotency-key',
-      'logout-attempt',
-    )
+    window.sessionStorage.setItem('kurio.checkout.idempotency-key', 'logout-attempt')
     window.sessionStorage.setItem('kurio.pending-order-id', 'order-pending')
-    const socket = await window.__KURIO_MOCKS__.connectSocketClient()
-    window.__KURIO_TEST_SOCKET__ = socket
   })
   await expect.poll(() =>
     page.evaluate(() => window.__KURIO_TEST_SOCKET__?.connected),
@@ -523,7 +589,7 @@ test('logout calls the API and clears the client session, checkout data, and soc
   ).toHaveCount(1)
   await expect(page.getByText('Ana Oliveira', { exact: true })).toHaveCount(0)
   await expect.poll(() =>
-    page.evaluate(() => window.__KURIO_TEST_SOCKET__?.connected),
+    page.evaluate(() => window.__KURIO_TEST_SOCKET__?.connected ?? false),
   ).toBe(false)
   const privateState = await page.evaluate(() => {
     return {
@@ -549,16 +615,36 @@ test('switching from Ana to Caio removes Ana from the UI and disconnects her soc
   await page.getByLabel('Senha', { exact: true }).fill('KurioDemo!A2026')
   await page.getByRole('button', { name: 'Entrar', exact: true }).click()
   await expect(page.getByText('Ana Oliveira', { exact: true })).toBeVisible()
+  const authenticatedToken = await page.evaluate(() =>
+    window.sessionStorage.getItem('kurio.session.token'),
+  )
+  if (!authenticatedToken) {
+    throw new Error('Expected the login flow to persist Ana’s session token')
+  }
 
-  await page.evaluate(async () => {
-    window.sessionStorage.setItem('kurio.checkout.draft', '{"user":"ana"}')
-    const socket = await window.__KURIO_MOCKS__.connectSocketClient()
-    window.__KURIO_TEST_SOCKET__ = socket
+  await withMockControl(page, async (_mocks, browserWindow) => {
+    const socket = await _mocks.connectSocketClient()
+    const testWindow = browserWindow as Window & {
+      __KURIO_TEST_SOCKET__?: MockSocketForTests & {
+        connected: boolean
+      }
+    }
+    testWindow.__KURIO_TEST_SOCKET__ = socket
+    await new Promise<void>((resolve) => {
+      socket.once('connect', () => resolve())
+    })
   })
+  await page.evaluate(() =>
+    window.sessionStorage.setItem('kurio.checkout.draft', '{"user":"ana"}'),
+  )
   await expect.poll(() =>
     page.evaluate(() => window.__KURIO_TEST_SOCKET__?.connected),
   ).toBe(true)
 
+  await page.evaluate((token) =>
+    window.sessionStorage.setItem('kurio.session.token', token),
+    authenticatedToken,
+  )
   await page.evaluate(async () => {
     const routerUrl = new URL('/src/router.tsx', location.origin).href
     const routerModule = (await import(
@@ -573,7 +659,7 @@ test('switching from Ana to Caio removes Ana from the UI and disconnects her soc
   await expect(page.getByText('Caio Martins', { exact: true })).toBeVisible()
   await expect(page.getByText('Ana Oliveira', { exact: true })).toHaveCount(0)
   await expect.poll(() =>
-    page.evaluate(() => window.__KURIO_TEST_SOCKET__?.connected),
+    page.evaluate(() => window.__KURIO_TEST_SOCKET__?.connected ?? false),
   ).toBe(false)
   const privateState = await page.evaluate(() => {
     return {

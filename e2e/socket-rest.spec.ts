@@ -1,8 +1,24 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import {
   connectMockSocket,
   openWithMockScenario,
+  waitForMockControl,
 } from './mock-helpers'
+
+declare global {
+  interface Window {
+    __KURIO_TEST_SOCKET__?: import('./mock-helpers').MockSocketForTests
+    __KURIO_GUEST_SOCKET__?: import('./mock-helpers').MockSocketForTests
+    __KURIO_TEST_SOCKET_EVENTS__?: Array<{
+      name: 'nft.updated' | 'order.updated'
+      payload: unknown
+    }>
+    __KURIO_GUEST_SOCKET_EVENTS__?: Array<{
+      name: 'nft.updated' | 'order.updated'
+      payload: unknown
+    }>
+  }
+}
 
 type BrowserApiModule = {
   apiClient: {
@@ -12,6 +28,41 @@ type BrowserApiModule = {
       config?: { headers?: Record<string, string> },
     ) => Promise<{ data: Record<string, unknown> }>
   }
+}
+
+async function connectGuestSocket(page: Page): Promise<void> {
+  await waitForMockControl(page)
+  await page.evaluate(async () => {
+    const control = (window as unknown as Window & {
+      __KURIO_MOCKS__: import('./mock-helpers').MockControlForTests
+    }).__KURIO_MOCKS__
+    const guestSocket = await control.connectSocketClient(null)
+    const guestEvents: Array<{
+      name: 'nft.updated' | 'order.updated'
+      payload: unknown
+    }> = []
+    guestSocket.on('nft.updated', (payload) => {
+      guestEvents.push({ name: 'nft.updated', payload })
+    })
+    guestSocket.on('order.updated', (payload) => {
+      guestEvents.push({ name: 'order.updated', payload })
+    })
+    const testWindow = window as Window & {
+      __KURIO_GUEST_SOCKET__?: import('./mock-helpers').MockSocketForTests
+      __KURIO_GUEST_SOCKET_EVENTS__?: Array<{
+        name: 'nft.updated' | 'order.updated'
+        payload: unknown
+      }>
+    }
+    testWindow.__KURIO_GUEST_SOCKET__ = guestSocket
+    testWindow.__KURIO_GUEST_SOCKET_EVENTS__ = guestEvents
+    await new Promise<void>((resolve, reject) => {
+      guestSocket.once('mock:subscribed', () => resolve())
+      guestSocket.once('mock:subscription-error', () => reject(
+        new Error('Guest Socket.IO subscription was rejected'),
+      ))
+    })
+  })
 }
 
 test('REST price revalidation emits nft.updated through socket.io-client', async ({
@@ -83,27 +134,7 @@ test('confirmed order emits private order.updated and inventory nft.updated even
   await openWithMockScenario(page, 'payment-confirmed')
   await connectMockSocket(page)
 
-  await page.evaluate(async () => {
-    const guestSocket = await window.__KURIO_MOCKS__.connectSocketClient(null)
-    const guestEvents: Array<{
-      name: 'nft.updated' | 'order.updated'
-      payload: unknown
-    }> = []
-    guestSocket.on('nft.updated', (payload) => {
-      guestEvents.push({ name: 'nft.updated', payload })
-    })
-    guestSocket.on('order.updated', (payload) => {
-      guestEvents.push({ name: 'order.updated', payload })
-    })
-    window.__KURIO_GUEST_SOCKET__ = guestSocket
-    window.__KURIO_GUEST_SOCKET_EVENTS__ = guestEvents
-    await new Promise<void>((resolve, reject) => {
-      guestSocket.once('mock:subscribed', () => resolve())
-      guestSocket.once('mock:subscription-error', () => reject(
-        new Error('Guest Socket.IO subscription was rejected'),
-      ))
-    })
-  })
+  await connectGuestSocket(page)
 
   const order = await page.evaluate(async () => {
     const apiClientUrl = new URL('/src/services/api-client.ts', location.origin).href
@@ -168,7 +199,12 @@ test('confirmed order emits private order.updated and inventory nft.updated even
   expect(guestEvents.every(({ name }) => name === 'nft.updated')).toBe(true)
 
   await page.evaluate(() => window.__KURIO_TEST_SOCKET__?.disconnect())
-  await page.evaluate(() => window.__KURIO_GUEST_SOCKET__?.disconnect())
+  await page.evaluate(() => {
+    const guestSocket = (window as Window & {
+      __KURIO_GUEST_SOCKET__?: import('./mock-helpers').MockSocketForTests
+    }).__KURIO_GUEST_SOCKET__
+    guestSocket?.disconnect()
+  })
 })
 
 test('rejected payment emits terminal order.updated without inventory changes', async ({

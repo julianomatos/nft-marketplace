@@ -5,7 +5,7 @@ import type { FeaturedNftsResponse } from '@/types/contracts'
 import { queryStaleTimes } from '@/lib/query-client'
 import { apiClient } from '@/services/api-client'
 
-function featuredNftsQueryOptions() {
+function featuredNftsQueryOptions(options: { enabled?: boolean } = {}) {
   return queryOptions({
     queryKey: queryKeys.catalog.featured,
     queryFn: async ({ signal }) => {
@@ -16,11 +16,12 @@ function featuredNftsQueryOptions() {
       return response.data
     },
     staleTime: queryStaleTimes.catalog,
+    enabled: options.enabled,
   })
 }
 
-function useFeaturedNfts() {
-  return useQuery(featuredNftsQueryOptions())
+function useFeaturedNfts(options: { enabled?: boolean } = {}) {
+  return useQuery(featuredNftsQueryOptions(options))
 }
 
 export { featuredNftsQueryOptions, useFeaturedNfts }

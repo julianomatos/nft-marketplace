@@ -15,6 +15,7 @@ import { queryClient } from '@/lib/query-client'
 import {
   getSessionToken,
   SESSION_CHANGED_EVENT,
+  SESSION_EXPIRY_RETURN_TARGET_KEY,
   SESSION_EXPIRED_EVENT,
   setSessionToken,
 } from '@/services/api-client'
@@ -303,8 +304,16 @@ function RootLayout() {
     function handleSessionExpired() {
       if (handledSessionExpiry.current) return
       handledSessionExpiry.current = true
-      const currentLocation = router.state.location
-      const returnTarget = saveAuthReturnContext(currentLocation.href)
+      const expiredReturnTarget = window.sessionStorage.getItem(
+        SESSION_EXPIRY_RETURN_TARGET_KEY,
+      )
+      const returnTarget =
+        saveAuthReturnContext(
+          expiredReturnTarget
+            ? `${window.location.origin}${expiredReturnTarget}`
+            : window.location.href,
+        ) ?? expiredReturnTarget
+      window.sessionStorage.removeItem(SESSION_EXPIRY_RETURN_TARGET_KEY)
       queryClient.clear()
       setSessionToken(null)
       router.update({ context: { session: { status: 'guest' } } })

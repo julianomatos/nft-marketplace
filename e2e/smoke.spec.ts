@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { openWithMockScenario } from './mock-helpers'
+import { openWithMockScenario, withMockControl } from './mock-helpers'
 
 test('the application starts in Chromium', async ({ page }) => {
   await page.goto('/')
@@ -30,6 +30,6 @@ test('mock scenario can be selected from the URL before the app starts', async (
   await openWithMockScenario(page, 'empty')
 
   await expect.poll(() =>
-    page.evaluate(() => window.__KURIO_MOCKS__.getState().scenario),
+    withMockControl(page, (mocks) => mocks.getState().scenario),
   ).toBe('empty')
 })

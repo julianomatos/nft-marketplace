@@ -15,7 +15,7 @@ type HomeIntroProps = {
 }
 
 function HomeIntro({ background = false, featuredNfts }: HomeIntroProps) {
-  const featuredQuery = useFeaturedNfts()
+  const featuredQuery = useFeaturedNfts({ enabled: !featuredNfts })
   const queryClient = useQueryClient()
   const heroNfts = featuredNfts?.hero ?? featuredQuery.data?.hero ?? []
   const heroNft = heroNfts[0]

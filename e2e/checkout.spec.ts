@@ -1,11 +1,12 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
+import { withMockControl } from './mock-helpers'
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/')
-  await page.evaluate(() => {
-    window.__KURIO_MOCKS__.reset('design-cart')
-    window.sessionStorage.setItem('kurio.session.token', 'mock-token-collector-ana')
+  await withMockControl(page, (mocks, browserWindow) => {
+    mocks.reset('design-cart')
+    browserWindow.sessionStorage.setItem('kurio.session.token', 'mock-token-collector-ana')
   })
 })
 

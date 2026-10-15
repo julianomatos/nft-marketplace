@@ -20,6 +20,9 @@ type MockSocketClient = {
   disconnect: () => void
 }
 
+export type MockControlForTests = MockControl
+export type MockSocketForTests = MockSocketClient
+
 type CapturedSocketEvent = {
   name: 'nft.updated' | 'order.updated'
   payload: unknown
@@ -27,12 +30,51 @@ type CapturedSocketEvent = {
 
 declare global {
   interface Window {
-    __KURIO_MOCKS__: MockControl
-    __KURIO_TEST_SOCKET__?: MockSocketClient
-    __KURIO_TEST_SOCKET_EVENTS__?: CapturedSocketEvent[]
-    __KURIO_GUEST_SOCKET__?: MockSocketClient
-    __KURIO_GUEST_SOCKET_EVENTS__?: CapturedSocketEvent[]
+    __KURIO_MOCKS_READY__?: Promise<void>
+    __KURIO_MOCKS_FAILED__?: unknown
+    __KURIO_MOCKS_ERROR__?: string
   }
+}
+
+export async function waitForMockControl(page: Page): Promise<void> {
+  await page.evaluate(async () => {
+    const mockWindow = window as unknown as Window & {
+      __KURIO_MOCKS_READY__?: Promise<void>
+      __KURIO_MOCKS_FAILED__?: unknown
+      __KURIO_MOCKS_ERROR__?: string
+    }
+    if (!mockWindow.__KURIO_MOCKS_READY__) {
+      throw new Error('Mock initialization did not publish its ready promise')
+    }
+    await mockWindow.__KURIO_MOCKS_READY__
+    if (mockWindow.__KURIO_MOCKS_FAILED__) {
+      throw new Error(
+        `Mock initialization failed: ${mockWindow.__KURIO_MOCKS_ERROR__ ?? 'unknown error'}`,
+      )
+    }
+  })
+}
+
+export async function withMockControl<T>(
+  page: Page,
+  callback: (control: MockControlForTests, browserWindow: Window) => T | Promise<T>,
+): Promise<T> {
+  await waitForMockControl(page)
+  const callbackSource = callback.toString()
+  return page.evaluate((source) => {
+    const run = new Function(
+      'control',
+      'browserWindow',
+      `return (${source})(control, browserWindow)`,
+    ) as (
+      control: MockControlForTests,
+      browserWindow: Window,
+    ) => T | Promise<T>
+    const control = (window as unknown as Window & {
+      __KURIO_MOCKS__: MockControlForTests
+    }).__KURIO_MOCKS__
+    return run(control, window)
+  }, callbackSource)
 }
 
 export async function openWithMockScenario(
@@ -40,41 +82,70 @@ export async function openWithMockScenario(
   scenario: MockScenario,
 ): Promise<void> {
   await page.goto(`/?mockScenario=${encodeURIComponent(scenario)}`)
+  await waitForMockControl(page)
 }
 
 export async function resetMockScenario(
   page: Page,
   scenario: MockScenario,
 ): Promise<void> {
-  await page.evaluate((nextScenario) => {
-    window.__KURIO_MOCKS__.reset(nextScenario)
-  }, scenario)
+  await waitForMockControl(page)
+  await page.evaluate(
+    ({ scenario: nextScenario }) => {
+      const control = (window as unknown as Window & {
+        __KURIO_MOCKS__: MockControl
+      }).__KURIO_MOCKS__
+      control.reset(nextScenario)
+    },
+    { scenario },
+  )
 }
 
 export async function setMockClock(page: Page, timestamp: string): Promise<void> {
-  await page.evaluate((nextTimestamp) => {
-    window.__KURIO_MOCKS__.setMockTime(nextTimestamp)
-  }, timestamp)
+  await waitForMockControl(page)
+  await page.evaluate(
+    ({ timestamp: nextTimestamp }) => {
+      const control = (window as unknown as Window & {
+        __KURIO_MOCKS__: MockControl
+      }).__KURIO_MOCKS__
+      control.setMockTime(nextTimestamp)
+    },
+    { timestamp },
+  )
 }
 
 export async function advanceMockClock(page: Page, milliseconds: number): Promise<void> {
-  await page.evaluate((elapsed) => {
-    window.__KURIO_MOCKS__.advanceMockTime(elapsed)
-  }, milliseconds)
+  await waitForMockControl(page)
+  await page.evaluate(
+    ({ milliseconds: elapsed }) => {
+      const control = (window as unknown as Window & {
+        __KURIO_MOCKS__: MockControl
+      }).__KURIO_MOCKS__
+      control.advanceMockTime(elapsed)
+    },
+    { milliseconds },
+  )
 }
 
 export async function setMockRequestLatency(
   page: Page,
   milliseconds: number,
 ): Promise<void> {
-  await page.evaluate((latency) => {
-    window.__KURIO_MOCKS__.setLatency(latency)
-  }, milliseconds)
+  await waitForMockControl(page)
+  await page.evaluate(
+    ({ latency }) => {
+      const control = (window as unknown as Window & {
+        __KURIO_MOCKS__: MockControl
+      }).__KURIO_MOCKS__
+      control.setLatency(latency)
+    },
+    { latency: milliseconds },
+  )
 }
 
 export async function connectMockSocket(page: Page): Promise<void> {
-  await page.evaluate(async () => {
-    const socket = await window.__KURIO_MOCKS__.connectSocketClient()
+  await withMockControl(page, async (mocks, browserWindow) => {
+    const socket = await mocks.connectSocketClient()
     const events: CapturedSocketEvent[] = []
     socket.on('nft.updated', (payload) => {
       events.push({ name: 'nft.updated', payload })
@@ -82,8 +153,12 @@ export async function connectMockSocket(page: Page): Promise<void> {
     socket.on('order.updated', (payload) => {
       events.push({ name: 'order.updated', payload })
     })
-    window.__KURIO_TEST_SOCKET__ = socket
-    window.__KURIO_TEST_SOCKET_EVENTS__ = events
+    const testWindow = browserWindow as Window & {
+      __KURIO_TEST_SOCKET__?: MockSocketClient
+      __KURIO_TEST_SOCKET_EVENTS__?: CapturedSocketEvent[]
+    }
+    testWindow.__KURIO_TEST_SOCKET__ = socket
+    testWindow.__KURIO_TEST_SOCKET_EVENTS__ = events
 
     await new Promise<void>((resolve, reject) => {
       socket.once('mock:subscribed', () => resolve())
